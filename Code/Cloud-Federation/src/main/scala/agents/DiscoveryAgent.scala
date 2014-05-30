@@ -30,7 +30,7 @@ class DiscoveryAgent(pubSubServerAddr: InetAddress) extends Actor
 	override def receive: Receive = {
 		case DiscoveryInit   => recvDiscoveryInit()
 		case "CCFMShutdown"  => recvCCFMShutdown()
-		case _                => log.error("Unknown message received!")
+		case _               => log.error("Unknown message received!")
 	}
 
 	private def recvDiscoveryInit(): Unit = {
