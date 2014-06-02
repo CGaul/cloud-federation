@@ -38,15 +38,15 @@ class CCFM(pubSubServerAddr: String) extends Actor
 		case DiscoveryError(status)	=>	recvDiscoveryError(status)
 		case "matchmakingMsg" 			=> recvMatchMakingMsg()
 		case "authenticationMsg"		=> recvAuthenticationMsg()
-		case _                			=> log.error("Unknown message received!")
+		case _								=> log.error("Unknown message received!")
 	}
 
 	def recvDiscoveryStatus(status: String): Unit = {
-		log.info("Discovery Status "+ status + " received.")
+		log.info("Discovery Status \""+ status + "\" received.")
 	}
 
 	def recvDiscoveryError(error: String): Unit = {
-		log.error("Discovery Error "+ error + " received.")
+		log.error("Discovery Error \""+ error + "\" received.")
 	}
 
 

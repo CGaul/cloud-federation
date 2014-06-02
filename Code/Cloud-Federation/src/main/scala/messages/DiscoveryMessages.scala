@@ -1,8 +1,5 @@
 package messages
 
-import java.net.InetAddress
-
-
 sealed abstract class DiscoveryMessage //TODO: implement common methods for Discovery-Messages here.
 
 

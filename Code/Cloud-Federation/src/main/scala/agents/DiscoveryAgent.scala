@@ -40,11 +40,11 @@ class DiscoveryAgent(pubSubServerAddr: String) extends Actor
 	// -----------------------------------
 
 	override def receive: Receive = {
-		case DiscoveryInit()  							=> recvDiscoveryInit()
+		case DiscoveryInit()								=> recvDiscoveryInit()
 		case DiscoveryPublication(discoveryList)	=> recvDiscoveryPublication(discoveryList)
 
-		case "CCFMShutdown"  							=> recvCCFMShutdown()
-		case _               							=> log.error("Unknown message received!")
+		case "CCFMShutdown" 								=> recvCCFMShutdown()
+		case _												=> log.error("Unknown message received!")
 	}
 
 	private def recvDiscoveryInit(): Unit = {
@@ -59,6 +59,7 @@ class DiscoveryAgent(pubSubServerAddr: String) extends Actor
 			}
 			else{
 				sender() ! DiscoveryError("PubSubServer is not available!")
+
 				//TODO: close Agent.
 			}
 		}
