@@ -1,0 +1,9 @@
+## Ignore Code-Files & Dirs ##
+##############################
+
+OpenVirteX
+
+Cloud-Federation/.idea
+Cloud-Federation/project/
+Cloud-Federation/target/
+Cloud-Federation/atlassian-ide-plugin.xml
