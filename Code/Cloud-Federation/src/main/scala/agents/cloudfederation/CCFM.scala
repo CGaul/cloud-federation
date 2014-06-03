@@ -1,6 +1,6 @@
 package agents
 
-import akka.actor.{ActorRef, Props, Actor}
+import akka.actor.{ActorLogging, ActorRef, Props, Actor}
 import akka.event.Logging
 import java.net.InetAddress
 import messages.{DiscoveryError, DiscoveryMessage, DiscoveryAck, DiscoveryInit}
@@ -9,13 +9,11 @@ import messages.{DiscoveryError, DiscoveryMessage, DiscoveryAck, DiscoveryInit}
 /**
  * Created by costa on 5/27/14.
  */
-class CCFM(pubSubServerAddr: String) extends Actor
+class CCFM(pubSubServerAddr: String) extends Actor with ActorLogging
 {
 
 /* Global Values: */
 /* ============== */
-
-	val log = Logging(context.system, this)
 
 	// Akka Child-Actor spawning:
 	val discoveryAgentProps: Props 	= Props(classOf[DiscoveryAgent], args = pubSubServerAddr)
