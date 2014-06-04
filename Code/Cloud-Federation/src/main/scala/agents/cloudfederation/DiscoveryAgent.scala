@@ -18,6 +18,7 @@ import messages.DiscoveryPublication
 import messages.DiscoveryError
 import messages.DiscoverySubscription
 import messages.DiscoveryAck
+import agents.cloudfederation.RemoteDependencyAgent
 
 
 /**
@@ -26,27 +27,24 @@ import messages.DiscoveryAck
  * This agent is able to connect to the Discovery-Subscription-Service
  * and establishes a communication with the CCFM as its Supervisor.
  */
-class DiscoveryAgent(pubSubServerAddr: String) extends Actor with ActorLogging
+class DiscoveryAgent(pubSubServerAddr: ActorSelection) extends RemoteDependencyAgent(Vector(pubSubServerAddr)) with ActorLogging
 {
 
-/* Global Values: */
-/* ============== */
-
-	val pubSubFederator = context.actorSelection(pubSubServerAddr)
+/* Values: */
+/* ======= */
 
 
+/* Execution: */
+/* ========= */
 
-/* Methods & Execution: */
-/* ==================== */
+
+/* Methods: */
+/* ======== */
 
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	def offline: Receive = {
-
-	}
-
-	override def receive: Receive = {
+	override def online: Receive = {
 		case DiscoveryInit()								=> recvDiscoveryInit()
 		case DiscoveryPublication(discoveryList)	=> recvDiscoveryPublication(discoveryList)
 
@@ -56,21 +54,21 @@ class DiscoveryAgent(pubSubServerAddr: String) extends Actor with ActorLogging
 
 	private def recvDiscoveryInit(): Unit = {
 		log.info("Received Init Call from CCFM.")
-		log.info("Sending Identification Request to the PubSub-Federator...")
-		pubSubFederator ! Identify
 		log.info("Sending async subscription request to PubSub-Federator...")
 		try{
 			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
-			val pubSubReply: Future[DiscoveryAck] = (pubSubFederator.ask(DiscoverySubscription("this is my cert!"))(timeout)).mapTo[DiscoveryAck]
+			val pubSubReply: Future[DiscoveryAck] = (pubSubServerAddr.ask(DiscoverySubscription("this is my cert!"))(timeout)).mapTo[DiscoveryAck]
 			//val ident: ActorIdentity = Await.result(pubSubReply, Duration.apply(5 seconds))
-			if(pubSubReply) {
-				sender() ! DiscoveryAck("Subscribed at PubSubServer")
-			}
-			else{
-				sender() ! DiscoveryError("PubSubServer is not available!")
 
-				//TODO: close Agent.
-			}
+		  //TODO: go on here.
+//			if(pubSubReply.) {
+//				sender() ! DiscoveryAck("Subscribed at PubSubServer")
+//			}
+//			else{
+//				sender() ! DiscoveryError("PubSubServer is not available!")
+//
+//				//TODO: close Agent.
+//			}
 		}
 		catch{
 			case timeoutError: AskTimeoutException =>
@@ -98,5 +96,5 @@ class DiscoveryAgent(pubSubServerAddr: String) extends Actor with ActorLogging
  */
 object DiscoveryAgent
 {
-	def props(pubSubServerAddr: String): Props = Props(new DiscoveryAgent(pubSubServerAddr))
+	def props(pubSubServerAddr: ActorSelection): Props = Props(new DiscoveryAgent(pubSubServerAddr))
 }

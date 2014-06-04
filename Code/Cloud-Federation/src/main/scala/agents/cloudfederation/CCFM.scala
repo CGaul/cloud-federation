@@ -1,32 +1,38 @@
 package agents
 
-import akka.actor.{ActorLogging, ActorRef, Props, Actor}
+import akka.actor._
 import akka.event.Logging
 import java.net.InetAddress
 import messages.{DiscoveryError, DiscoveryMessage, DiscoveryAck, DiscoveryInit}
+import messages.DiscoveryInit
+import messages.DiscoveryError
+import messages.DiscoveryAck
 
 
 /**
  * Created by costa on 5/27/14.
  */
-class CCFM(pubSubServerAddr: String) extends Actor with ActorLogging
+class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 {
 
-/* Global Values: */
-/* ============== */
+/* Values: */
+/* ======= */
 
-	// Akka Child-Actor spawning:
-	val discoveryAgentProps: Props 	= Props(classOf[DiscoveryAgent], args = pubSubServerAddr)
-	val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
-	println("Discovery-Agent established!")
+  // Akka Child-Actor spawning:
+  val discoveryAgentProps: Props 	= Props(classOf[DiscoveryAgent], args = pubSubServerAddr)
+  val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
+  println("Discovery-Agent established!")
 
 
-/* Methods & Execution: */
-/* ==================== */
+/* Execution: */
+/* ========= */
 
-	//Called on CCFM construction:
-	discoveryAgent ! DiscoveryInit()
+  //Called on CCFM construction:
+  discoveryAgent ! DiscoveryInit()
 
+
+/* Methods: */
+/* ======== */
 
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
@@ -68,5 +74,5 @@ object CCFM
 	 * @param pubSubServerAddr The akka.tcp connection, where the PubSub-Federator-Agents is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(pubSubServerAddr: String): Props = Props(new CCFM(pubSubServerAddr))
+	def props(pubSubServerAddr: ActorSelection): Props = Props(new CCFM(pubSubServerAddr))
 }
