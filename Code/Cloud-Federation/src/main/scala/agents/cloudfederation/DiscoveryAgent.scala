@@ -1,18 +1,11 @@
 package agents
 
-import scala.concurrent.{Await, Future}
+import scala.concurrent.Future
 import scala.concurrent.duration._
 
 import akka.actor._
-import akka.event.Logging
-import akka.pattern.{AskTimeoutException, ask, pipe}
-
-import messages._
+import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import messages.DiscoveryInit
-import messages.DiscoveryPublication
-import messages.DiscoverySubscription
-import messages.DiscoveryAck
 import messages.DiscoveryInit
 import messages.DiscoveryPublication
 import messages.DiscoveryError

@@ -1,12 +1,7 @@
 package agents
 
 import akka.actor._
-import akka.event.Logging
-import java.net.InetAddress
-import messages.{DiscoveryError, DiscoveryMessage, DiscoveryAck, DiscoveryInit}
-import messages.DiscoveryInit
-import messages.DiscoveryError
-import messages.DiscoveryAck
+import messages.{DiscoveryInit, DiscoveryAck, DiscoveryError}
 
 
 /**

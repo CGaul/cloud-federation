@@ -2,7 +2,6 @@ package agents
 
 import akka.actor.{ActorLogging, ActorRef, Actor}
 import messages.DiscoverySubscription
-import akka.event.Logging
 
 /**
  * Created by costa on 5/31/14.
