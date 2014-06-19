@@ -20,11 +20,17 @@ import agents.cloudfederation.RemoteDependencyAgent
  * This agent is able to connect to the Discovery-Subscription-Service
  * and establishes a communication with the CCFM as its Supervisor.
  */
-class DiscoveryAgent(pubSubServerAddr: ActorSelection) extends RemoteDependencyAgent(Vector(pubSubServerAddr)) with ActorLogging
+class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent(Vector(pubSubServer)) with ActorLogging
 {
 
 /* Values: */
 /* ======= */
+
+
+/* Variables: */
+/* ========== */
+
+  	var discoveryActors: Vector[ActorSelection] = Vector()
 
 
 /* Execution: */
@@ -38,22 +44,25 @@ class DiscoveryAgent(pubSubServerAddr: ActorSelection) extends RemoteDependencyA
 	// -----------------------------------
 
 	override def online: Receive = {
-		case DiscoveryInit()								=> recvDiscoveryInit()
-		case DiscoveryPublication(discoveryList)	=> recvDiscoveryPublication(discoveryList)
+		case DiscoveryInit()								=> recvDiscoveryInit
+		case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
 
-		case "CCFMShutdown" 								=> recvCCFMShutdown()
+		case Kill											=> recvCCFMShutdown
 		case _												=> log.error("Unknown message received!")
 	}
 
-	private def recvDiscoveryInit(): Unit = {
+	private def recvDiscoveryInit = {
 		log.info("Received Init Call from CCFM.")
 		log.info("Sending async subscription request to PubSub-Federator...")
-		try{
-			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
-			val pubSubReply: Future[DiscoveryAck] = (pubSubServerAddr.ask(DiscoverySubscription("this is my cert!"))(timeout)).mapTo[DiscoveryAck]
-			//val ident: ActorIdentity = Await.result(pubSubReply, Duration.apply(5 seconds))
 
-		  //TODO: go on here.
+	  	pubSubServer ! DiscoverySubscription("This is my cert!")
+
+//		try{
+//			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
+//			val pubSubReply: Future[DiscoveryAck] = (pubSubServerAddr.ask(DiscoverySubscription("this is my cert!"))(timeout)).mapTo[DiscoveryAck]
+//			//val ident: ActorIdentity = Await.result(pubSubReply, Duration.apply(5 seconds))
+//
+//		  //TODO: go on here.
 //			if(pubSubReply.) {
 //				sender() ! DiscoveryAck("Subscribed at PubSubServer")
 //			}
@@ -62,21 +71,22 @@ class DiscoveryAgent(pubSubServerAddr: ActorSelection) extends RemoteDependencyA
 //
 //				//TODO: close Agent.
 //			}
-		}
-		catch{
-			case timeoutError: AskTimeoutException =>
-				sender() ! DiscoveryError("PubSubServer timeout!")
-				throw timeoutError
-		}
+//		}
+//		catch{
+//			case timeoutError: AskTimeoutException =>
+//				sender() ! DiscoveryError("PubSubServer timeout!")
+//				throw timeoutError
+//		}
 
 
 	}
 
-	def recvDiscoveryPublication(discoveryList: List[String]): Unit = {
+	def recvDiscoveryPublication(discoveryActors: Vector[ActorSelection]) = {
 		log.info("Received Publication Call from PubSubFederator.")
+	  	this.discoveryActors = discoveryActors
 	}
 
-	private def recvCCFMShutdown(): Unit = {
+	private def recvCCFMShutdown = {
 		log.info("Received Shutdown Call from CCFM.")
 	}
 }

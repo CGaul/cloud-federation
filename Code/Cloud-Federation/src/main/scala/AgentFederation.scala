@@ -10,5 +10,5 @@ object AgentFederation extends App
 	val ccfmProps = Props(classOf[CCFM], args = pubSubServerAddr)
 	val ccfmAgent = system.actorOf(ccfmProps, name="CCFM")
 
-	println("CCFM-Agent established!")
+	println("Starting AgentFederation. Initialized CCFM-Agent successful! CCFM Address: "+ ccfmAgent)
 }

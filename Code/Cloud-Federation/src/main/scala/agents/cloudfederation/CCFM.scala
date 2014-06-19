@@ -16,7 +16,7 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
   // Akka Child-Actor spawning:
   val discoveryAgentProps: Props 	= Props(classOf[DiscoveryAgent], args = pubSubServerAddr)
   val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
-  println("Discovery-Agent established!")
+  log.info("Discovery-Agent established!")
 
 
 /* Execution: */
@@ -24,6 +24,7 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 
   //Called on CCFM construction:
   discoveryAgent ! DiscoveryInit()
+  log.debug("Discovery-Init send to Discovery-Agent!")
 
 
 /* Methods: */
@@ -35,23 +36,23 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 	override def receive: Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=>	recvDiscoveryError(status)
-		case "matchmakingMsg" 			=> recvMatchMakingMsg()
-		case "authenticationMsg"		=> recvAuthenticationMsg()
+		case "matchmakingMsg" 			=> recvMatchMakingMsg
+		case "authenticationMsg"		=> recvAuthenticationMsg
 		case _								=> log.error("Unknown message received!")
 	}
 
-	def recvDiscoveryStatus(status: String): Unit = {
+	def recvDiscoveryStatus(status: String) = {
 		log.info("Discovery Status \""+ status + "\" received.")
 	}
 
-	def recvDiscoveryError(error: String): Unit = {
+	def recvDiscoveryError(error: String) = {
 		log.error("Discovery Error \""+ error + "\" received.")
 	}
 
 
-	def recvMatchMakingMsg(): Unit = ???
+	def recvMatchMakingMsg = ???
 
-	def recvAuthenticationMsg(): Unit = ???
+	def recvAuthenticationMsg = ???
 }
 
 

@@ -1,6 +1,8 @@
 package agents.cloudfederation
 
 import akka.actor._
+import akka.actor.Stash
+import messages.KillNotifier
 import scala.collection.mutable.ArrayBuffer
 import akka.actor.ActorIdentity
 import akka.actor.Identify
@@ -8,13 +10,13 @@ import akka.actor.Identify
 /**
  * Created by costa on 6/3/14.
  */
-abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection]) extends Actor with ActorLogging
+abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection]) extends Actor with ActorLogging with Stash
 {
 /* Values: */
 /* ======= */
 
 	//Initializes an internal boolean vector with false for every ActorSelection in remoteDependencies:
-	private val resolvedActors: ArrayBuffer[Option[ActorRef]] = ArrayBuffer.fill(remoteDependencies.length)(None)
+	private val dependentActors: ArrayBuffer[Option[ActorRef]] = ArrayBuffer.fill(remoteDependencies.length)(None)
 
 
 /* Execution: */
@@ -24,7 +26,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 	this.sendIdentityRequests(remoteDependencies)
 
 
-/* auxillary Constructors: */
+/* Auxillary Constructors: */
 /* ======================= */
 
 
@@ -43,35 +45,64 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 		}
 	}
 
-	override def receive: Receive = offline
+  override def receive: Receive = offline
 
-	def offline: Receive = {
-		case ActorIdentity(actorID, actorRef)	=> recvActorIdentity(actorID, actorRef)
-		case _											=> log.error("Offline RemoteDependencyAgents should not receive anything!")
+  def offline: Receive = {
+		case ActorIdentity(actorID, actorRef)	=> recv_onlineNotifier(actorID, actorRef)
+		case _											=> stashMessage
 	}
 
-  //TODO: pre-define offlining behavior here.
-  def online: Receive
+  /**
+	* The online receive-handle that needs to be implemented by the specified class, extending this RemoteDependencyAgent.
+	* Contains the functionality, which will be executed by the Actor if all RemoteDependencies are solved and a message
+	* comes into the mailbox, or there were stashed messages while the Actor was in its offline state.
+	* @return
+	*/
+	def online: Receive
 
-	def recvActorIdentity(actorID: Any, actorRef: Option[ActorRef]): Unit = {
+
+  def stashMessage = {
+	 log.debug("Received Message, before RemoteDependencyAgent went online. Stashed message until being online.")
+	 try {
+		stash()
+	 }
+	 catch {
+		case e: StashOverflowException => log.error("Reached Stash buffer. Received message will be ignored."+
+		  e.printStackTrace())
+	 }
+  }
+
+  def recv_onlineNotifier(actorID: Any, actorRef: Option[ActorRef]) = {
 		if(actorRef != None){
-			resolvedActors.update(actorID.asInstanceOf[Integer], actorRef)
+			dependentActors.update(actorID.asInstanceOf[Integer], actorRef)
 		}
 
 		//Search for any unresolved ActorRefs:
-		val unresolved = resolvedActors.find(_.equals(None))
+		val unresolved = dependentActors.find(_ == None)
 
 		//If no unresolved ActorRefs are left, become online:
 		if(unresolved == None){
-			context.become(online)
-			log.info("All ActorRef dependencies solved. Actor is now ONLINE (using regular receive() method).")
+			context.become({
+			  case KillNotifier()	=> recv_offlineNotifier
+			  case _						=> unstashAll()
+												online
+			})
+			log.info("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
-		//Else become offline (needed, as dependent Actors could be shutdown on runtime,
-		// which draws child actors offline again.
-	  //TODO: move this part to offlining behavior
-//		else{
-//			context.become(offline)
-//			log.info("Some ActorRef dependencies unsolved. Actor becomes OFFLINE.")
-//		}
+	 	else {
+		  log.info("Some ActorRef dependencies are currently unsolved. RemoteDependencyActor stays OFFLINE. " +
+			 "Dependent Actors: "+ dependentActors)
+		}
 	}
+
+  	def recv_offlineNotifier = {
+	 //Find the actorRef that notifies this actor of being killed in the actorDependency,
+	 //remove it and make this actor offline again:
+	 val killedActorIndex = dependentActors.indexOf(sender)
+	 if (killedActorIndex != -1){
+		dependentActors.update(killedActorIndex, None)
+		context.become(offline)
+		log.info("Actor "+ sender.toString() +" has send a KillNotifier. RemoteDependencyActor is now OFFLINE.")
+	 }
+  }
 }
