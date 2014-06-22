@@ -30,7 +30,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 /* Variables: */
 /* ========== */
 
-  	var discoveryActors: Vector[ActorSelection] = Vector()
+  	var discoveryActors: Vector[ActorPath] = Vector()
 
 
 /* Execution: */
@@ -81,7 +81,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 
 	}
 
-	def recvDiscoveryPublication(discoveryActors: Vector[ActorSelection]) = {
+	def recvDiscoveryPublication(discoveryActors: Vector[ActorPath]) = {
 		log.info("Received Publication Call from PubSubFederator.")
 	  	this.discoveryActors = discoveryActors
 	}

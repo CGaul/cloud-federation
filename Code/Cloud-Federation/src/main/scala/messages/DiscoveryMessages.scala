@@ -1,6 +1,6 @@
 package messages
 
-import akka.actor.ActorSelection
+import akka.actor.{ActorPath, ActorSelection}
 
 sealed abstract class DiscoveryMessage //TODO: implement common methods for Discovery-Messages here.
 
@@ -36,4 +36,4 @@ case class DiscoverySubscription(certificate : String) extends DiscoveryMessage
  * @param federatedDiscoveryActors A list of akka.tcp connections, each belonging to another Discovery-Agent from
  *                         possible matches of a Cloud-Federation
  */
-case class DiscoveryPublication(federatedDiscoveryActors: Vector[ActorSelection]) extends DiscoveryMessage
+case class DiscoveryPublication(federatedDiscoveryActors: Vector[ActorPath]) extends DiscoveryMessage

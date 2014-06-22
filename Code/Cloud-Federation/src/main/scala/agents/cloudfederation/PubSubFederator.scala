@@ -1,7 +1,7 @@
 package agents
 
-import akka.actor.{ActorLogging, ActorRef, Actor}
-import messages.DiscoverySubscription
+import akka.actor._
+import messages.{DiscoveryPublication, DiscoverySubscription}
 
 /**
  * Created by costa on 5/31/14.
@@ -12,14 +12,15 @@ class PubSubFederator extends Actor with ActorLogging
 /* Variables: */
 /* ========== */
 
-  private var subscriberList : List[ActorRef] = List()
+  private var subscriberRefs : Vector[ActorRef] = Vector()
+  private var subscriberPaths : Vector[ActorPath] = Vector()
 
 
 /* Methods: */
 /* ======== */
 
   def publish(message: Unit) = {
-	 for (subscriber <- subscriberList){
+	 for (subscriber <- subscriberRefs){
 		subscriber ! message
 	 }
   }
@@ -30,9 +31,17 @@ class PubSubFederator extends Actor with ActorLogging
   }
 
   def recvDiscoverySubscription(certificate: String): Unit = {
+
+	 //When a new DiscoverySubscription drops in, save that sender as a subscriber:
 	 val subscriber: ActorRef = sender()
-	 subscriberList = subscriber :: subscriberList
+	 subscriberRefs = subscriberRefs :+ subscriber
+	 subscriberPaths = subscriberPaths :+ subscriber.path
 	 log.info("Received Cloud Subscription. Subscribed Sender.")
+	 log.debug("Current subscriberRefs: "+ subscriberRefs)
+	 log.debug("Current subscriberPaths: "+ subscriberPaths)
+
+	 //and answer this discovery-Request with a DiscoveryPublication:
+	 subscriber ! DiscoveryPublication(subscriberPaths)
   }
 
 

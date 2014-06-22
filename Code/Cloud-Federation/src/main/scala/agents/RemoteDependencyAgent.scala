@@ -87,10 +87,10 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 			  case _						=> unstashAll()
 												online
 			})
-			log.info("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
+			log.debug("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {
-		  log.info("Some ActorRef dependencies are currently unsolved. RemoteDependencyActor stays OFFLINE. " +
+		  log.debug("Some ActorRef dependencies are currently unsolved. RemoteDependencyActor stays OFFLINE. " +
 			 "Dependent Actors: "+ dependentActors)
 		}
 	}
@@ -102,7 +102,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 	 if (killedActorIndex != -1){
 		dependentActors.update(killedActorIndex, None)
 		context.become(offline)
-		log.info("Actor "+ sender.toString() +" has send a KillNotifier. RemoteDependencyActor is now OFFLINE.")
+		log.debug("Actor "+ sender.toString() +" has send a KillNotifier. RemoteDependencyActor is now OFFLINE.")
 	 }
   }
 }
