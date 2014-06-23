@@ -45,11 +45,11 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 		}
 	}
 
-  override def receive: Receive = offline
+  override def receive(): Receive = offline()
 
-  def offline: Receive = {
+  def offline(): Receive = {
 		case ActorIdentity(actorID, actorRef)	=> recv_onlineNotifier(actorID, actorRef)
-		case _											=> stashMessage
+		case _											=> stashMessage()
 	}
 
   /**
@@ -58,10 +58,10 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 	* comes into the mailbox, or there were stashed messages while the Actor was in its offline state.
 	* @return
 	*/
-	def online: Receive
+	def online(): Receive
 
 
-  def stashMessage = {
+  def stashMessage() = {
 	 log.debug("Received Message, before RemoteDependencyAgent went online. Stashed message until being online.")
 	 try {
 		stash()
@@ -82,11 +82,8 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 
 		//If no unresolved ActorRefs are left, become online:
 		if(unresolved == None){
-			context.become({
-			  case KillNotifier()	=> recv_offlineNotifier
-			  case _						=> unstashAll()
-												online
-			})
+		 	unstashAll()
+			context.become(online)
 			log.debug("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {
@@ -95,7 +92,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 		}
 	}
 
-  	def recv_offlineNotifier = {
+  	def recv_offlineNotifier() = {
 	 //Find the actorRef that notifies this actor of being killed in the actorDependency,
 	 //remove it and make this actor offline again:
 	 val killedActorIndex = dependentActors.indexOf(sender)

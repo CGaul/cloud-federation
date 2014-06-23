@@ -33,11 +33,11 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def receive: Receive = {
+	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=>	recvDiscoveryError(status)
-		case "matchmakingMsg" 			=> recvMatchMakingMsg
-		case "authenticationMsg"		=> recvAuthenticationMsg
+		case "matchmakingMsg" 			=> recvMatchMakingMsg()
+		case "authenticationMsg"		=> recvAuthenticationMsg()
 		case _								=> log.error("Unknown message received!")
 	}
 
@@ -50,9 +50,9 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 	}
 
 
-	def recvMatchMakingMsg = ???
+	def recvMatchMakingMsg() = ???
 
-	def recvAuthenticationMsg = ???
+	def recvAuthenticationMsg() = ???
 }
 
 

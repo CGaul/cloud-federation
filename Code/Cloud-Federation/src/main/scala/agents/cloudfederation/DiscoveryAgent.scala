@@ -39,18 +39,20 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def online: Receive = {
+	override def online(): Receive = {
+	  	case KillNotifier()						=> super.recv_offlineNotifier()
+
 	  	case message: DiscoveryAgentReply	=> message match {
-		  case DiscoveryInit()								=> recvDiscoveryInit
+		  case DiscoveryInit()								=> recvDiscoveryInit()
 		  case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
 		}
-		case Kill									=> recvCCFMShutdown
+		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
 	}
 
-	private def recvDiscoveryInit = {
-		log.info("Received Init Call from CCFM.")
-		log.info("Sending async subscription request to PubSub-Federator...")
+	private def recvDiscoveryInit() = {
+		log.info("Received Discovery-Init Call from CCFM.")
+		log.info("Sending subscription request to PubSub-Federator...")
 
 	  	pubSubServer ! DiscoverySubscription("This is my cert!")
 
@@ -83,7 +85,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 	  	this.discoveryActors = discoveryActors
 	}
 
-	private def recvCCFMShutdown = {
+	private def recvCCFMShutdown() = {
 		log.info("Received Shutdown Call from CCFM.")
 	}
 }

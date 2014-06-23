@@ -14,6 +14,7 @@ class PubSubFederator extends Actor with ActorLogging
 
   private var subscriberRefs : Vector[ActorRef] = Vector()
   private var subscriberPaths : Vector[ActorPath] = Vector()
+  private val
 
 
 /* Methods: */
@@ -25,7 +26,7 @@ class PubSubFederator extends Actor with ActorLogging
 	 }
   }
 
-  override def receive: Receive = {
+  override def receive(): Receive = {
 	 case message: PubSubFederatorReply	=> message match {
 		case DiscoverySubscription(certificate)	=> recvDiscoverySubscription(certificate)
 	 }

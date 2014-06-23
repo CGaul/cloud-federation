@@ -11,5 +11,5 @@ class MatchMakingAgent extends Actor with ActorLogging
 /* Methods: */
 /* ======== */
 
-	override def receive: Receive = ???
+	override def receive(): Receive = ???
 }
