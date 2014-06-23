@@ -4,12 +4,12 @@ import com.typesafe.config.ConfigFactory
 
 object CloudAgentManagement extends App
 {
-  	val config = ConfigFactory.load("remoteApplication.conf")
+  	val config = ConfigFactory.load("localApplication.conf")
 	val system = ActorSystem("CloudAgents", config.getConfig("cloudAgents").withFallback(config))
 
   	val pubSubFederator = "remoteFederator"
 //	Applied on the remote side of the PubSubSystem:
-//	val pubSubServer = system.actorOf(Props[PubSubFederator], name=pubSubFederator)
+	val pubSubServer = system.actorOf(Props[PubSubFederator], name=pubSubFederator)
 	val pubSubServerAddr: ActorSelection = system.actorSelection("/user/"+pubSubFederator)
 
 

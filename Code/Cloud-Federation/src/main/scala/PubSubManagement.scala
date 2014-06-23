@@ -7,7 +7,7 @@ import com.typesafe.config.ConfigFactory
  */
 object PubSubManagement extends App
 {
-  val config = ConfigFactory.load("remoteApplication.conf")
+  val config = ConfigFactory.load("localApplication.conf")
   val system = ActorSystem("PubSubSystem", config.getConfig("pubSubSystem").withFallback(config))
 
   val pubSubFederator = "remoteFederator"
