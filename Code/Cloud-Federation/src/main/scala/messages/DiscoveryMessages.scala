@@ -2,14 +2,17 @@ package messages
 
 import akka.actor.{ActorPath, ActorSelection}
 
-sealed abstract class DiscoveryMessage //TODO: implement common methods for Discovery-Messages here.
+sealed abstract trait DiscoveryMessage
+sealed abstract trait DiscoveryAgentReply
+sealed abstract trait PubSubFederatorReply
 
 
-case class DiscoveryInit() extends DiscoveryMessage
+case class DiscoveryInit()	extends DiscoveryMessage 
+									with DiscoveryAgentReply
 
-case class DiscoveryAck(status: String) extends DiscoveryMessage
+case class DiscoveryAck(status: String)	extends DiscoveryMessage
 
-case class DiscoveryError(error: String) extends DiscoveryMessage
+case class DiscoveryError(error: String)	extends DiscoveryMessage
 
 
 /**
@@ -22,7 +25,8 @@ case class DiscoveryError(error: String) extends DiscoveryMessage
  * </p>
  * @param certificate
  */
-case class DiscoverySubscription(certificate : String) extends DiscoveryMessage
+case class DiscoverySubscription(certificate : String)	extends DiscoveryMessage
+																			with PubSubFederatorReply
 
 
 /**
@@ -36,4 +40,5 @@ case class DiscoverySubscription(certificate : String) extends DiscoveryMessage
  * @param federatedDiscoveryActors A list of akka.tcp connections, each belonging to another Discovery-Agent from
  *                         possible matches of a Cloud-Federation
  */
-case class DiscoveryPublication(federatedDiscoveryActors: Vector[ActorPath]) extends DiscoveryMessage
+case class DiscoveryPublication(federatedDiscoveryActors: Vector[ActorPath]) 	extends DiscoveryMessage 
+																										with DiscoveryAgentReply

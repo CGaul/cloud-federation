@@ -1,7 +1,7 @@
 package agents
 
 import akka.actor._
-import messages.{DiscoveryPublication, DiscoverySubscription}
+import messages.{PubSubFederatorReply, DiscoveryPublication, DiscoverySubscription}
 
 /**
  * Created by costa on 5/31/14.
@@ -26,8 +26,10 @@ class PubSubFederator extends Actor with ActorLogging
   }
 
   override def receive: Receive = {
-	 case DiscoverySubscription(certificate)	=> recvDiscoverySubscription(certificate)
-	 case _												=> log.error("Unknown message received!")
+	 case message: PubSubFederatorReply	=> message match {
+		case DiscoverySubscription(certificate)	=> recvDiscoverySubscription(certificate)
+	 }
+	 case _										=> log.error("Unknown message received!")
   }
 
   def recvDiscoverySubscription(certificate: String): Unit = {

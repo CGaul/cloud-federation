@@ -6,11 +6,7 @@ import scala.concurrent.duration._
 import akka.actor._
 import akka.pattern.{AskTimeoutException, ask}
 import akka.util.Timeout
-import messages.DiscoveryInit
-import messages.DiscoveryPublication
-import messages.DiscoveryError
-import messages.DiscoverySubscription
-import messages.DiscoveryAck
+import messages._
 import agents.cloudfederation.RemoteDependencyAgent
 
 
@@ -44,11 +40,12 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 	// -----------------------------------
 
 	override def online: Receive = {
-		case DiscoveryInit()								=> recvDiscoveryInit
-		case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
-
-		case Kill											=> recvCCFMShutdown
-		case _												=> log.error("Unknown message received!")
+	  	case message: DiscoveryAgentReply	=> message match {
+		  case DiscoveryInit()								=> recvDiscoveryInit
+		  case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
+		}
+		case Kill									=> recvCCFMShutdown
+		case _										=> log.error("Unknown message received!")
 	}
 
 	private def recvDiscoveryInit = {
