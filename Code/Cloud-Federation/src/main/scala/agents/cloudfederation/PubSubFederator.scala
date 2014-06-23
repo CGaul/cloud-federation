@@ -14,7 +14,7 @@ class PubSubFederator extends Actor with ActorLogging
 
   private var subscriberRefs : Vector[ActorRef] = Vector()
   private var subscriberPaths : Vector[ActorPath] = Vector()
-  private val
+  private var subscriberCerts : Map[ActorRef, String] = Map()
 
 
 /* Methods: */
@@ -39,6 +39,7 @@ class PubSubFederator extends Actor with ActorLogging
 	 val subscriber: ActorRef = sender()
 	 subscriberRefs = subscriberRefs :+ subscriber
 	 subscriberPaths = subscriberPaths :+ subscriber.path
+	 subscriberCerts = subscriberCerts + (subscriber -> certificate)
 	 log.info("Received Cloud Subscription. Subscribed Sender.")
 	 log.debug("Current subscriberRefs: "+ subscriberRefs)
 	 log.debug("Current subscriberPaths: "+ subscriberPaths)

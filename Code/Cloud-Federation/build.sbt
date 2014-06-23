@@ -19,6 +19,9 @@ libraryDependencies ++= Seq(
 	"com.typesafe.akka" %% "akka-testkit" % "2.3.3"
 )
 
+//Logging (SLF4J):
+libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"
+
 
 
 // Library Dependencies (TEST)
