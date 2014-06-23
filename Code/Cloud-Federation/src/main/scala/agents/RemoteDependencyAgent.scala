@@ -1,11 +1,8 @@
 package agents.cloudfederation
 
-import akka.actor._
-import akka.actor.Stash
-import messages.KillNotifier
+import akka.actor.{ActorIdentity, Identify, Stash, _}
+
 import scala.collection.mutable.ArrayBuffer
-import akka.actor.ActorIdentity
-import akka.actor.Identify
 
 /**
  * Created by costa on 6/3/14.

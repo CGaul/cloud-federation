@@ -1,5 +1,5 @@
-import agents.{PubSubFederator, CCFM}
-import akka.actor.{ActorSelection, Props, ActorSystem}
+import agents.{CCFM, PubSubFederator}
+import akka.actor.{ActorSelection, ActorSystem, Props}
 
 object AgentFederation extends App
 {

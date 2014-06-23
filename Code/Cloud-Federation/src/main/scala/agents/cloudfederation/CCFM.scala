@@ -1,7 +1,7 @@
 package agents
 
 import akka.actor._
-import messages.{DiscoveryInit, DiscoveryAck, DiscoveryError}
+import messages.{DiscoveryAck, DiscoveryError, DiscoveryInit}
 
 
 /**

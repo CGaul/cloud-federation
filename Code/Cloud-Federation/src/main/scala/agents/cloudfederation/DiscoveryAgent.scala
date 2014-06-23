@@ -1,13 +1,8 @@
 package agents
 
-import scala.concurrent.Future
-import scala.concurrent.duration._
-
-import akka.actor._
-import akka.pattern.{AskTimeoutException, ask}
-import akka.util.Timeout
-import messages._
 import agents.cloudfederation.RemoteDependencyAgent
+import akka.actor._
+import messages._
 
 
 /**

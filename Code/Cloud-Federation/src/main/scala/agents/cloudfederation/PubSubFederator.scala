@@ -1,7 +1,7 @@
 package agents
 
 import akka.actor._
-import messages.{PubSubFederatorReply, DiscoveryPublication, DiscoverySubscription}
+import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorReply}
 
 /**
  * Created by costa on 5/31/14.

@@ -1,6 +1,6 @@
 package messages
 
-import akka.actor.{ActorPath, ActorSelection}
+import akka.actor.ActorPath
 
 sealed abstract trait DiscoveryMessage
 sealed abstract trait DiscoveryAgentReply
