@@ -1,0 +1,70 @@
+#########################################################################
+######################### ALIASES #######################################
+#########################################################################
+
+
+#== System: ==
+alias sudo='sudo '
+alias service='sudo service'
+alias hwinfo='sudo lshw -short'
+
+alias listdev='ll /dev/ | grep sd | cut -b 1-6,11-19,52-70'
+alias listusers='cut -d: -f1 /etc/passwd'
+alias listgroups='cat /etc/group'
+
+alias sysupdate='sudo apt-get update'
+alias sysupgrade='sysupdate && sudo apt-get upgrade'
+alias sysdistup='sysupdate && sysupgrade && sudo apt-get dist-upgrade'
+alias sysinstall='sudo apt-get install'
+alias sysppa='sudo add-apt-repository'
+alias sysautoremove='sudo apt-get autoremove'
+
+alias reboot='sudo reboot'
+alias shutdown='sudo shutdown -P now'
+
+
+#== Network: ==
+alias pingG='ping google.com'
+alias iptraf='sudo iptraf'
+
+alias sshconf='vim ~/.ssh/config'
+alias sshhosts='vim ~/.ssh/known_hosts'
+alias ssh-keygen-rsa='ssh-keygen -t rsa -b 8096 -C "$(whoami)@$(hostname)"'
+
+ 
+#== KVM Commands: ==
+alias virshLogin='virsh -c qemu:///system'
+alias virshList='virsh -c qemu:///system list --all'
+alias virshConsole='virsh -c qemu:///system console'
+alias virshDefine='virsh -c qemu:///system define'
+
+
+#== Terminal: ==
+alias eG='vim ~/.bash_aliases'
+alias src='source ~/.bashrc'
+
+alias eFtab='sv /etc/fstab'
+alias eCron='sv /etc/crontab'
+alias eNet='sv /etc/network/interfaces'
+alias eHosts='sv /etc/hosts /etc/hostname'
+alias eSSHD='sv /etc/ssh/sshd_config'
+alias restartCron='sudo restart cron'
+
+alias sv='sudo vim'
+alias rng='ranger'
+alias tl='tail -f -n 50'
+alias fstab='sv /etc/fstab'
+
+alias C='clear'
+alias ..='cd ..'
+alias ...='cd ../..'
+alias k='exit'
+alias shred3='shred -vzn 3'
+
+
+#== Dir Infos: ==
+alias syssize='df -Th'
+alias dirsize='du -sh'
+alias ll='ls -alhF'
+alias la='ls -A'
+alias l='ls -CF'
