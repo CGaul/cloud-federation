@@ -220,7 +220,7 @@ containsProgress ${PROGRESS_FILE} "1.3" containsSection
 if [ ${containsSection} -eq 0 ]; then
 	echoAndLog "1.3) Installing ubuntu-virt-server, python-vm-builder, kvm-ipxe, libguestfs-tools and bridge-utils..." ${LOG_FILE}
 	echo "This really may take a while."
-	sudo apt-get install -qy --force-yes ubuntu-virt-server python-vm-builder kvm-ipxe libguestfs-tools bridge-utils >> ${LOG_FILE}
+	sudo apt-get install -y --force-yes ubuntu-virt-server python-vm-builder kvm-ipxe libguestfs-tools bridge-utils >> ${LOG_FILE}
 	saveProgress ${PROGRESS_FILE} "1.3" "Installing KVM Tools. DONE"
 fi
 
@@ -353,8 +353,32 @@ containsProgress ${PROGRESS_FILE} "3.1" containsSection
 if [ ${containsSection} -eq 0 ]; then
 	echoAndLog "3.1) Preparing a local template folder for the vmbuilder and post-build initialization..." ${LOG_FILE}
 	
-	su -c "mkdir -p ~/.vmbuilder/CoDECoM-Templates/libvirt" ${SUDO_USER}
+	su -c "mkdir -p ${TEMPLATE_PATH}/libvirt" ${SUDO_USER}
 	su -c "cp /etc/vmbuilder/libvirt/* ${TEMPLATE_PATH}/libvirt/" ${SUDO_USER}
 
 	saveProgress ${PROGRESS_FILE} "3.1" "Preparing a local template folder for the vmbuilder and post-build initialization. DONE"
+fi
+
+## SUBSECTION 3.2 ##
+containsProgress ${PROGRESS_FILE} "3.2" containsSection
+if [ ${containsSection} -eq 0 ]; then
+	echoAndLog "3.2) Building/Importing VM-Images...." ${LOG_FILE}
+
+	su -c "mkdir -p  ${VM_IMAGE_PATH}" ${SUDO_USER}
+
+	#For the Codecom Streamer:
+	echoAndLog "Building 2 VMs for Mininet Cloud-Simulations..." ${LOG_FILE}
+
+    for (( i = 1; i <= 2; i++ )); do
+    	vmName="${CLOUDNET_NAME}-${i}"
+        echoAndLog "${vmName} VM via kvm_vmbuild..." ${LOG_FILE}
+        ipAddrCloud=`echo ${ipAddr} | awk -v iter="$i" 'BEGIN {FS = "[.]+" } {print $1"."$2"."$3"."$4+iter}'`
+        
+        ./shell-tools/kvm_vmbuild.sh -h kvm -d ubuntu -c ${CLOUDNET_CONF_PATH}/cloud.cfg \
+                    -n ${vmName} \
+                    -i ${ipAddrCloud} \
+                    -g ${ipAddr} \
+                    -b ${CLOUDNET_CONF_PATH}/cloud.firstboot.sh
+                    #--injectKVMConsole ${CONFIGFILE_PATH}/ttyS0.conf
+    done
 fi
