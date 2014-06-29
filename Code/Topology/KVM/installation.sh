@@ -381,4 +381,6 @@ if [ ${containsSection} -eq 0 ]; then
                     -b ${CLOUDNET_CONF_PATH}/cloud.firstboot.sh
                     #--injectKVMConsole ${CONFIGFILE_PATH}/ttyS0.conf
     done
+
+	saveProgress ${PROGRESS_FILE} "3.2" "Building/Importing VM-Images. DONE"
 fi

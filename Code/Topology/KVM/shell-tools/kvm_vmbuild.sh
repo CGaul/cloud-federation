@@ -68,7 +68,6 @@ prepareVMNameDir(){
     su -c "cp ${configFile} ${vmDir}/" ${SUDO_USER}
     configFile=${vmDir}/${configFileName}
 
-    eval "$3='${configFile}'"
     echo "Copied config-File. New location is: ${configFile}"
 }
 
