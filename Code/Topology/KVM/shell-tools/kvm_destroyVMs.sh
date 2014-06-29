@@ -23,12 +23,17 @@ fi
 
 while [ $# -gt 0 ]; do 	# Until you run out of parameters
     vmName=$1
-    if [ -d "~/.vmbuilder/VMs/${vmName}" ]; then
+    vmDir=~/.vmbuilder/VMs/${vmName}
+    if [ -d "${vmDir}" ]; then
+        echo "Stopping VM if it is running via \"virsh destroy ${vmName}\"..."
         virsh -c qemu:///system destroy ${vmName}
+        echo "Deleting VM via \"virsh undefine ${vmName}\" in KVM..."
+        virsh -c qemu:///system undefine ${vmName}
+        echo "Deleting VM-dir in ${vmDir}..."
         rm -r ~/.vmbuilder/VMs/${vmName}
-        sleep 10
+        sleep 1
     else
-        echo "No directory found for ${vmName}!"
+        echo "No directory ${vmDir} found!"
     fi
 	shift	# Check next set of parameters.
 done
