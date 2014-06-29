@@ -54,6 +54,24 @@ transformToSafeSed(){
 	eval "$2='${safeSedCmd}'"
 }
 
+prepareVMNameDir(){
+    vmImagePath=$1
+    vmName=$2
+    configFile=$3
+    configFileName=$4
+
+    vmDir=${vmImagePath}/${vmName}
+    echo -e "Creating dir ${vmDir}..."
+    su -c "mkdir -p ${vmDir}" ${SUDO_USER}
+
+    #Copy the main JeosVM-KVMBuilder config file to the local VM-Path:
+    su -c "cp ${configFile} ${vmDir}/" ${SUDO_USER}
+    configFile=${vmDir}/${configFileName}
+
+    eval "$3='${configFile}'"
+    echo "Copied config-File. New location is: ${configFile}"
+}
+
 
 ######################################
 ##     Argument Variable setup:     ##
@@ -152,21 +170,17 @@ if [[ "${configFile}" != "" ]]; then
             #If vmName is still empty, something went wrong in reading the hostname from the config.
             echo "VMName is not specified in config-file (via \"hostname\") and was not given as parameter. Exiting vmbuilder!"
             exit 3
+        else
+            #If the name was found, create a dir for that VM under "vmImagePath":
+            prepareVMNameDir ${vmImagePath} ${vmName} ${configFile} ${configFileName}
         fi
     else
+        #If the name was given as a param, create a dir for that VM under "vmImagePath":
+        prepareVMNameDir ${vmImagePath} ${vmName} ${configFile} ${configFileName}
+
         #If the vmName is given as a parameter on startup, replace HOSTNAME with vmName in Config:
         sed -i 's/HOSTNAME/'${vmName}\/ ${configFile}
     fi
-
-    #If the name was found, create a dir for that VM under "vmImagePath":
-    vmDir=${vmImagePath}/${vmName}
-    echo -e "Creating dir ${vmDir}..."
-    su -c "mkdir -p ${vmDir}" ${SUDO_USER}
-
-    #Copying the config file to the local VM-Path:
-    su -c "cp ${configFile} ${vmDir}/" ${SUDO_USER}
-    configFile=${vmDir}/${configFileName}
-    echo "Copied config-File. New location is: ${configFile}"
 
     #Fill that dir with all scripts and configs that were handed over to this vmbuild-tool:
     #On top of that, fill in all optional arguments in the vmbuild.cfg file:
