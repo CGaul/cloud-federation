@@ -32,13 +32,13 @@ class Cloud1Topo(Topo):
         for switch in NODES:
             self.cores[switch] = self.addSwitch(switch, dpid=(NODES[switch]['dpid'] % '0'))
 
-            # Add hosts and links:
-            assert(isinstance(HOSTS[switch], list))
-            for host, ip in HOSTS[switch].items(): #Iterate over all host-ip tuples per Switch:
-                assert(isinstance(host, dict))
-                self.addHost(host, ip=ip)
-                self.addLink(host, self.cores[switch])
-    
+            # Add hosts and respective link, if switch has hosts:
+            if switch in HOSTS:
+                assert(isinstance(HOSTS[switch], dict))
+                for host, ip in HOSTS[switch].items(): #Iterate over all host-ip tuples per Switch:
+                    self.addHost(host, ip=ip)
+                    self.addLink(host, self.cores[switch])
+
         # Connect core switches
         self.addLink(self.cores['GW'], self.cores['SWITCH1'])
         self.addLink(self.cores['SWITCH1'], self.cores['SWITCH2'])
