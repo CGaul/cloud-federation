@@ -34,9 +34,11 @@ TEMPLATE_PATH=~/.vmbuilder/Cloud-Templates/
 
 
 #Config- &Resource- File paths for each VM:
-CLOUDNET_NAME="cloud-net"
+CLOUDNET_NAME="cloudnet"
 CLOUDNET_CONF_PATH=${CONFIGFILE_PATH}/vm-scripts/${CLOUDNET_NAME}
 
+FEDERATOR_NAME="federator"
+FEDERATOR_CONF_PATH=${CONFIGFILE_PATH}/vm-scripts/${FEDERATOR_NAME}
 
 #Whiptail Shell GUI:
 GUI_MAXHWIDTH=80
@@ -367,19 +369,27 @@ if [ ${containsSection} -eq 0 ]; then
 	su -c "mkdir -p  ${VM_IMAGE_PATH}" ${SUDO_USER}
 
 	#For the Codecom Streamer:
-	echoAndLog "Building 2 VMs for Mininet Cloud-Simulations..." ${LOG_FILE}
+	echoAndLog "Building 1 VMs as the Cloud Federator..." ${LOG_FILE}
+	echoAndLog "Building ${FEDERATOR_NAME} VM via kvm_vmbuild..." ${LOG_FILE}
+	ipAddrCloud=`echo ${ipAddr} | awk -v iter="$i" 'BEGIN {FS = "[.]+" } {print $1"."$2"."$3"."$4+1}'`
 
+	./shell-tools/kvm_vmbuild.sh -h kvm -d ubuntu -c ${FEDERATOR_CONF_PATH}/${FEDERATOR_NAME}.cfg \
+                    -i ${ipAddrCloud} \
+                    -g ${ipAddr} \
+                    -b ${FEDERATOR_CONF_PATH}/${FEDERATOR_NAME}.firstboot.sh
+
+
+	echoAndLog "Building 2 VMs for Mininet Cloud-Simulations..." ${LOG_FILE}
     for (( i = 1; i <= 2; i++ )); do
     	vmName="${CLOUDNET_NAME}-${i}"
-        echoAndLog "${vmName} VM via kvm_vmbuild..." ${LOG_FILE}
-        ipAddrCloud=`echo ${ipAddr} | awk -v iter="$i" 'BEGIN {FS = "[.]+" } {print $1"."$2"."$3"."$4+iter}'`
+        echoAndLog "Building ${vmName} VM via kvm_vmbuild..." ${LOG_FILE}
+        ipAddrCloud=`echo ${ipAddr} | awk -v iter="$i" 'BEGIN {FS = "[.]+" } {print $1"."$2"."$3"."$4+iter+1}'`
         
-        ./shell-tools/kvm_vmbuild.sh -h kvm -d ubuntu -c ${CLOUDNET_CONF_PATH}/cloud.cfg \
+        ./shell-tools/kvm_vmbuild.sh -h kvm -d ubuntu -c ${CLOUDNET_CONF_PATH}/${CLOUDNET_NAME}.cfg \
                     -n ${vmName} \
                     -i ${ipAddrCloud} \
                     -g ${ipAddr} \
-                    -b ${CLOUDNET_CONF_PATH}/cloud.firstboot.sh
-                    #--injectKVMConsole ${CONFIGFILE_PATH}/ttyS0.conf
+                    -b ${CLOUDNET_CONF_PATH}/${CLOUDNET_NAME}.firstboot.sh
     done
 
 	saveProgress ${PROGRESS_FILE} "3.2" "Building/Importing VM-Images. DONE"
