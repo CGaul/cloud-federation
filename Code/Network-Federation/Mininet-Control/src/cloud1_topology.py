@@ -4,6 +4,7 @@ from mininet.topo import Topo
 from mininet.net import Mininet
 from mininet.cli import CLI
 from mininet.node import RemoteController
+from mininet.log import setLogLevel
 
 
 NODES = {
@@ -48,9 +49,12 @@ class Cloud1Topo(Topo):
 
 if __name__ == '__main__':
     topo = Cloud1Topo()
-    net = Mininet(topo, autoSetMacs=True, xterms=False, controller=RemoteController)
-    net.addController('c', ip='127.0.0.1')
-    print "\nHosts configured with IPs, switches pointing to OpenVirteX at 127.0.0.1 port 6633\n"
+    #net = Mininet(topo, autoSetMacs=True, xterms=False, controller=RemoteController)
+    #net.addController('c', ip='127.0.0.1')
+    net = Mininet(topo, autoSetMacs=True, xterms=False)
+    #print "\nHosts configured with IPs, switches pointing to OpenVirteX at 127.0.0.1 port 6633\n"
+    setLogLevel('info')
     net.start()
+    net.pingAll()
     CLI(net)
     net.stop()

@@ -1,4 +1,0 @@
-
-#Restart the vlc-Streaming Daemon every 30 minutes:
-0,30	*	*	*	*	root	/etc/init.d/vlcStreamer restart
-#
