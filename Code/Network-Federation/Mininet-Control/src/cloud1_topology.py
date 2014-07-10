@@ -49,12 +49,13 @@ class Cloud1Topo(Topo):
 
 if __name__ == '__main__':
     topo = Cloud1Topo()
-    #net = Mininet(topo, autoSetMacs=True, xterms=False, controller=RemoteController)
-    #net.addController('c', ip='127.0.0.1')
-    net = Mininet(topo, autoSetMacs=True, xterms=False)
+    ovxController= RemoteController("ovxController", ip='192.168.150.10')
+    net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
+    net.addController('ovxController', controller=RemoteController, ip='192.168.150.10', port=6633)
+    #net = Mininet(topo, autoSetMacs=True, xterms=False)
     #print "\nHosts configured with IPs, switches pointing to OpenVirteX at 127.0.0.1 port 6633\n"
     setLogLevel('info')
     net.start()
-    net.pingAll()
+    #net.pingAll()
     CLI(net)
     net.stop()
