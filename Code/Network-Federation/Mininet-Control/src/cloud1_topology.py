@@ -9,9 +9,9 @@ from mininet.log import setLogLevel
 
 NODES = {
     'GW':       {'dpid': '000000000000110%s'},
-    'SWITCH1':  {'dpid': '000000000000220%s'},
-    'SWITCH2':  {'dpid': '000000000000330%s'},
-    'SWITCH3':  {'dpid': '000000000000440%s'},
+    'SWITCH1':  {'dpid': '000000000000120%s'},
+    'SWITCH2':  {'dpid': '000000000000130%s'},
+    'SWITCH3':  {'dpid': '000000000000140%s'},
     }
 
 HOSTS = {
