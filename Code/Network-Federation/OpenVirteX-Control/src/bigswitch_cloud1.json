@@ -1,0 +1,43 @@
+{
+    "id": "1",
+    "jsonrpc": "2.0",
+    "method": "createNetwork",
+    "params": {
+        "network": {
+            "controller": {
+                "ctrls": [
+                    "tcp:localhost:10000"
+                ],
+                "type": "default"
+            },
+            "hosts": [
+                {
+                    "dpid": "00:00:00:00:00:00:12:00",
+                    "mac": "00:00:00:00:00:01",
+                    "port": 1
+                },
+                {
+                    "dpid": "00:00:00:00:00:00:12:00",
+                    "mac": "00:00:00:00:00:02",
+                    "port": 2
+                },
+                {
+                    "dpid": "00:00:00:00:00:00:13:00",
+                    "mac": "00:00:00:00:00:03",
+                    "port": 3
+                },
+                {
+                    "dpid": "00:00:00:00:00:00:14:00",
+                    "mac": "00:00:00:00:00:04",
+                    "port": 4
+                }
+            ],
+            "routing": {
+                "algorithm": "spf",
+                "backup_num": 1
+            },
+            "subnet": "192.168.0.0/24",
+            "type": "bigswitch"
+        }
+    }
+}
