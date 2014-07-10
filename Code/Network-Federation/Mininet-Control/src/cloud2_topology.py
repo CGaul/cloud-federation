@@ -8,17 +8,17 @@ from mininet.log import setLogLevel
 
 
 NODES = {
-    'GW':       {'dpid': '000000000000110%s'},
+    'GW':       {'dpid': '000000000000210%s'},
     'SWITCH1':  {'dpid': '000000000000220%s'},
-    'SWITCH2':  {'dpid': '000000000000330%s'},
-    'SWITCH3':  {'dpid': '000000000000440%s'},
+    'SWITCH2':  {'dpid': '000000000000230%s'},
+    'SWITCH3':  {'dpid': '000000000000240%s'},
     }
 
 HOSTS = {
     #To each Switch, a dict of host-ip tuples is mapped:
-    'SWITCH1': {'h1.1.1': '10.0.1.1', 'h1.1.2': '10.0.1.2'},
-    'SWITCH2': {'h1.2.1': '10.0.1.3'},
-    'SWITCH3': {'h1.3.1': '10.0.1.4'},
+    'SWITCH1': {'h2.1.1': '10.0.2.1', 'h2.1.2': '10.0.2.2'},
+    'SWITCH2': {'h2.2.1': '10.0.2.3'},
+    'SWITCH3': {'h2.3.1': '10.0.2.4'},
 }
 
 
@@ -49,13 +49,12 @@ class Cloud1Topo(Topo):
 
 if __name__ == '__main__':
     topo = Cloud1Topo()
-    ovxController= RemoteController("ovxController", ip='192.168.150.10')
-    net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
-    net.addController('ovxController', controller=RemoteController, ip='192.168.150.10', port=6633)
-    #net = Mininet(topo, autoSetMacs=True, xterms=False)
+    #net = Mininet(topo, autoSetMacs=True, xterms=False, controller=RemoteController)
+    #net.addController('c', ip='127.0.0.1')
+    net = Mininet(topo, autoSetMacs=True, xterms=False)
     #print "\nHosts configured with IPs, switches pointing to OpenVirteX at 127.0.0.1 port 6633\n"
     setLogLevel('info')
     net.start()
-    #net.pingAll()
+    net.pingAll()
     CLI(net)
     net.stop()
