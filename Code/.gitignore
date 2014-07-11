@@ -1,10 +1,12 @@
-## Ignore Code-Files & Dirs ##
-##############################
-
-OpenVirteX
-mininet
+## Ignore IntelliJ Project Files ##
+###################################
 
 Cloud-Federation/.idea
 Cloud-Federation/project/
 Cloud-Federation/target/
 Cloud-Federation/atlassian-ide-plugin.xml
+
+Network-Federation/.idea
+Network-Federation/project/
+Network-Federation/target/
+Network-Federation/atlassian-ide-plugin.xml

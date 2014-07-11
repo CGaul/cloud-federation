@@ -1,3 +1,10 @@
+# Ignore non-git Dirs & Files: #
+################################
+
+#external Projects:
+OpenVirteX
+mininet
+
 # Compiled source #
 ###################
 *.com
