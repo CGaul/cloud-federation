@@ -16,9 +16,9 @@ NODES = {
 
 HOSTS = {
     #To each Switch, a dict of host-ip tuples is mapped:
-    'SWITCH1': {'h2.1.1': '10.0.2.1', 'h2.1.2': '10.0.2.2'},
-    'SWITCH2': {'h2.2.1': '10.0.2.3'},
-    'SWITCH3': {'h2.3.1': '10.0.2.4'},
+    'SWITCH1': {'h2.1.1': '10.0.3.1', 'h2.1.2': '10.0.3.2'},
+    'SWITCH2': {'h2.2.1': '10.0.3.3'},
+    'SWITCH3': {'h2.3.1': '10.0.3.4'},
 }
 
 
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
     net.addController('ovxController', controller=RemoteController, ip='192.168.150.10', port=6633)
 
-    print "\nHosts configured with IPs, switches pointing to OpenVirteX at 192.168.150.10 port 6633\n"
+    print ("\nHosts configured with IPs, switches pointing to OpenVirteX at 192.168.150.10 port 6633\n")
 
     setLogLevel('info')
     net.start()
