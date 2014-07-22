@@ -7,37 +7,40 @@ from mininet.node import RemoteController
 from mininet.log import setLogLevel
 
 
-NODES = {
-    'GW':       {'dpid': '000000000000210%s'},
-    'SWITCH1':  {'dpid': '000000000000220%s'},
-    'SWITCH2':  {'dpid': '000000000000230%s'},
-    'SWITCH3':  {'dpid': '000000000000240%s'},
+HOSTS = {
+    'h2_1_1': {'ip': '10.0.2.1', 'mac': '00:00:00:00:00:00:00:21'},
+    'h2_2_1': {'ip': '10.0.2.2', 'mac': '00:00:00:00:00:00:00:22'},
+    'h2_2_1': {'ip': '10.0.2.3', 'mac': '00:00:00:00:00:00:00:23'},
+    'h2_2_1': {'ip': '10.0.2.4', 'mac': '00:00:00:00:00:00:00:24'},
     }
 
-HOSTS = {
-    #To each Switch, a dict of host-ip tuples is mapped:
-    'SWITCH1': {'h2_1_1': '10.0.2.1', 'h2_1_2': '10.0.2.2'},
-    'SWITCH2': {'h2_2_1': '10.0.2.3'},
-    'SWITCH3': {'h2_3_1': '10.0.2.4'},
-}
+SWITCHES = {
+    'GW':       {'dpid': '00:00:00:00:00:00:21:00', 'hosts': []},
+    'SWITCH1':  {'dpid': '00:00:00:00:00:00:22:00', 'hosts': ['h2_1_1', 'h2_1_2']},
+    'SWITCH2':  {'dpid': '00:00:00:00:00:00:23:00', 'hosts': ['h2_2_1']},
+    'SWITCH3':  {'dpid': '00:00:00:00:00:00:24:00', 'hosts': ['h2_3_1']},
+    }
 
 
 class Cloud2Topo(Topo):
     def __init__(self):
-
         # Add default members to class.
         super(Cloud2Topo, self).__init__()
 
         # Add core switches
         self.cores = {}
-        for switch in NODES:
-            self.cores[switch] = self.addSwitch(switch, dpid=(NODES[switch]['dpid'] % '0'))
+        for switch in SWITCHES:
+            switch_dpid = translate_dpid(SWITCHES[switch]['dpid'])
+            switch_hosts = SWITCHES[switch]['hosts']
+            self.cores[switch] = self.addSwitch(switch, dpid=switch_dpid)
 
             # Add hosts and respective link, if switch has hosts:
-            if switch in HOSTS:
-                assert(isinstance(HOSTS[switch], dict))
-                for host, ip in HOSTS[switch].items(): #Iterate over all host-ip tuples per Switch:
-                    self.addHost(host, ip=ip)
+            if len(switch_hosts) >= 1:
+                assert(isinstance(switch_hosts, list))
+                for host in switch_hosts: #Iterate over all hosts per Switch:
+                    ip, mac = HOSTS[host].items()
+                    mac = translate_dpid(mac)
+                    self.addHost(host, ip=ip, mac=mac)
                     self.addLink(host, self.cores[switch])
 
         # Connect core switches
@@ -45,6 +48,11 @@ class Cloud2Topo(Topo):
         self.addLink(self.cores['SWITCH1'], self.cores['SWITCH2'])
         self.addLink(self.cores['SWITCH2'], self.cores['SWITCH3'])
 
+
+def translate_dpid(readable_dpid):
+    assert(isinstance(readable_dpid, str))
+    clear_dpid = readable_dpid.translate(None, ':')
+    return clear_dpid
 
 
 if __name__ == '__main__':
