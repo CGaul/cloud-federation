@@ -32,6 +32,7 @@ class Cloud2Topo(Topo):
         for switch in SWITCHES:
             switch_dpid = translate_dpid(SWITCHES[switch]['dpid'])
             switch_hosts = SWITCHES[switch]['hosts']
+            print("Adding Switch to network: "+ switch +" (dpid: "+ switch_dpid +")...")
             self.cores[switch] = self.addSwitch(switch, dpid=switch_dpid)
 
             # Add hosts and respective link, if switch has hosts:
@@ -41,6 +42,7 @@ class Cloud2Topo(Topo):
                     ip = HOSTS[host]['ip']
                     mac = HOSTS[host]['mac']
                     mac = translate_dpid(mac)
+                    print("Adding Host to Switch "+ switch +": "+ host +" (ip: "+ ip +", mac: "+ mac +")...")
                     self.addHost(host, ip=ip, mac=mac)
                     self.addLink(host, self.cores[switch])
 
