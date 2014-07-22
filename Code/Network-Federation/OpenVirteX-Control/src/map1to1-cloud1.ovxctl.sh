@@ -31,6 +31,9 @@ python ovxctl.py -n createPort 1 00:00:00:00:00:00:14:00 1
 python ovxctl.py -n createPort 1 00:00:00:00:00:00:14:00 2
 
 
+echo "Please type the first 4 blocks of the virtual switch DPID (i.e. 00:af:23:05):"
+read
+
 # Connect Switches with each other:
 # Switch 1 <-> Switch 2:
 python ovxctl.py -n connectLink 1 00:a4:23:05:00:00:00:01 1 00:a4:23:05:00:00:00:02 3 spf 1
@@ -44,11 +47,11 @@ python ovxctl.py -n connectLink 1 00:a4:23:05:00:00:00:03 3 00:a4:23:05:00:00:00
 
 # Connect Hosts with Switches:
 # Switch 2 ([Port 1: Host 1], [Port 2: Host 2]):
-python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:02 1 00:00:00:00:00:01
-python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:02 2 00:00:00:00:00:02
+python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:02 1 00:00:00:00:00:11
+python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:02 2 00:00:00:00:00:12
 
 # Switch 3 ([Port 1: Host 3]):
-python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:03 1 00:00:00:00:00:03
+python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:03 1 00:00:00:00:00:13
 
 # Switch 4 ([Port 1: Host 4]):
-python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:04 1 00:00:00:00:00:04
+python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:04 1 00:00:00:00:00:14
