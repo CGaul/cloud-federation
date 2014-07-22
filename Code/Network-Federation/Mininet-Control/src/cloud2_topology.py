@@ -8,10 +8,10 @@ from mininet.log import setLogLevel
 
 
 HOSTS = {
-    'h2_1_1': {'ip': '10.0.2.1', 'mac': '00:00:00:00:00:21'},
-    'h2_1_2': {'ip': '10.0.2.2', 'mac': '00:00:00:00:00:22'},
-    'h2_2_1': {'ip': '10.0.2.3', 'mac': '00:00:00:00:00:23'},
-    'h2_3_1': {'ip': '10.0.2.4', 'mac': '00:00:00:00:00:24'},
+    'h2_1_1': {'ip': '10.0.3.1', 'mac': '00:00:00:00:00:21'},
+    'h2_1_2': {'ip': '10.0.3.2', 'mac': '00:00:00:00:00:22'},
+    'h2_2_1': {'ip': '10.0.3.3', 'mac': '00:00:00:00:00:23'},
+    'h2_3_1': {'ip': '10.0.3.4', 'mac': '00:00:00:00:00:24'},
     }
 
 SWITCHES = {
@@ -30,10 +30,11 @@ class Cloud2Topo(Topo):
         # Add core switches
         self.cores = {}
         for switch in SWITCHES:
-            switch_dpid = translate_dpid(SWITCHES[switch]['dpid'])
+            switch_dpid = SWITCHES[switch]['dpid']
+            clear_dpid = translate_dpid(SWITCHES[switch]['dpid'])
             switch_hosts = SWITCHES[switch]['hosts']
             print("Adding Switch to network: "+ switch +" (dpid: "+ switch_dpid +")...")
-            self.cores[switch] = self.addSwitch(switch, dpid=switch_dpid)
+            self.cores[switch] = self.addSwitch(switch, dpid=clear_dpid)
 
             # Add hosts and respective link, if switch has hosts:
             if len(switch_hosts) >= 1:
@@ -41,9 +42,9 @@ class Cloud2Topo(Topo):
                 for host in switch_hosts: #Iterate over all hosts per Switch:
                     ip = HOSTS[host]['ip']
                     mac = HOSTS[host]['mac']
-                    mac = translate_dpid(mac)
+                    clear_mac = translate_dpid(mac)
                     print("Adding Host to Switch "+ switch +": "+ host +" (ip: "+ ip +", mac: "+ mac +")...")
-                    self.addHost(host, ip=ip, mac=mac)
+                    self.addHost(host, ip=ip, mac=clear_mac)
                     self.addLink(host, self.cores[switch])
 
         # Connect core switches
