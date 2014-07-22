@@ -9,9 +9,9 @@ from mininet.log import setLogLevel
 
 NODES = {
     'GW':       {'dpid': '000000000000110%s'},
-    'SWITCH1':  {'dpid': '000000000000220%s'},
-    'SWITCH2':  {'dpid': '000000000000330%s'},
-    'SWITCH3':  {'dpid': '000000000000440%s'},
+    'SWITCH1':  {'dpid': '000000000000120%s'},
+    'SWITCH2':  {'dpid': '000000000000130%s'},
+    'SWITCH3':  {'dpid': '000000000000140%s'},
     }
 
 HOSTS = {
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
     net.addController('ovxController', controller=RemoteController, ip='192.168.150.10', port=6633)
 
-    print "\nHosts configured with IPs, switches pointing to OpenVirteX at 192.168.150.10 port 6633\n"
+    print("\nHosts configured with IPs, switches pointing to OpenVirteX at 192.168.150.10 port 6633\n")
 
     setLogLevel('info')
     net.start()

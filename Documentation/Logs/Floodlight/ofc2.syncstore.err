@@ -1,0 +1,109 @@
+16:39:23.977 INFO [n.f.c.m.FloodlightModuleLoader:main] Loading modules from file /home/costa/development/cit-master/Code/Network-Federation/Floodlight-Control/openvirtex-defaultctl_2.floodlight
+16:39:24.493 INFO [n.f.c.i.Controller:main] Controller role set to MASTER
+16:39:24.506 INFO [n.f.c.i.Controller:main] Flush switches on reconnect -- Disabled
+16:39:26.489 ERROR [o.s.s.i.c.DelegatingCCProvider:main] Failed to initialize provider org.sdnplatform.sync.internal.config.SyncStoreCCProvider
+org.sdnplatform.sync.error.PersistException: Could not initialize persistent storage
+	at org.sdnplatform.sync.internal.store.JavaDBStorageEngine.<init>(JavaDBStorageEngine.java:106) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.StoreRegistry.register(StoreRegistry.java:116) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.SyncManager.registerPersistentStore(SyncManager.java:184) [floodlight.jar:na]
+	at org.sdnplatform.sync.internal.config.SyncStoreCCProvider.init(SyncStoreCCProvider.java:85) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.config.DelegatingCCProvider.init(DelegatingCCProvider.java:37) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.SyncManager.init(SyncManager.java:489) [floodlight.jar:na]
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.initModules(FloodlightModuleLoader.java:436) [floodlight.jar:na]
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.loadModulesFromList(FloodlightModuleLoader.java:353) [floodlight.jar:na]
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.loadModulesFromList(FloodlightModuleLoader.java:362) [floodlight.jar:na]
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.loadModulesFromConfig(FloodlightModuleLoader.java:200) [floodlight.jar:na]
+	at net.floodlightcontroller.core.Main.main(Main.java:55) [floodlight.jar:na]
+Caused by: java.sql.SQLException: Failed to start database 'SyncDB' with class loader sun.misc.Launcher$AppClassLoader@3f26f816, see the next exception for details.
+	at org.apache.derby.impl.jdbc.SQLExceptionFactory40.getSQLException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.Util.newEmbedSQLException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.Util.seeNextException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.EmbedConnection.bootDatabase(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.EmbedConnection.<init>(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.EmbedConnection30.<init>(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.EmbedConnection40.<init>(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.Driver40.getNewEmbedConnection(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.InternalDriver.connect(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.EmbeddedDataSource.getConnection(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.EmbedPooledConnection.openRealConnection(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.EmbedPooledConnection.<init>(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.EmbedPooledConnection40.<init>(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.Driver40.getNewPooledConnection(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource.createPooledConnection(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource.getPooledConnection(Unknown Source) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.store.JavaDBStorageEngine.getConnection(JavaDBStorageEngine.java:368) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.store.JavaDBStorageEngine.initTable(JavaDBStorageEngine.java:375) ~[floodlight.jar:na]
+	at org.sdnplatform.sync.internal.store.JavaDBStorageEngine.<init>(JavaDBStorageEngine.java:104) ~[floodlight.jar:na]
+	... 10 common frames omitted
+Caused by: org.apache.derby.impl.jdbc.EmbedSQLException: Failed to start database 'SyncDB' with class loader sun.misc.Launcher$AppClassLoader@3f26f816, see the next exception for details.
+	at org.apache.derby.impl.jdbc.SQLExceptionFactory.getSQLException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.SQLExceptionFactory40.wrapArgsForTransportAcrossDRDA(Unknown Source) ~[floodlight.jar:na]
+	... 29 common frames omitted
+Caused by: org.apache.derby.impl.jdbc.EmbedSQLException: Another instance of Derby may have already booted the database /home/costa/development/cit-master/Code/Network-Federation/Floodlight-Control/SyncDB.
+	at org.apache.derby.impl.jdbc.SQLExceptionFactory.getSQLException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.SQLExceptionFactory40.wrapArgsForTransportAcrossDRDA(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.SQLExceptionFactory40.getSQLException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.jdbc.Util.generateCsSQLException(Unknown Source) ~[floodlight.jar:na]
+	... 26 common frames omitted
+Caused by: org.apache.derby.iapi.error.StandardException: Another instance of Derby may have already booted the database /home/costa/development/cit-master/Code/Network-Federation/Floodlight-Control/SyncDB.
+	at org.apache.derby.iapi.error.StandardException.newException(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.store.raw.data.BaseDataFileFactory.privGetJBMSLockOnDB(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.store.raw.data.BaseDataFileFactory.run(Unknown Source) ~[floodlight.jar:na]
+	at java.security.AccessController.doPrivileged(Native Method) ~[na:1.7.0_60]
+	at org.apache.derby.impl.store.raw.data.BaseDataFileFactory.getJBMSLockOnDB(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.store.raw.data.BaseDataFileFactory.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.TopService.bootModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.startModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.iapi.services.monitor.Monitor.bootServiceModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.store.raw.RawStore.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.TopService.bootModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.startModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.iapi.services.monitor.Monitor.bootServiceModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.store.access.RAMAccessManager.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.TopService.bootModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.startModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.iapi.services.monitor.Monitor.bootServiceModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.db.BasicDatabase.bootStore(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.db.BasicDatabase.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.boot(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.TopService.bootModule(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.bootService(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.startProviderService(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.findProviderAndStartService(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.impl.services.monitor.BaseMonitor.startPersistentService(Unknown Source) ~[floodlight.jar:na]
+	at org.apache.derby.iapi.services.monitor.Monitor.startPersistentService(Unknown Source) ~[floodlight.jar:na]
+	... 26 common frames omitted
+16:39:28.188 INFO [o.s.s.i.c.FallbackCCProvider:main] Cluster not yet configured; using fallback local configuration
+16:39:28.189 INFO [o.s.s.i.SyncManager:main] [32767] Updating sync configuration ClusterConfig [allNodes={32767=Node [hostname=localhost, port=6642, nodeId=32767, domainId=32767]}, authScheme=NO_AUTH, keyStorePath=null, keyStorePassword is unset]
+Exception in thread "main" org.jboss.netty.channel.ChannelException: Failed to bind to: localhost/127.0.0.1:6642
+	at org.jboss.netty.bootstrap.ServerBootstrap.bind(ServerBootstrap.java:303)
+	at org.sdnplatform.sync.internal.rpc.RPCService.startServer(RPCService.java:465)
+	at org.sdnplatform.sync.internal.rpc.RPCService.run(RPCService.java:219)
+	at org.sdnplatform.sync.internal.SyncManager.startUp(SyncManager.java:585)
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.startupModules(FloodlightModuleLoader.java:455)
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.loadModulesFromList(FloodlightModuleLoader.java:354)
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.loadModulesFromList(FloodlightModuleLoader.java:362)
+	at net.floodlightcontroller.core.module.FloodlightModuleLoader.loadModulesFromConfig(FloodlightModuleLoader.java:200)
+	at net.floodlightcontroller.core.Main.main(Main.java:55)
+Caused by: java.net.BindException: Address already in use
+	at sun.nio.ch.Net.bind0(Native Method)
+	at sun.nio.ch.Net.bind(Net.java:444)
+	at sun.nio.ch.Net.bind(Net.java:436)
+	at sun.nio.ch.ServerSocketChannelImpl.bind(ServerSocketChannelImpl.java:214)
+	at sun.nio.ch.ServerSocketAdaptor.bind(ServerSocketAdaptor.java:74)
+	at org.jboss.netty.channel.socket.nio.NioServerSocketPipelineSink.bind(NioServerSocketPipelineSink.java:148)
+	at org.jboss.netty.channel.socket.nio.NioServerSocketPipelineSink.handleServerSocket(NioServerSocketPipelineSink.java:100)
+	at org.jboss.netty.channel.socket.nio.NioServerSocketPipelineSink.eventSunk(NioServerSocketPipelineSink.java:74)
+	at org.jboss.netty.channel.Channels.bind(Channels.java:468)
+	at org.jboss.netty.channel.AbstractChannel.bind(AbstractChannel.java:192)
+	at org.jboss.netty.bootstrap.ServerBootstrap$Binder.channelOpen(ServerBootstrap.java:348)
+	at org.jboss.netty.channel.Channels.fireChannelOpen(Channels.java:176)
+	at org.jboss.netty.channel.socket.nio.NioServerSocketChannel.<init>(NioServerSocketChannel.java:85)
+	at org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory.newChannel(NioServerSocketChannelFactory.java:142)
+	at org.jboss.netty.channel.socket.nio.NioServerSocketChannelFactory.newChannel(NioServerSocketChannelFactory.java:90)
+	at org.jboss.netty.bootstrap.ServerBootstrap.bind(ServerBootstrap.java:282)
+	... 8 more
+16:39:35.449 INFO [n.f.j.JythonServer:debugserver-main] Starting DebugServer on :6656
