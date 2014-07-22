@@ -38,7 +38,8 @@ class Cloud2Topo(Topo):
             if len(switch_hosts) >= 1:
                 assert(isinstance(switch_hosts, list))
                 for host in switch_hosts: #Iterate over all hosts per Switch:
-                    ip, mac = HOSTS[host].items()
+                    ip = HOSTS[host]['ip']
+                    mac = HOSTS[host]['mac']
                     mac = translate_dpid(mac)
                     self.addHost(host, ip=ip, mac=mac)
                     self.addLink(host, self.cores[switch])
