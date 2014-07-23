@@ -116,7 +116,7 @@ if __name__ == '__main__':
     net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
     net.addController('ovxController', controller=RemoteController, ip=OFC_IP, port=OFC_PORT)
 
-    print("\nHosts configured with IPs, switches pointing to OpenVirteX at: "+ OFC_IP +" port: "+ OFC_PORT +"\n")
+    print("\nHosts configured with IPs, switches pointing to OpenVirteX at: "+ OFC_IP +" port: "+ str(OFC_PORT) +"\n")
 
     setLogLevel('info')
     net.start()
