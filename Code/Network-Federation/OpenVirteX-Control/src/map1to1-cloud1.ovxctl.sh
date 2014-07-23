@@ -31,8 +31,8 @@ python ovxctl.py -n createPort 1 00:00:00:00:00:00:14:00 1
 python ovxctl.py -n createPort 1 00:00:00:00:00:00:14:00 2
 
 
-echo "Please type the first 4 blocks of the virtual switch DPID (i.e. 00:af:23:05):"
-read
+#echo "Please type the first 4 blocks of the virtual switch DPID (i.e. 00:af:23:05):"
+#read
 
 # Connect Switches with each other:
 # Switch 1 <-> Switch 2:

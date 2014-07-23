@@ -2,7 +2,7 @@
 
 # Create Network with OpenFlowPort 10.000 (Floodlight-Controller listens on that port)
 #with own virtual address 10.0.0.0
-python ovxctl.py -n createNetwork tcp:192.168.150.11:10000 10.0.3.0 16
+python ovxctl.py -n createNetwork tcp:192.168.150.12:10000 10.0.3.0 16
 
 # For each physical Switch create a virtual switch:
 python ovxctl.py -n createSwitch 2 00:00:00:00:00:00:21:00
@@ -30,8 +30,8 @@ python ovxctl.py -n createPort 2 00:00:00:00:00:00:23:00 3
 python ovxctl.py -n createPort 2 00:00:00:00:00:00:24:00 1
 python ovxctl.py -n createPort 2 00:00:00:00:00:00:24:00 2
 
-echo "Please type the first 4 blocks of the virtual switch DPID (i.e. 00:a4:23:05):"
-read
+#echo "Please type the first 4 blocks of the virtual switch DPID (i.e. 00:a4:23:05):"
+#read
 
 # Connect Switches with each other:
 # Switch 1 <-> Switch 2:
