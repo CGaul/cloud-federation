@@ -63,13 +63,19 @@ class Cloud2Topo(Topo):
                     self.addHost(host, ip=ip, mac=clear_mac)
                     self.addLink(host, self.cores[switch])
 
-        for switch in SWITCHES:
-            switch_links = SWITCHES[switch]['links']
-            assert(isinstance(switch_hosts, list))
-            for linkedSwitch in switch_links: #Iterate over all Switch Links per Switch:
-                print ("Connecting Switch "+ switch +" with Switch "+ linkedSwitch +"...")
-                # Connect core switches
-                self.addLink(self.cores[switch], self.cores[linkedSwitch])
+        # Connect core switches
+        self.addLink(self.cores['GW'], self.cores['SWITCH1'])
+        self.addLink(self.cores['SWITCH1'], self.cores['SWITCH2'])
+        self.addLink(self.cores['SWITCH2'], self.cores['SWITCH3'])
+
+# TODO: fix this link automatization:
+#        for switch in SWITCHES:
+#            switch_links = SWITCHES[switch]['links']
+#            assert(isinstance(switch_hosts, list))
+#            for linkedSwitch in switch_links: #Iterate over all Switch Links per Switch:
+#                print ("Connecting Switch "+ switch +" with Switch "+ linkedSwitch +"...")
+#                # Connect core switches
+#                self.addLink(self.cores[switch], self.cores[linkedSwitch])
 
 
 def check_configuration():
