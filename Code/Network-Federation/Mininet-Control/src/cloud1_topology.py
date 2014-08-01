@@ -28,6 +28,7 @@ HOSTS = {
 SWITCHES = {
     'GW':       {'dpid': '00:00:00:00:00:00:11:00',
                  'links': ['SWITCH1'], 'hosts': []},
+
     'SWITCH1':  {'dpid': '00:00:00:00:00:00:12:00',
                  'links': ['SWITCH2'], 'hosts': ['h1_1_1', 'h1_1_2']},
     'SWITCH2':  {'dpid': '00:00:00:00:00:00:13:00',
