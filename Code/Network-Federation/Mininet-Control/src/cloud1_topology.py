@@ -69,6 +69,7 @@ class Cloud1Topo(Topo):
         self.addLink(self.cores['SWITCH1'], self.cores['SWITCH2'])
         self.addLink(self.cores['SWITCH2'], self.cores['SWITCH3'])
 
+# TODO: fix this link automatization:
 #        for switch in SWITCHES:
 #            switch_links = SWITCHES[switch]['links']
 #            assert(isinstance(switch_hosts, list))
