@@ -3,8 +3,9 @@ __author__ = 'Constantin'
 #Mininet API imports:
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.cli import CLI
+from mininet.link import Intf
 from mininet.node import RemoteController
+from mininet.cli import CLI
 from mininet.log import setLogLevel
 
 #Python system imports:
@@ -28,7 +29,6 @@ HOSTS = {
 SWITCHES = {
     'GW':       {'dpid': '00:00:00:00:00:00:11:00',
                  'links': ['SWITCH1'], 'hosts': []},
-
     'SWITCH1':  {'dpid': '00:00:00:00:00:00:12:00',
                  'links': ['SWITCH2'], 'hosts': ['h1_1_1', 'h1_1_2']},
     'SWITCH2':  {'dpid': '00:00:00:00:00:00:13:00',
@@ -66,6 +66,7 @@ class Cloud1Topo(Topo):
                     self.addLink(host, self.cores[switch])
 
         # Connect core switches
+        print("Adding Bi-directional Links to Switches...")
         self.addLink(self.cores['GW'], self.cores['SWITCH1'])
         self.addLink(self.cores['SWITCH1'], self.cores['SWITCH2'])
         self.addLink(self.cores['SWITCH2'], self.cores['SWITCH3'])
@@ -123,10 +124,18 @@ if __name__ == '__main__':
     net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
     net.addController('ovxController', controller=RemoteController, ip=OFC_IP, port=OFC_PORT)
 
+    print("Adding Gateway-Node...")
+    gwNode = net.getNodeByName('GW')
+    print("Adding interface 'eth0' to "+ str(gwNode) +"...")
+    Intf( 'eth0', node=gwNode )
+
+    print("Adding dhcp-host:")
+    h_dhcp = net.addHost('h_dhcp', ip='0.0.0.0', mac='000000000020')
+    h_dhcp.cmdPrint('dhclient '+h_dhcp.defaultIntf().name)
+
     print("\nHosts configured with IPs, switches pointing to OpenVirteX at: "+ OFC_IP +" port: "+ str(OFC_PORT) +"\n")
 
     setLogLevel('info')
     net.start()
-    #net.pingAll()
     CLI(net)
     net.stop()
