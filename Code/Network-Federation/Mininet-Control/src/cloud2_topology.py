@@ -20,7 +20,7 @@ NET_IP = '10.0.3.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
 HOSTS = {
-    'hdcp':   {'ip': '+1',  'mac': '00:00:00:00:02:01'},
+    'hdhcp':   {'ip': '+1',  'mac': '00:00:00:00:02:01'},
     'h2_1_1': {'ip': '+11', 'mac': '00:00:00:00:02:11'},
     'h2_1_2': {'ip': '+12', 'mac': '00:00:00:00:02:12'},
     'h2_2_1': {'ip': '+13', 'mac': '00:00:00:00:02:13'},
