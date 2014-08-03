@@ -56,8 +56,8 @@ python ovxctl.py -n createPort 2 00:00:00:00:00:02:13:00 2
 
 # Connect Switches with each other:
 # GW 1 <-> GW2:
-echo "Connecting Link: (GW-1, Port 1) <-> (GW-2, Port 1)..."
-python ovxctl.py -n connectLink 2 00:a4:23:05:00:00:00:01 1 00:a4:23:05:00:00:00:05 1 spf 1
+echo "Connecting Link: (GW-1, Port 2) <-> (GW-2, Port 2)..."
+python ovxctl.py -n connectLink 2 00:a4:23:05:00:00:00:01 2 00:a4:23:05:00:00:00:05 2 spf 1
 
 # GW 1 <-> Switch 2:
 echo "Connecting Link: (GW-1, Port 2) <-> (SWITCH-2, Port 3)..."
