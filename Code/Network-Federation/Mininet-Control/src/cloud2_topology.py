@@ -124,13 +124,15 @@ if __name__ == '__main__':
 
     print("Adding Gateway-Node...")
     gwNode = net.getNodeByName('GW')
-    print("Adding interface 'eth0' to "+ str(gwNode) +"...")
-    Intf( 'eth0', node=gwNode )
-
+    
     print("Adding dhcp-host:")
     h_dhcp = net.addHost('h_dhcp', ip='0.0.0.0', mac=translate_dpid('00:00:00:00:00:20'))
     print("Connecting dhcp-Host with Gateway Node...")
     net.addLink(h_dhcp, gwNode)
+
+    print("Adding interface 'eth0' to "+ str(gwNode) +"...")
+    Intf( 'eth0', node=gwNode )
+
     #print("Preparing dhcp-Host as a DHCP-Server for the Network...")
     #h_dhcp.cmdPrint('dhclient '+h_dhcp.defaultIntf().name)
 
