@@ -128,7 +128,7 @@ if __name__ == '__main__':
     Intf( 'eth0', node=gwNode )
 
     print("Adding dhcp-host:")
-    h_dhcp = net.addHost('h_dhcp', ip='0.0.0.0', mac='000000000020')
+    h_dhcp = net.addHost('h_dhcp', ip='0.0.0.0', mac=translate_dpid('00:00:00:00:00:20'))
     h_dhcp.cmdPrint('dhclient '+h_dhcp.defaultIntf().name)
 
     print("\nHosts configured with IPs, switches pointing to OpenVirteX at: "+ OFC_IP +" port: "+ str(OFC_PORT) +"\n")
