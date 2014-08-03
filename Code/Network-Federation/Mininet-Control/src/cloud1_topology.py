@@ -19,21 +19,22 @@ NET_IP = '10.0.1.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
 HOSTS = {
-    'h1_1_1': {'ip': '+1', 'mac': '00:00:00:00:00:11'},
-    'h1_1_2': {'ip': '+2', 'mac': '00:00:00:00:00:12'},
-    'h1_2_1': {'ip': '+3', 'mac': '00:00:00:00:00:13'},
-    'h1_3_1': {'ip': '+4', 'mac': '00:00:00:00:00:14'},
+    'hdcp':   {'ip': '+1',  'mac': '00:00:00:00:01:01'},
+    'h1_1_1': {'ip': '+11', 'mac': '00:00:00:00:01:11'},
+    'h1_1_2': {'ip': '+12', 'mac': '00:00:00:00:01:12'},
+    'h1_2_1': {'ip': '+13', 'mac': '00:00:00:00:01:13'},
+    'h1_3_1': {'ip': '+14', 'mac': '00:00:00:00:01:14'}
     }
 
 #Define all Switches inside this mininet via DPID, links between Switches and links to Hosts here:
 SWITCHES = {
-    'GW':       {'dpid': '00:00:00:00:00:00:11:00',
-                 'links': ['SWITCH1'], 'hosts': []},
-    'SWITCH1':  {'dpid': '00:00:00:00:00:00:12:00',
+    'GW':       {'dpid': '00:00:00:00:00:01:10:00',
+                 'links': ['SWITCH1'], 'hosts': ['hdhcp']},
+    'SWITCH1':  {'dpid': '00:00:00:00:00:01:11:00',
                  'links': ['SWITCH2'], 'hosts': ['h1_1_1', 'h1_1_2']},
-    'SWITCH2':  {'dpid': '00:00:00:00:00:00:13:00',
+    'SWITCH2':  {'dpid': '00:00:00:00:00:01:12:00',
                  'links': ['SWITCH3'], 'hosts': ['h1_2_1']},
-    'SWITCH3':  {'dpid': '00:00:00:00:00:00:14:00',
+    'SWITCH3':  {'dpid': '00:00:00:00:00:01:13:00',
                  'links': [], 'hosts': ['h1_3_1']},
     }
 
@@ -124,14 +125,12 @@ if __name__ == '__main__':
     net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
     net.addController('ovxController', controller=RemoteController, ip=OFC_IP, port=OFC_PORT)
 
-    print("Adding Gateway-Node...")
-    gwNode = net.getNodeByName('GW')
-    
-    print("Adding dhcp-host...")
-    h_dhcp = net.addHost('h_dhcp', ip='0.0.0.0', mac=translate_dpid('00:00:00:00:00:10'))
-    print("Connecting dhcp-Host with Gateway Node...")
-    net.addLink(h_dhcp, gwNode)
+    # print("Adding dhcp-host...")
+    # h_dhcp = net.addHost('h_dhcp', ip='10.0.1.10', mac=translate_dpid('00:00:00:00:00:10'))
+    # print("Connecting dhcp-Host with Gateway Node...")
+    # net.addLink(h_dhcp, gwNode)
 
+    gwNode = net.getNodeByName('GW')
     print("Adding interface 'eth0' to "+ str(gwNode) +"...")
     Intf('eth0', node=gwNode)
 
