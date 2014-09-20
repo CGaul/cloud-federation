@@ -3,7 +3,6 @@ __author__ = 'Constantin'
 #Mininet API imports:
 from mininet.topo import Topo
 from mininet.net import Mininet
-from mininet.link import Intf
 from mininet.node import RemoteController
 from mininet.cli import CLI
 from mininet.log import setLogLevel
@@ -11,11 +10,24 @@ from mininet.log import setLogLevel
 #Python system imports:
 import re
 import logging
+import sys
+
+#Own Imports:
+from param_loader import defineArgs
 
 
 
-OFC_IP = '192.168.150.10'   #The IP-Addr of the OpenFlow Controller, used for this mininet (OpenVirteX here).
-OFC_PORT = 6633             #The Port of the OpenFlow Controller, used for this mininet (OpenVirteX here)
+## MININET EXECUTION ##
+#######################
+
+#The IP-Addr of the OpenFlow Controller, used for this mininet (OpenVirteX here).
+#The Port of the OpenFlow Controller, used for this mininet (OpenVirteX here)
+#Both defined via calling parameters (or default values of 'localhost':6633 if left blank)
+OFC_IP, OFC_PORT = defineArgs(sys.argv[2:])
+
+
+# OFC_IP = '192.168.150.10'   #The IP-Addr of the OpenFlow Controller, used for this mininet (OpenVirteX here).
+# OFC_PORT = 6633             #The Port of the OpenFlow Controller, used for this mininet (OpenVirteX here)
 NET_IP = '10.0.3.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
