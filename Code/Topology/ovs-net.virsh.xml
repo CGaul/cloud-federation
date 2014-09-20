@@ -1,0 +1,8 @@
+<network connections='2'>
+  <name>ovs-net</name>
+  <uuid>9d021b14-db11-4451-925e-33968e4c6560</uuid>
+  <forward mode='bridge'/>
+  <bridge name='br-eth0'/>
+  <virtualport type='openvswitch'/>
+</network>
+
