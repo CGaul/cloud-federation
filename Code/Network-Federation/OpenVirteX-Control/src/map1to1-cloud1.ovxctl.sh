@@ -1,8 +1,29 @@
 #!/bin/bash
 
+ofc_ip=""
+ofc_port=""
+
+### Command argument evaluation: ###
+while [ $# -gt 0 ]; do 	# Until you run out of parameters
+	case "$1" in
+	#Required Parameters:
+        --ofc_ip)         ofc_ip=$2 ;;
+        --ofc_port)       ofc_port=$2 ;;
+	#Printing the Help:
+		#-[hH]|-help|--help)	printHelp ;;
+	esac
+	shift	# Check next set of parameters.
+done
+
+if [[ ofc_ip == "" ]] || [[ ofc_port == "" ]]; then
+	echo "--ofc_ip and --ofc_port are required parameters!"
+	echo "possible call:"
+	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 10000"
+fi
+
 # Create Network with OpenFlowPort 10.000 (Floodlight-Controller listens on that port)
 #with own virtual address 10.0.0.0
-python ovxctl.py -n createNetwork tcp:192.168.150.11:10000 10.0.1.0 16
+python ovxctl.py -n createNetwork tcp:${ofc_ip}:${ofc_port} 10.0.1.0 16
 
 # For each physical Switch create a virtual switch:
 # Home Gateway Switch:
