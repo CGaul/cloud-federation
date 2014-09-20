@@ -23,7 +23,7 @@ from param_loader import defineArgs
 #The IP-Addr of the OpenFlow Controller, used for this mininet (OpenVirteX here).
 #The Port of the OpenFlow Controller, used for this mininet (OpenVirteX here)
 #Both defined via calling parameters (or default values of 'localhost':6633 if left blank)
-OFC_IP, OFC_PORT = defineArgs(sys.argv[2:])
+OFC_IP, OFC_PORT = defineArgs(sys.argv[1:])
 
 
 # OFC_IP = '192.168.150.10'   #The IP-Addr of the OpenFlow Controller, used for this mininet (OpenVirteX here).
