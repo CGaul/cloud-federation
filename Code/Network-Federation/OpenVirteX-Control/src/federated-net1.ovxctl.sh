@@ -1,8 +1,32 @@
 #!/bin/bash
 
-# Create Network with OpenFlowPort 10.000 (Floodlight-Controller listens on that port)
-#with own virtual address 10.0.0.0
-python ovxctl.py -n createNetwork tcp:192.168.150.11:10000 10.0.5.0 16
+ofc_ip=""
+ofc_port=10000
+
+### Command argument evaluation: ###
+while [ $# -gt 0 ]; do 	# Until you run out of parameters
+	case "$1" in
+	#Required Parameters:
+        --ofc_ip)         ofc_ip=$2 ;;
+        --ofc_port)       ofc_port=$2 ;;
+	#Printing the Help:
+		#-[hH]|-help|--help)	printHelp ;;
+	esac
+	shift	# Check next set of parameters.
+done
+
+if [[ ${ofc_ip} == "" ]]; then
+	echo "--ofc_ip is a required parameter!"
+	echo "possible calls:"
+	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
+	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345"
+	exit 1
+fi
+
+# Per default create Network with OpenFlowPort 10.000 (Floodlight-Controller listens on that port)
+# and handed over ofc_ip, as a required argument
+# with own virtual address 10.0.5.0.
+python ovxctl.py -n createNetwork tcp:${ofc_ip}:${ofc_port} 10.0.5.0 16
 
 echo "Establishing GW-1 Switch..."
 python ovxctl.py -n createSwitch 1 00:00:00:00:00:01:10:00 #:01
