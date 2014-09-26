@@ -28,7 +28,7 @@ OFC_IP, OFC_PORT = defineArgs(sys.argv[1:])
 
 # OFC_IP = '192.168.150.10'   #The IP-Addr of the OpenFlow Controller, used for this mininet (OpenVirteX here).
 # OFC_PORT = 6633             #The Port of the OpenFlow Controller, used for this mininet (OpenVirteX here)
-NET_IP = '10.0.3.0'         #The base IP-Network range, used for this mininet
+NET_IP = '10.0.2.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
 HOSTS = {
@@ -154,7 +154,7 @@ if __name__ == '__main__':
     setLogLevel('info')
     net.start()
 
-    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=192.168.150.11')
+    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.20')
     gwNode.cmdPrint('ovs-vsctl show')
 
     CLI(net)

@@ -154,7 +154,7 @@ if __name__ == '__main__':
     setLogLevel('info')
     net.start()
 
-    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=192.168.150.12')
+    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
     gwNode.cmdPrint('ovs-vsctl show')
 
     CLI(net)
