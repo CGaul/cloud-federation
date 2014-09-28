@@ -1,0 +1,44 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+### AUTOMATIC INTERFACE STARTERS ###
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+
+
+### BRIDGE-INTERFACES ###
+
+## br-eth0 Interface is started manually (sudo ifup br-eth0).
+#       It establishes a ovs-bridge with eth0 as its local port.
+#       For that, eth0 has to be offlined and the bridge has to act
+#       as a dhcp-client for the 192.168.1.1 gateway over eth0.
+#  Use this bridge via: sudo ifup --allow=ovs ovsbr-ext
+#                       sudo ifdown --allow=ovs ovsbr-ext
+auto ovsbr-ext 
+allow-ovs ovsbr-ext
+iface ovsbr-ext inet static
+    address 192.168.1.42
+    netmask 255.255.255.0
+    gateway 192.168.1.1
+    ovs_type OVSBridge
+    ovs_ports eth0 ovsbr-ext_tep1
+    #Additional command queries:
+    #Give ovsbr-ext a dhcp-client:
+    post-up dhclient ovsbr-ext
+
+# Bridge "ovsbr-ext" Port1: eth0    
+allow-ovsbr-ext eth0
+iface eth0 inet manual
+    ovs_bridge ovsbr-ext
+    ovs_type OVSPort
+
+# Bridge "ovsbr-ext" Port2: tep1
+# internal GRE-tunnel endpoint (10.1.1.20)    
+allow-ovsbr-ext ovsbr-ext_tep1
+iface ovsbr-ext_tep1 inet manual
+    ovs_bridge ovsbr-ext
+    ovs_type OVSIntPort
+    post-up ifconfig ovsbr-ext_tep1 10.1.1.20 netmask 255.255.0.0
