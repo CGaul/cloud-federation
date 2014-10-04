@@ -18,8 +18,8 @@ done
 if [[ ${ofc_ip} == "" ]]; then
 	echo "--ofc_ip is a required parameter!"
 	echo "possible calls:"
-	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
-	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345"
+	echo "bash ./map1to1-cloud2.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
+	echo "bash ./map1to1-cloud2.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345"
 	exit 1
 fi
 
