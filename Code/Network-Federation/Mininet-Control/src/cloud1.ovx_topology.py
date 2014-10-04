@@ -26,7 +26,7 @@ from param_loader import defineArgs
 #Both defined via calling parameters (or default values of 'localhost':6633 if left blank)
 OFC_IP, OFC_PORT = defineArgs(sys.argv[1:])
 #OFC_IP = '192.168.150.10'
-NET_IP = '10.0.1.0'         #The base IP-Network range, used for this mininet
+NET_IP = '10.1.0.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
 HOSTS = {
@@ -142,9 +142,8 @@ if __name__ == '__main__':
     # net.addLink(h_dhcp, gwNode)
 
     gwNode = net.getNodeByName('GW')
-    #TODO: is Intf('eth0') really needed?
-    #print("Adding interface 'eth0' to "+ str(gwNode) +"...")
-    #Intf('eth0', node=gwNode)
+    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
+    gwNode.cmdPrint('ovs-vsctl show')
 
     #print("Preparing dhcp-Host as a DHCP-Server for the Network...")
     #h_dhcp.cmdPrint('dhclient '+h_dhcp.defaultIntf().name)
@@ -153,9 +152,6 @@ if __name__ == '__main__':
 
     setLogLevel('info')
     net.start()
-
-    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
-    gwNode.cmdPrint('ovs-vsctl show')
 
     CLI(net)
     net.stop()
