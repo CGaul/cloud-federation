@@ -27,7 +27,7 @@ findHomeDir HOME_DIR    #Variable assignment per reference
 PROGRESS_FILE=${CURR_DIR}/progress.log
 LOG_FILE=${CURR_DIR}/installation.log
 
-CONFIGFILE_PATH=${CURR_DIR}/config-Files
+CONFIGFILE_PATH=${CURR_DIR}/vm-configs
 RESOURCE_PATH=${CURR_DIR}/resources
 VM_IMAGE_PATH=~/.vmbuilder/VMs
 TEMPLATE_PATH=~/.vmbuilder/Cloud-Templates/
@@ -35,10 +35,10 @@ TEMPLATE_PATH=~/.vmbuilder/Cloud-Templates/
 
 #Config- &Resource- File paths for each VM:
 CLOUDNET_NAME="cloudnet"
-CLOUDNET_CONF_PATH=${CONFIGFILE_PATH}/vm-scripts/${CLOUDNET_NAME}
+CLOUDNET_CONF_PATH=${CONFIGFILE_PATH}/vmbuilder/${CLOUDNET_NAME}
 
 FEDERATOR_NAME="federator"
-FEDERATOR_CONF_PATH=${CONFIGFILE_PATH}/vm-scripts/${FEDERATOR_NAME}
+FEDERATOR_CONF_PATH=${CONFIGFILE_PATH}/vmbuilder/${FEDERATOR_NAME}
 
 #Whiptail Shell GUI:
 GUI_MAXHWIDTH=80
