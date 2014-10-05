@@ -1,0 +1,59 @@
+# ~/.tmuxinator/cg-server.yml
+
+name: citmaster-cmd
+root: ~/
+
+# Optional tmux socket
+# socket_name: foo
+
+# Runs before everything. Use it to start daemons etc.
+# pre: sudo /etc/rc.d/mysqld start
+
+# Runs in each window and pane before window/pane specific commands. Useful for setting up interpreter versions.
+# pre_window: rbenv shell 2.0.0-p247
+
+# Pass command line options to tmux. Useful for specifying a different tmux.conf.
+# tmux_options: -f ~/.tmux.mac.conf
+
+# Change the command to call tmux.  This can be used by derivatives/wrappers like byobu.
+# tmux_command: byobu
+
+windows:
+    - OpenVirteX:
+        layout: even-horizontal
+        panes:
+          - ovxPane:
+              - ssh federator
+              - sh start_ovx.sh
+              - sh read_latest-log.sh logs/ovx/*.std.log
+          - errLogPane:
+              - ssh federator
+              - sh read_latest-log.sh logs/ovx/*.err.log
+          - mappingPane:
+              - ssh federator
+              - cd Development/cit-master/Code/Network-Federation/OpenVirteX-Control/src
+              - ll
+    - Floodlight-Ctrls:
+        layout: even-horizontal
+        panes:
+          - ctrl1Pane:
+              - ssh cloudnet-1
+              - cd Development/cit-master/Code/Network-Federation/Floodlight-Control
+              - bash start_floodlight-OFC.sh
+              - tail -n 50 -f logs/ctrl1.log
+          - ctrl2Pane:
+              - ssh cloudnet-2
+              - cd Development/cit-master/Code/Network-Federation/Floodlight-Control
+              - bash start_floodlight-OFC.sh
+              - tail -n 50 -f logs/ctrl1.log
+    - Mininets:
+        layout: even-horizontal
+        panes:
+          - mininet1Pane:
+              - ssh cloudnet-1
+              - cd Development/cit-master/Code/Network-Federation/Mininet-Control/src
+              - sudo python cloud1.ovx_topology.py --ofc_ip 192.168.1.41
+          - mininet2Pane:
+              - ssh cloudnet-2
+              - cd Development/cit-master/Code/Network-Federation/Mininet-Control/src
+              - sudo python cloud2.ovx_topology.py --ofc_ip 192.168.1.41

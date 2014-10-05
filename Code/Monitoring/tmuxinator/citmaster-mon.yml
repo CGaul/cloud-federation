@@ -1,0 +1,60 @@
+# ~/.tmuxinator/cg-server.yml
+
+name: citmaster-mon
+root: ~/
+
+# Optional tmux socket
+# socket_name: foo
+
+# Runs before everything. Use it to start daemons etc.
+# pre: sudo /etc/rc.d/mysqld start
+
+# Runs in each window and pane before window/pane specific commands. Useful for setting up interpreter versions.
+# pre_window: rbenv shell 2.0.0-p247
+
+# Pass command line options to tmux. Useful for specifying a different tmux.conf.
+# tmux_options: -f ~/.tmux.mac.conf
+
+# Change the command to call tmux.  This can be used by derivatives/wrappers like byobu.
+# tmux_command: byobu
+
+windows:
+    - Federator:
+        layout: main-vertical
+        panes:
+          - htopPane:
+              - ssh federator
+              - htop
+          - syslogPane:
+              - ssh federator
+              - clear
+              - tail -f -n 50 /var/log/syslog
+          - ifstatPane:
+              - ssh federator
+              - ifstat
+    - Cloudnet-1:
+        layout: main-vertical
+        panes:
+          - htopPane:
+              - ssh cloudnet-1
+              - htop
+          - syslogPane:
+              - ssh cloudnet-1
+              - clear
+              - tail -f -n 50 /var/log/syslog
+          - ifstatPane:
+              - ssh cloudnet-1
+              - ifstat
+    - Cloudnet-2:
+        layout: main-vertical
+        panes:
+          - htopPane:
+              - ssh cloudnet-2
+              - htop
+          - syslogPane:
+              - ssh cloudnet-2
+              - clear
+              - tail -f -n 50 /var/log/syslog
+          - ifstatPane:
+              - ssh cloudnet-2
+              - ifstat
