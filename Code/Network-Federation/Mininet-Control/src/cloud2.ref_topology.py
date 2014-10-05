@@ -110,7 +110,7 @@ if __name__ == '__main__':
     topo = Cloud2Topo()
 
     #Create Mininet with automatic Reference Controller:
-    net = Mininet(topo, autoSetMacs=True, xterms=False, controller=None)
+    net = Mininet(topo, autoSetMacs=True, xterms=False)
 
     setLogLevel('info')
     net.start()
