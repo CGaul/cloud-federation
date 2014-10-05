@@ -2,5 +2,8 @@
 ############################################
 
 
-Proposal/Proposal.aux
-Proposal/Proposal.tex.backup
+*.aux
+*.tex.backup
+*.toc
+Thesis/thesis.log
+Proposal/proposal.log
