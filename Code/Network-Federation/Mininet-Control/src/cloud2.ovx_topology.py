@@ -141,10 +141,6 @@ if __name__ == '__main__':
     #net.addLink(h_dhcp, gwNode)
 
     gwNode = net.getNodeByName('GW')
-    print("Adding interface 'eth0' to "+ str(gwNode) +"...")
-    #TODO: is Intf('eth0') really needed?
-    #print("Adding interface 'eth0' to "+ str(gwNode) +"...")
-    #Intf('eth0', node=gwNode)
 
     #print("Preparing dhcp-Host as a DHCP-Server for the Network...")
     #h_dhcp.cmdPrint('dhclient '+h_dhcp.defaultIntf().name)

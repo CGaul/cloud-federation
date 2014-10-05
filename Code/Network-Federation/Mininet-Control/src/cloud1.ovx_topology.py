@@ -142,8 +142,6 @@ if __name__ == '__main__':
     # net.addLink(h_dhcp, gwNode)
 
     gwNode = net.getNodeByName('GW')
-    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
-    gwNode.cmdPrint('ovs-vsctl show')
 
     #print("Preparing dhcp-Host as a DHCP-Server for the Network...")
     #h_dhcp.cmdPrint('dhclient '+h_dhcp.defaultIntf().name)
@@ -152,6 +150,9 @@ if __name__ == '__main__':
 
     setLogLevel('info')
     net.start()
+
+    gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
+    gwNode.cmdPrint('ovs-vsctl show')
 
     CLI(net)
     net.stop()
