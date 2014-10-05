@@ -1,0 +1,6 @@
+<pool type="dir">
+    <name>server-pool</name>
+    <target>
+        <path>/var/lib/libvirt/pools/server-pool</path>
+    </target>
+</pool>

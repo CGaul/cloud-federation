@@ -1,0 +1,6 @@
+<pool type="dir">
+    <name>cit-testbed-pool</name>
+    <target>
+        <path>/var/lib/libvirt/pools/cit-testbed-pool</path>
+    </target>
+</pool>
