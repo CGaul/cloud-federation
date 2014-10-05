@@ -33,13 +33,15 @@ if ! [ "${CURR_USER}" = "root" ]; then
 	exit 1
 fi
 
-if [[ ! -f ${LOGFILE_DIR} ]]; then
-	echo "Creating ${LOGFILE_DIR} directory..."
-	su -c "mkdir -p ${LOGFILE_DIR}" ${SUDO_USER}
-fi
 
 if [[ -x `which tshark` ]]; then
-	echo "Dumping with tshark on Interface ${IFACE} as root."
+	
+	if [[ ! -f ${LOGFILE_DIR} ]]; then
+		echo "Creating ${LOGFILE_DIR} directory..."
+		su -c "mkdir -p ${LOGFILE_DIR}" ${SUDO_USER}
+	fi
+	echo "Running tshark dump on Interface ${IFACE} as root."
+	echo "Logfile: ${LOGFILE_DIR}/${LOGFILE_NAME}"
 	su -c "touch ${LOGFILE_DIR}/${LOGFILE_NAME}" ${SUDO_USER}
 	chmod o+rw ${LOGFILE_DIR}/${LOGFILE_NAME}
 	tshark -i ${IFACE} -w ${LOGFILE_DIR}/${LOGFILE_NAME}
