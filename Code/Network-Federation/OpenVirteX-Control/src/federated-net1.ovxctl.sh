@@ -26,7 +26,7 @@ fi
 # Per default create Network with OpenFlowPort 10.000 (Floodlight-Controller listens on that port)
 # and handed over ofc_ip, as a required argument
 # with own virtual address 10.0.5.0.
-python ovxctl.py -n createNetwork tcp:${ofc_ip}:${ofc_port} 10.12.0.0 16
+python ovxctl.py -n createNetwork tcp:${ofc_ip}:${ofc_port} 10.10.0.0 16
 
 echo "Establishing GW-1 Switch..."
 python ovxctl.py -n createSwitch 1 00:00:00:00:00:01:10:00 #:01
@@ -87,11 +87,11 @@ python ovxctl.py -n connectLink 1 00:a4:23:05:00:00:00:02 1 00:a4:23:05:00:00:00
 # Switch 1.1 ([Port 1: Host 1], [Port 2: Host 2]):
 echo "Connecting Host: h1_1_1 <-> SWITCH-1.1..."
 python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:03 1 00:00:00:00:01:11
-echo "Connecting Host: h1_1_2 <-> SWITCH-1.1..."
-python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:03 2 00:00:00:00:01:12
+#echo "Connecting Host: h1_1_2 <-> SWITCH-1.1..."
+#python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:03 2 00:00:00:00:01:12
 
 # Switch 2.1 ([Port 1: Host 1], [Port 2: Host 2]):
 echo "Connecting Host: h2_1_1 <-> SWITCH-2.1..."
 python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:04 1 00:00:00:00:02:11
-echo "Connecting Host: h2_1_2 <-> SWITCH-2.1..."
-python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:04 2 00:00:00:00:02:12
+#echo "Connecting Host: h2_1_2 <-> SWITCH-2.1..."
+#python ovxctl.py -n connectHost 1 00:a4:23:05:00:00:00:04 2 00:00:00:00:02:12
