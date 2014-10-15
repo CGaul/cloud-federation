@@ -25,7 +25,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 
 
 /* Execution: */
-/* ========= */
+/* ========== */
 
 
 /* Methods: */
@@ -37,9 +37,9 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 	override def online(): Receive = {
 	  	case KillNotifier()						=> super.recv_offlineNotifier()
 
-	  	case message: DiscoveryAgentReply	=> message match {
-		  case DiscoveryInit()								=> recvDiscoveryInit()
-		  case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
+	  	case message: DiscoveryAgentReply => message match {
+		    case DiscoveryInit()								      => recvDiscoveryInit()
+		    case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
@@ -49,7 +49,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 		log.info("Received Discovery-Init Call from CCFM.")
 		log.info("Sending subscription request to PubSub-Federator...")
 
-	  	pubSubServer ! DiscoverySubscription("This is my cert!")
+    pubSubServer ! DiscoverySubscription("This is my cert!")
 
 //		try{
 //			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
