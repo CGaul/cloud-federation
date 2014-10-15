@@ -11,7 +11,7 @@ sealed trait PubSubFederatorReply
 
 
 case class DiscoveryInit()	extends DiscoveryMessage 
-									          with DiscoveryAgentReply
+									with DiscoveryAgentReply
 
 case class DiscoveryAck(status: String)	extends DiscoveryMessage
 
@@ -29,7 +29,7 @@ case class DiscoveryError(error: String)	extends DiscoveryMessage
  * @param certificate
  */
 case class DiscoverySubscription(certificate : String)	extends DiscoveryMessage
-																			                  with PubSubFederatorReply
+																			with PubSubFederatorReply
 
 
 /**
@@ -44,4 +44,4 @@ case class DiscoverySubscription(certificate : String)	extends DiscoveryMessage
  *                         possible matches of a Cloud-Federation
  */
 case class DiscoveryPublication(federatedDiscoveryActors: Vector[ActorPath]) 	extends DiscoveryMessage 
-																										                          with DiscoveryAgentReply
+																										with DiscoveryAgentReply

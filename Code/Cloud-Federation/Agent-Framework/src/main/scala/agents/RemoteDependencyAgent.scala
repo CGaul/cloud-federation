@@ -6,6 +6,9 @@ import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by costa on 6/3/14.
+ * A simple Actor which has two states: offline and online.
+ * If all remote dependencies {Vector[ActorSelection]} are answering to a identityRequest, the Actor will go online,
+ * otherwise the state defaults to offline.
  */
 abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection]) extends Actor with ActorLogging with Stash
 {

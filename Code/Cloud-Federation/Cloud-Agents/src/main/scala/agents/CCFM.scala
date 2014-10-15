@@ -1,6 +1,7 @@
 package agents
 
 import akka.actor._
+import datatypes.Ressources
 import messages.{DiscoveryAck, DiscoveryError, DiscoveryInit}
 
 
@@ -13,10 +14,20 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 /* Values: */
 /* ======= */
 
-  // Akka Child-Actor spawning:
-  val discoveryAgentProps: Props 	= Props(classOf[DiscoveryAgent], args = pubSubServerAddr)
-  val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
-  log.info("Discovery-Agent established!")
+  	// Akka Child-Actor spawning:
+  	val discoveryAgentProps: 			Props 	= Props(classOf[DiscoveryAgent], args = pubSubServerAddr)
+	val matchMakingAgentProps: 		Props 	= Props(classOf[MatchMakingAgent])
+	val networkResourceAgentProps: 	Props 	= Props(classOf[NetworkResourceAgent])
+
+	val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
+	log.info("Discovery-Agent established!")
+
+
+/* Variables: */
+/* ========== */
+
+	var foreignDiscoveryActors: Vector[ActorPath] = Vector()
+	var cloudFederationMatches: Vector[(ActorPath, Ressources)] = Vector()
 
 
 /* Execution: */
