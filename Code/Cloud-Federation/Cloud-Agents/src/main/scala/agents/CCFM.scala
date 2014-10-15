@@ -20,7 +20,7 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 
 
 /* Execution: */
-/* ========= */
+/* ========== */
 
   //Called on CCFM construction:
   discoveryAgent ! DiscoveryInit()
@@ -35,7 +35,7 @@ class CCFM(pubSubServerAddr: ActorSelection) extends Actor with ActorLogging
 
 	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
-		case DiscoveryError(status)	=>	recvDiscoveryError(status)
+		case DiscoveryError(status)	=> recvDiscoveryError(status)
 		case "matchmakingMsg" 			=> recvMatchMakingMsg()
 		case "authenticationMsg"		=> recvAuthenticationMsg()
 		case _								=> log.error("Unknown message received!")

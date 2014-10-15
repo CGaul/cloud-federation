@@ -28,7 +28,7 @@ class PubSubFederator extends Actor with ActorLogging
 
   override def receive(): Receive = {
 	 case message: PubSubFederatorReply	=> message match {
-		case DiscoverySubscription(certificate)	=> recvDiscoverySubscription(certificate)
+     case DiscoverySubscription(certificate)	=> recvDiscoverySubscription(certificate)
 	 }
 	 case _										=> log.error("Unknown message received!")
   }
