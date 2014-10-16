@@ -1,6 +1,9 @@
 package messages
 
+import java.security.cert.Certificate
+
 import akka.actor.ActorPath
+import datatypes.SLA
 
 sealed trait DiscoveryMessage
 
@@ -10,7 +13,7 @@ sealed trait PubSubFederatorReply
 
 
 
-case class DiscoveryInit()	extends DiscoveryMessage 
+case class DiscoveryInit(slaList: Vector[SLA])	extends DiscoveryMessage
 									with DiscoveryAgentReply
 
 case class DiscoveryAck(status: String)	extends DiscoveryMessage
@@ -26,9 +29,10 @@ case class DiscoveryError(error: String)	extends DiscoveryMessage
  *    The answer of a DiscoverySubscription will be a DiscoveryPublication from the PubSubFederator
  *    to the Discovery-Agent
  * </p>
- * @param certificate
+ * @param slaList
+ * @param cert
  */
-case class DiscoverySubscription(certificate : String)	extends DiscoveryMessage
+case class DiscoverySubscription(slaList: Vector[SLA], cert : Certificate)	extends DiscoveryMessage
 																			with PubSubFederatorReply
 
 

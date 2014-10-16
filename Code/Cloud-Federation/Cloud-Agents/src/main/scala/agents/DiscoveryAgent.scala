@@ -1,7 +1,10 @@
 package agents
 
+import java.security.cert.Certificate
+
 import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
+import datatypes.SLA
 import messages._
 
 
@@ -11,7 +14,8 @@ import messages._
  * This agent is able to connect to the Discovery-Subscription-Service
  * and establishes a communication with the CCFM as its Supervisor.
  */
-class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent(Vector(pubSubServer)) with ActorLogging
+class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends RemoteDependencyAgent(Vector(pubSubServer))
+																							 with ActorLogging
 {
 
 /* Values: */
@@ -37,19 +41,19 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
 	override def online(): Receive = {
 	  	case KillNotifier()						=> super.recv_offlineNotifier()
 
-	  	case message: DiscoveryAgentReply => message match {
-		    case DiscoveryInit()								      => recvDiscoveryInit()
-		    case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
+	  	case message: DiscoveryAgentReply	=> message match {
+			case DiscoveryInit(slaList)					=> recvDiscoveryInit(slaList)
+			case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
 	}
 
-	private def recvDiscoveryInit() = {
+	private def recvDiscoveryInit(slaList: Vector[SLA] ) = {
 		log.info("Received Discovery-Init Call from CCFM.")
 		log.info("Sending subscription request to PubSub-Federator...")
 
-    pubSubServer ! DiscoverySubscription("This is my cert!")
+		pubSubServer ! DiscoverySubscription(slaList, cert)
 
 //		try{
 //			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
@@ -93,5 +97,5 @@ class DiscoveryAgent(pubSubServer: ActorSelection) extends RemoteDependencyAgent
  */
 object DiscoveryAgent
 {
-	def props(pubSubServerAddr: ActorSelection): Props = Props(new DiscoveryAgent(pubSubServerAddr))
+	def props(pubSubServerAddr: ActorSelection, cert: Certificate): Props = Props(new DiscoveryAgent(pubSubServerAddr, cert))
 }
