@@ -7,7 +7,7 @@ import akka.actor._
 import datatypes.CPU_Unit.CPU_Unit
 import datatypes.Img_Format.Img_Format
 import datatypes._
-import messages.{DiscoveryAck, DiscoveryError, DiscoveryInit}
+import messages._
 
 
 /**
@@ -53,13 +53,14 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 /* Values: */
 /* ======= */
 
-  // Akka Child-Actor spawning:
+  // Akka Child-Actor Instantiation-Preparation:
 	val discoveryAgentProps:			Props = Props(classOf[DiscoveryAgent], pubSubServerAddr, cloudCert)
 	val matchMakingAgentProps:			Props = Props(classOf[MatchMakingAgent])
 	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent])
 
-	val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
-	log.info("Discovery-Agent established!")
+	// Akka Child-Actor spawning:
+	val discoveryAgent: ActorRef 			= context.actorOf(discoveryAgentProps, 		name="discoveryAgent")
+	val networkResourceAgent: ActorRef 	= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 
 
 /* Variables: */
@@ -88,11 +89,16 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
+
 	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=> recvDiscoveryError(status)
-		case "matchmakingMsg" 			=> recvMatchMakingMsg()
-		case "authenticationMsg"		=> recvAuthenticationMsg()
+		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
+		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
+		case message: NetworkResourceMessage	=> message match {
+			case ResourceReply(allocResources)				=> recvResourceReply(allocResources)
+			case ResourceFederationReply(allocResources) => recvResourceReply(allocResources)
+		}
 		case _								=> log.error("Unknown message received!")
 	}
 
@@ -105,9 +111,13 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	}
 
 
-	def recvMatchMakingMsg() = ???
+	def recvMatchMakingMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
 
-	def recvAuthenticationMsg() = ???
+	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
+
+	def recvResourceReply(resources: Resources): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
+
+	def recvResourceReply(resources: Vector[(ActorRef, Resources)]): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
 }
 
 
