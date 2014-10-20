@@ -14,7 +14,8 @@ object CPU_Unit extends Enumeration{
 //	val LARGE 		= Value(10)
 //	val XLARGE 		= Value(20)
 }
-object CPU_UnitMapper{
+
+object CPU_UnitValuator{
 	val CPU_UnitMap : Map[CPU_Unit, Int] = Map(CPU_Unit.SMALL -> 1, CPU_Unit.MEDIUM -> 5,
 															 CPU_Unit.LARGE -> 10, CPU_Unit.XLARGE -> 20)
 	def getValue(cpuUnit : CPU_Unit): Int = {
@@ -26,24 +27,6 @@ object CPU_UnitMapper{
 object Byte_Unit extends Enumeration{
 	type Byte_Unit = Value
 	val kB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
-}
-
-object ByteConverter{
-	var sizeConversion = Map[Byte_Unit, Long]()
-	sizeConversion += (Byte_Unit.kB	-> Math.round(Math.pow(1000, 1)),	Byte_Unit.KiB -> Math.round(Math.pow(1024,1)))
-	sizeConversion += (Byte_Unit.MB	-> Math.round(Math.pow(1000, 2)),	Byte_Unit.MiB -> Math.round(Math.pow(1024,2)))
-	sizeConversion += (Byte_Unit.GB	-> Math.round(Math.pow(1000, 3)),	Byte_Unit.GiB -> Math.round(Math.pow(1024,3)))
-	sizeConversion += (Byte_Unit.TB	-> Math.round(Math.pow(1000, 4)),	Byte_Unit.TiB -> Math.round(Math.pow(1024,4)))
-	sizeConversion += (Byte_Unit.PB	-> Math.round(Math.pow(1000, 5)),	Byte_Unit.PiB -> Math.round(Math.pow(1024,5)))
-
-	def convertBytes(size: Integer, srcUnit: Byte_Unit, destUnit: Byte_Unit): Double = {
-		val srcUnitMultiplier: Long	= sizeConversion(srcUnit)
-		val destUnitDivisor: Long		= sizeConversion(destUnit)
-
-		val byteSize: Long 				= size * srcUnitMultiplier
-		val destSize: Double				= byteSize / destUnitDivisor
-		destSize
-	}
 }
 
 
@@ -60,7 +43,58 @@ case class NodeID(id: Integer)
  *             size * unit would be the size in bytes.
  * @param unit The Unit of the Byte size, either in Decimal Metric (kB, MB, GB) or in Binary IEC Metric (kiB, MiB, GiB)
  */
-case class ByteSize(size: Integer, unit: Byte_Unit)
+case class ByteSize(size: Integer, unit: Byte_Unit) extends Comparable[ByteSize] {
+
+	/* Constants: */
+	/* ========== */
+
+	var sizeConversion = Map[Byte_Unit, Long]()
+	sizeConversion += (Byte_Unit.kB	-> Math.round(Math.pow(1000, 1)),	Byte_Unit.KiB -> Math.round(Math.pow(1024,1)))
+	sizeConversion += (Byte_Unit.MB	-> Math.round(Math.pow(1000, 2)),	Byte_Unit.MiB -> Math.round(Math.pow(1024,2)))
+	sizeConversion += (Byte_Unit.GB	-> Math.round(Math.pow(1000, 3)),	Byte_Unit.GiB -> Math.round(Math.pow(1024,3)))
+	sizeConversion += (Byte_Unit.TB	-> Math.round(Math.pow(1000, 4)),	Byte_Unit.TiB -> Math.round(Math.pow(1024,4)))
+	sizeConversion += (Byte_Unit.PB	-> Math.round(Math.pow(1000, 5)),	Byte_Unit.PiB -> Math.round(Math.pow(1024,5)))
+
+
+	/* Public Methods: */
+	/* =============== */
+
+	def convert(srcUnit: Byte_Unit, destUnit: Byte_Unit): Double = {
+		val srcUnitMult: Long	= sizeConversion(srcUnit)
+		val destUnitDiv: Long	= sizeConversion(destUnit)
+
+		val byteSize: Long 		= this.size * srcUnitMult
+		val destSize: Double		= byteSize / destUnitDiv
+		return destSize
+	}
+
+
+	/* Overridden Methods: */
+	/* =================== */
+
+	override def equals(obj: scala.Any): Boolean = obj match{
+		case that: ByteSize 	=> (that canEqual this) && (compareTo(that) == 0)
+		case _ 					=> false
+	}
+
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[ByteSize]
+
+
+	override def compareTo(that: ByteSize): Int = {
+		val thisUnitMult: Long	= sizeConversion(this.unit)
+		val thatUnitMult: Long	= sizeConversion(that.unit)
+
+		val thisByteSize: Long 	= this.size * thisUnitMult
+		val thatByteSize: Long	= that.size * thatUnitMult
+		val result: Int 			= (thisByteSize - thatByteSize).asInstanceOf[Int]
+		return result
+	}
+
+
+	override def toString: String = size.toString +" "+ unit.toString
+
+	override def hashCode(): Int = super.hashCode()
+}
 
 
 /**
@@ -80,7 +114,7 @@ case class Resources(nodeIDs:		Vector[NodeID],
 							bandwidth:	Vector[(NodeID, ByteSize)],
 							latency:		Vector[(NodeID, Float)]) extends Comparable[Resources]{
 
-	override def equals(other: scala.Any): Boolean = other match{
+	override def equals(obj: scala.Any): Boolean = obj match{
 		case that: Resources => (that canEqual this) &&
 		  								(this.cpu == that.cpu) && (this.ram == that.ram) &&
 									   (this.storage == that.storage) && (this.bandwidth == that.bandwidth) &&
@@ -89,6 +123,7 @@ case class Resources(nodeIDs:		Vector[NodeID],
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Resources]
+
 
 
 	/**
@@ -107,21 +142,64 @@ case class Resources(nodeIDs:		Vector[NodeID],
 	 *    		 of a ResourceRequest(B) will <b><em>most likely fail</em></b>. As of that, equality should be treated
 	 *    		 the same as A < B. </li>
 	 * 	</ul>
+	 * <p>
+	 *    This is a combined method of compareToCPU(..), compareToRAM(..), compareToStorage(..),
+	 *    compareToBandwidth(..) and compareToLatency(..) each with the same
+	 *    parameter signature as compareTo(other: Resources)
+	 * </p>
 	 * @param other
 	 * @return
 	 */
 	override def compareTo(other: Resources): Int = {
-		var cumSum = 0
-		val thisCPUSum = this.cpu.flatMap(t => Vector(t._2)).
-		  								  	map(cpuUnit => CPU_UnitMapper.getValue(cpuUnit)).sum
-		val thatCPUSum = this.cpu.flatMap(t => Vector(t._2)).
-		  									map(cpuUnit => CPU_UnitMapper.getValue(cpuUnit)).sum
-		val cpuDiff = thisCPUSum - thatCPUSum
-		if(cpuDiff <= 0)
+
+		val cpuDiff 			= compareToCPU(other)
+		if (cpuDiff <= 0){
 			return cpuDiff
-		else
-			0 //TODO: go on.
+		}
+		val ramDiff: Int 		= compareToRAM(other)
+		if (ramDiff <= 0){
+			return ramDiff
+		}
+		val storageDiff: Int = compareToStorage(other)
+		if (storageDiff <= 0){
+			return storageDiff
+		}
+		val bdwhDiff: Int 	= compareToBandwidth(other)
+		if (bdwhDiff <= 0){
+			return bdwhDiff
+		}
+		val latencyDiff: Int = compareToLatency(other)
+		if (latencyDiff <= 0){
+			return latencyDiff
+		}
+
+		val cumSum: Int		= cpuDiff + ramDiff + storageDiff + bdwhDiff + latencyDiff
+		return cumSum
 	}
+
+	def compareToCPU(other: Resources): Int = {
+		val thisCPUSum = this.cpu.flatMap(t => Vector(t._2)).
+		  								  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
+		val thatCPUSum = this.cpu.flatMap(t => Vector(t._2)).
+		  								  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
+
+		return thisCPUSum - thatCPUSum
+	}
+
+	def compareToRAM(resources: Resources): Int = {
+		val thisRAMSum = this.ram.flatMap(t => Vector(t._2)).
+		  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
+		val thatRAMSum = this.ram.flatMap(t => Vector(t._2)).
+		  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
+
+		return thisRAMSum - thatRAMSum
+	}
+
+	def compareToStorage(resources: Resources): Int = ???
+
+	def compareToBandwidth(resources: Resources): Int = ???
+
+	def compareToLatency(resources: Resources): Int = ???
 
 	def allocate(other: Resources): Resources = ??? //TODO: Implement allocation of other in Resources of this, returning this.
 //	def allocateByCPU(other: Resources): Resources = {
