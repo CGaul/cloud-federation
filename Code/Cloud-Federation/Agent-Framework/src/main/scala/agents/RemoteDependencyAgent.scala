@@ -58,7 +58,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 	* comes into the mailbox, or there were stashed messages while the Actor was in its offline state.
 	* @return
 	*/
-	def online(): Receive
+	def receivedOnline(): Receive
 
 
   def stashMessage() = {
@@ -83,7 +83,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 		//If no unresolved ActorRefs are left, become online:
 		if(unresolved == None){
 		 	unstashAll()
-			context.become(online)
+			context.become(receivedOnline())
 			log.debug("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {

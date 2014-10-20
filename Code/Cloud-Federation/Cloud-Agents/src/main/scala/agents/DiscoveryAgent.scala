@@ -38,7 +38,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends Re
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def online(): Receive = {
+	override def receivedOnline(): Receive = {
 	  	case KillNotifier()						=> super.recv_offlineNotifier()
 
 	  	case message: DiscoveryAgentReply	=> message match {

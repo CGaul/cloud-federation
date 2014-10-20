@@ -10,6 +10,8 @@ import datatypes.Resources
  */
 sealed trait NetworkResourceMessage
 
+case class ResourceInfo(totalResources: Resources, availResources: Resources) extends NetworkResourceMessage
+
 case class ResourceRequest(resources: Resources, ofcIP: InetAddress) extends NetworkResourceMessage
 case class ResourceReply(allocatedResources: Resources) extends NetworkResourceMessage
 case class ResourceFederationReply(allocatedResources: Vector[(ActorRef, Resources)]) extends NetworkResourceMessage

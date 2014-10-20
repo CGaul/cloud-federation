@@ -62,7 +62,6 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	val discoveryAgent: ActorRef 			= context.actorOf(discoveryAgentProps, 		name="discoveryAgent")
 	val networkResourceAgent: ActorRef 	= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 
-
 /* Variables: */
 /* ========== */
 

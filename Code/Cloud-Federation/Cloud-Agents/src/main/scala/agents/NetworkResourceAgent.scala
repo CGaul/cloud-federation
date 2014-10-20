@@ -2,33 +2,59 @@ package agents
 
 import java.net.InetAddress
 
-import akka.actor.{Props, ActorRef, ActorLogging, Actor}
+import akka.actor._
 import datatypes.Resources
-import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
+import messages.{ResourceInfo, ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
 
 /**
  * Created by costa on 10/15/14.
  */
-class NetworkResourceAgent(ovx_ip: InetAddress) extends Actor with ActorLogging
+class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
 {
-	/* Values: */
-	/* ======= */
-
-	val ovxIP : InetAddress = ovx_ip
-
-	/* Values: */
-	/* ======= */
-
-	var complResources : Resources
-	var availResources : Resources
+/* Values: */
+/* ======= */
 
 
-	/* Methods: */
-	/* ======== */
+/* Variables: */
+/* ========== */
+
+	var _totalResources : Resources = new Resources()
+	var _availResources : Resources = new Resources()
+
+
+/* Public Methods: */
+/* =============== */
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	/**
-	 * Receives ResourceRequests from CCFM.
+	 * Receives ResourceInfos from the CCFM.
+	 * <p>
+	 *    Directly after the NetworkResourceAgent was started and everytime the topology changes from
+	 *    outside circumstances, the CCFM sends a Topology update in the form of an abstracted combination
+	 *    of total Resources of the whole Cloud (including the Host's, initial Power and their connections without load)
+	 *    and the available Resources, which are excluding Resources that are currently completely assigned and/or
+	 *    under load.
+	 * </p>
+	 * <p>
+	 * 	When a ResourceInfo message is queued at the NetworkResourceAgent the first time, the internal _initialized value
+	 * 	will be set to true, as the Agent is not able to function without these information.
+	 * </p>
+	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
+	 *
+	 * @param totalResources
+	 * @param availResources
+	 */
+	def recvResourceInfo(totalResources: Resources, availResources: Resources): Unit = {
+		_totalResources	= totalResources
+		_availResources	= availResources
+
+		unstashAll()
+		context.become(receivedOnline())
+	}
+
+	//TODO: Implement in 0.2 Integrated Controllers
+	/**
+	 * Receives ResourceRequests from the CCFM.
 	 * <p>
 	 * 	Either local Cloud's Resources are sufficient, then the Request could be
 	 * 	assigned to local resources only. If the local Resources are insufficient,
@@ -43,7 +69,20 @@ class NetworkResourceAgent(ovx_ip: InetAddress) extends Actor with ActorLogging
 	 * @param address
 	 */
 	def recvResourceRequest(resources: Resources, address: InetAddress): Unit = {
-		resources
+		/* Check if local Cloud's Resources could be sufficient:
+		 * As the compareTo(..) method is only a lightweight sufficiency check
+		 * Try to solve the binpacking problem here via an _availresource.allocate(resources).
+		 * This allocation will not be adopted to the available resources, as long as it is not clear if the
+		 * allocation will succeed. */
+		if(_availResources.compareTo(resources) > 0){
+			_availResources.allocate(resources)
+		}
+		/* Inform the MatchMakingAgent about necessary federated Resources.
+		 * If compareTo fails, it is guaranteed, that the local available resources are not sufficient. */
+		else{
+			//TODO: split resources and fulfill as much as possible locally.
+			//TODO: inform matchMakingAgent.
+		}
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -61,17 +100,39 @@ class NetworkResourceAgent(ovx_ip: InetAddress) extends Actor with ActorLogging
 	 * @param tuples
 	 */
 	def recvResourceReply(tuples: Vector[(ActorRef, Resources)]): Unit = {
-
 	}
 
 
 	override def receive(): Receive = {
 		case message: NetworkResourceMessage	=> message match {
+			case ResourceInfo(totalRes, availRes)			=> recvResourceInfo(totalRes, availRes)
+		}
+		case _														=> log.error("Unknown message received!")
+	}
+
+	def receivedOnline(): Receive = {
+		case message: NetworkResourceMessage	=> message match {
 			case ResourceRequest(resources, ofcIP)			=> recvResourceRequest(resources, ofcIP)
 			case ResourceFederationReply(allocResources) => recvResourceReply(allocResources)
 		}
-		case _										=> log.error("Unknown message received!")
+		case _														=> stashMessage()
 	}
+
+
+/* Private Methods: */
+/* ================ */
+
+	private def stashMessage(): Unit = {
+		log.debug("Received Message, before NetworkResourceAgent went online. Stashed message until being online.")
+		try {
+			stash()
+		}
+		catch {
+			case e: StashOverflowException => log.error("Reached Stash buffer. Received message will be ignored."+
+			  e.printStackTrace())
+		}
+	}
+
 }
 
 /**
