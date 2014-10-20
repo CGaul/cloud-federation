@@ -43,7 +43,7 @@ case class NodeID(id: Integer)
  *             size * unit would be the size in bytes.
  * @param unit The Unit of the Byte size, either in Decimal Metric (kB, MB, GB) or in Binary IEC Metric (kiB, MiB, GiB)
  */
-case class ByteSize(size: Integer, unit: Byte_Unit) extends Comparable[ByteSize] {
+case class ByteSize(size: Double, unit: Byte_Unit) extends Comparable[ByteSize] {
 
 	/* Constants: */
 	/* ========== */
@@ -63,7 +63,7 @@ case class ByteSize(size: Integer, unit: Byte_Unit) extends Comparable[ByteSize]
 		val srcUnitMult: Long	= sizeConversion(this.unit)
 		val destUnitDiv: Long	= sizeConversion(destUnit)
 
-		val byteSize: Long 		= this.size * srcUnitMult
+		val byteSize: Double 	= this.size * srcUnitMult
 		val destSize: Double		= byteSize / destUnitDiv
 		return destSize
 	}
@@ -81,12 +81,12 @@ case class ByteSize(size: Integer, unit: Byte_Unit) extends Comparable[ByteSize]
 
 
 	override def compareTo(that: ByteSize): Int = {
-		val thisUnitMult: Long	= sizeConversion(this.unit)
-		val thatUnitMult: Long	= sizeConversion(that.unit)
+		val thisUnitMult: Long		= sizeConversion(this.unit)
+		val thatUnitMult: Long		= sizeConversion(that.unit)
 
-		val thisByteSize: Long 	= this.size * thisUnitMult
-		val thatByteSize: Long	= that.size * thatUnitMult
-		val result: Int 			= (thisByteSize - thatByteSize).asInstanceOf[Int]
+		val thisByteSize: Double	= this.size * thisUnitMult
+		val thatByteSize: Double	= that.size * thatUnitMult
+		val result: Int 				= Math.round(thisByteSize - thatByteSize).asInstanceOf[Int]
 		return result
 	}
 
