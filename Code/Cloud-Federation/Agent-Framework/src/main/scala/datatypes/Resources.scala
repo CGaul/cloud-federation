@@ -252,18 +252,23 @@ case class 	Resources(nodeIDs:	Vector[NodeID] = Vector(),
 	 *    Even tough compareTo(other) was positive, it is <b><em>not guaranteed</b></em>
 	 *    that the allocation will succeed. If not, an allocationException will be thrown,
 	 *    additionally returning the bundle of allocatable resources as a return value.
-	 * </p>
-	 * <p>
+	 * </p><p>
 	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
 	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
-	 *    However, as this is a complex progress (combinatorial NP-hard),
-	 *    allocatePartially will only work on a subset of resources.
+	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will
+	 *    only work on a subset of resources.
+	 * </p><p>
+	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
+	 *    algorithm in order to solve the binpacking problem. </em>
 	 *</p>
+	 * <br />
+	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
 	 * @param other
 	 * @return
 	 */
 	def allocateCompletely(other: Resources): Resources = {
-
+		//TODO: first sort availResources as well as other in a decreasing order
+		//TODO: then allocate on a per Bundle base with First Fit
 	}
 
 
@@ -274,31 +279,41 @@ case class 	Resources(nodeIDs:	Vector[NodeID] = Vector(),
 	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
 	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
 	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will only work on a subset of resources.
-	 *</p>
+	 * </p><p>
+	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
+	 *    algorithm in order to solve the binpacking problem. </em>
+	 * </p>
+	 * <br />
+	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
 	 * @param other
 	 * @return
 	 */
 	def allocatePartially(other: Resources): Resources = ???
 
-	def allocateByCPU(other: Resources): Resources = {
-		val cpuVectorA: Vector[CPU_Unit] = this.cpu.flatMap(t => Vector(t._2))
-		val cpuVectorB: Vector[CPU_Unit] = other.cpu.flatMap(t => Vector(t._2))
 
-		/* Foreach CPU_Unit, filter both CPU-Vectors and compare the size.
-		 * If cpuVectorA has at least the size of cpuVectorB,
-		 * no swap needs to be taken over to the next iteration.
-		 * Otherwise, each element of cpuVectorB that could not be fulfilled
-		 * by cpuVectorA will be saved as a swap, as the next higher CPU_Unit
-		 * has to be allocated to the left over elements from the current iter of cpuVectorB. */
-		for (actCPU_Unit <- CPU_UnitValuator.sortUnitsDescending()){
-			val filteredA = cpuVectorA.filter(cpuUnit => cpuUnit != actCPU_Unit)
-			val filteredB = cpuVectorB.filter(cpuUnit => cpuUnit != actCPU_Unit)
-			// all allocations for this CPU_Unit size could be fulfilled:
-			if(filteredA.size >= filteredB.size){
-
-			}
-			// else, load
-		}
-
+	def allocateBundle(cpu: CPU_Unit, ram: ByteSize, storage: ByteSize, bandwidth: ByteSize, latency: Float) = {
+		//TODO: implement
 	}
+
+//	def allocateByCPU(other: Resources): Resources = {
+//		val cpuVectorA: Vector[CPU_Unit] = this.cpu.flatMap(t => Vector(t._2))
+//		val cpuVectorB: Vector[CPU_Unit] = other.cpu.flatMap(t => Vector(t._2))
+//
+//		/* Foreach CPU_Unit, filter both CPU-Vectors and compare the size.
+//		 * If cpuVectorA has at least the size of cpuVectorB,
+//		 * no swap needs to be taken over to the next iteration.
+//		 * Otherwise, each element of cpuVectorB that could not be fulfilled
+//		 * by cpuVectorA will be saved as a swap, as the next higher CPU_Unit
+//		 * has to be allocated to the left over elements from the current iter of cpuVectorB. */
+//		for (actCPU_Unit <- CPU_UnitValuator.sortUnitsDescending()){
+//			val filteredA = cpuVectorA.filter(cpuUnit => cpuUnit != actCPU_Unit)
+//			val filteredB = cpuVectorB.filter(cpuUnit => cpuUnit != actCPU_Unit)
+//			// all allocations for this CPU_Unit size could be fulfilled:
+//			if(filteredA.size >= filteredB.size){
+//				//TODO: go on
+//			}
+//			// else, load the left overs into a temporary swap
+//		}
+
+//	}
 }
