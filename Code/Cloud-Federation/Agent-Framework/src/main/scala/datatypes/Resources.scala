@@ -59,8 +59,8 @@ case class ByteSize(size: Integer, unit: Byte_Unit) extends Comparable[ByteSize]
 	/* Public Methods: */
 	/* =============== */
 
-	def convert(srcUnit: Byte_Unit, destUnit: Byte_Unit): Double = {
-		val srcUnitMult: Long	= sizeConversion(srcUnit)
+	def convert(destUnit: Byte_Unit): Double = {
+		val srcUnitMult: Long	= sizeConversion(this.unit)
 		val destUnitDiv: Long	= sizeConversion(destUnit)
 
 		val byteSize: Long 		= this.size * srcUnitMult
@@ -188,11 +188,11 @@ case class Resources(nodeIDs:		Vector[NodeID],
 
 	def compareToRAM(resources: Resources): Int = {
 		val thisRAMSum = this.ram.flatMap(t => Vector(t._2)).
-		  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
+		  								  map(byteSize => byteSize.convert(Byte_Unit.KiB)).sum
 		val thatRAMSum = this.ram.flatMap(t => Vector(t._2)).
-		  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
-
-		return thisRAMSum - thatRAMSum
+		  								  map(byteSize => byteSize.convert(Byte_Unit.KiB)).sum
+		val result: Int= Math.round(thisRAMSum - thatRAMSum).toInt
+		return result
 	}
 
 	def compareToStorage(resources: Resources): Int = ???
