@@ -21,13 +21,15 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 		//TODO: build security interfaces for a Certificate-Store
 		val certFile: File			= new File("filename")
 
-		val lowProfileSLA: SLA		= new SLA(relOnlineTime 		= 0.8f,
-														 supportedImgFormats = Vector[Img_Format](Img_Format.QCOW2),
-														 maxVMsPerCPU 			= Vector[(CPU_Unit, Integer)]
-														 											(	(CPU_Unit.SMALL, 2), (CPU_Unit.MEDIUM, 2),
-																										(CPU_Unit.LARGE, 3), (CPU_Unit.XLARGE, 4)),
-														 priceRangePerCPU 	= Vector[(CPU_Unit, Price, Price)]
-														 											((CPU_Unit.SMALL,
+		val hardSLAs: HardSLA		= new HardSLA(
+														relOnlineTime 		= 0.8f,
+													 	supportedImgFormats = Vector[Img_Format](Img_Format.QCOW2),
+													 	maxVMsPerCPU 			= Vector[(CPU_Unit, Integer)](
+																						(CPU_Unit.SMALL, 2), (CPU_Unit.MEDIUM, 2),
+																						(CPU_Unit.LARGE, 3), (CPU_Unit.XLARGE, 4)))
+		val softSLAs: SoftSLA		= new SoftSLA(
+														priceRangePerCPU 	= Vector[(CPU_Unit, Price, Price)](
+															 										(CPU_Unit.SMALL,
 														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
 														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
 																									(CPU_Unit.MEDIUM,
@@ -39,10 +41,10 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 																									(CPU_Unit.XLARGE,
 																									  	Price(0.20f, CloudCurrency.CLOUD_CREDIT),
 																		  								Price(0.50f, CloudCurrency.CLOUD_CREDIT))),
-														 priceRangePerRAM		= (new ByteSize(1, Byte_Unit.GB),
+														priceRangePerRAM		= (new ByteSize(1, Byte_Unit.GB),
 														  												Price(0.02f, CloudCurrency.CLOUD_CREDIT),
 														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-														 priceRangePerStorage= (new ByteSize(1, Byte_Unit.GB),
+														priceRangePerStorage= (new ByteSize(1, Byte_Unit.GB),
 																									  	Price(0.02f, CloudCurrency.CLOUD_CREDIT),
 																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT))
 														)
@@ -66,7 +68,7 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 /* ========== */
 
 	var foreignDiscoveryActors: Vector[ActorPath] = Vector()
-	var cloudFederationMatches: Vector[(ActorPath, Resources)] = Vector()
+	var cloudFederationMatches: Vector[(ActorPath, ResourceAlloc)] = Vector()
 
 
 /* Execution: */
@@ -78,7 +80,7 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
 
-	discoveryAgent ! DiscoveryInit(Vector[SLA](CCFMConfig.lowProfileSLA))
+	discoveryAgent ! DiscoveryInit(Vector[HardSLA](CCFMConfig.hardSLAs))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 
@@ -114,9 +116,9 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 
 	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
 
-	def recvResourceReply(resources: Resources): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
+	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
 
-	def recvResourceReply(resources: Vector[(ActorRef, Resources)]): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
+	def recvResourceReply(resources: Vector[(ActorRef, ResourceAlloc)]): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
 }
 
 

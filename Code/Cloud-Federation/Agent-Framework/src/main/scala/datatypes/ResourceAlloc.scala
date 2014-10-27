@@ -117,42 +117,62 @@ case class ByteSize(size: Double, unit: Byte_Unit) extends Comparable[ByteSize]
 	override def hashCode(): Int = super.hashCode()
 }
 
-
 /**
  *
- * @param nodeIDs All NodeIDs that are used inside this Resource-Container are listed in this Vector.
- *                May be None for Resource Requests.
- * @param cpu CPU Speed per Node [CPU_Unit]
- * @param ram Amount of RAM per Node [ByteSize]
- * @param storage Amount of Storage per Node [ByteSize]
+ * @param nodeID The NodeID that is representing this resource. For VMs, this is the nodeID of the hypervising host
+ *               (which is also represented as a Resource). May be None for Resource Requests.
+ * @param cpu CPU Speed on Node [CPU_Unit]
+ * @param ram Amount of RAM on Node [ByteSize]
+ * @param storage Amount of Storage on Node [ByteSize]
  * @param bandwidth Bandwidth, relatively monitored from GW to Node [ByteSize]
  * @param latency Latency, relatively monitored from GW to Node [ms]
  */
-case class 	Resources(nodeIDs:	Vector[NodeID] = Vector(),
-							cpu:			Vector[(NodeID, CPU_Unit)] = Vector(),
-							ram: 			Vector[(NodeID, ByteSize)] = Vector(),
-							storage:		Vector[(NodeID, ByteSize)] = Vector(),
-							bandwidth:	Vector[(NodeID, ByteSize)] = Vector(),
-							latency:		Vector[(NodeID, Float)] 	= Vector())
-  				extends Comparable[Resources]
+case class Resource(nodeID: NodeID,
+						  cpu: CPU_Unit,
+						  ram: ByteSize,
+						  storage: ByteSize,
+						  bandwidth: ByteSize,
+						  latency: Float,
+						  links: Vector[NodeID]) extends Comparable[Resource]
 {
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Resources => (that canEqual this) &&
+		case that: Resource => 	(that canEqual this) &&
 		  								(this.cpu == that.cpu) && (this.ram == that.ram) &&
-									   (this.storage == that.storage) && (this.bandwidth == that.bandwidth) &&
-									   (this.latency == that.latency)
+		  								(this.storage == that.storage) && (this.bandwidth == that.bandwidth) &&
+		  								(this.latency == that.latency)
 		case _ 					=> false
 	}
 
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[Resources]
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
 
 
+	def compareToCPU(that: Resource): Int ={
+		return CPU_UnitValuator.getValue(this.cpu) - CPU_UnitValuator.getValue(that.cpu)
+	}
+
+	def compareToRAM(that: Resource): Int = {
+		return Math.round(this.ram.getBytes - that.ram.getBytes).toInt
+	}
+
+	def compareToStorage(that: Resource): Int = {
+		return Math.round(this.storage.getBytes - that.storage.getBytes).toInt
+	}
+
+	def compareToBandwidth(that: Resource): Int = {
+		return Math.round(this.bandwidth.getBytes - that.bandwidth.getBytes).toInt
+	}
+
+	def compareToLatency(that: Resource): Int = {
+		return Math.round((this.latency - that.latency) * 1000)
+	}
 
 	/**
 	 * <b>Approximated(!)</b> comparison of two Resource Objects with each other.
 	 * This is done by a cumulative sum of all Resource-Parts (CPU, RAM, etc.), which could be calculated fast.
-	 * In order to have a <em>guaranteed</em> comparison a much more complex binpacking problem
-	 * has to be solved in the Resource allocation itself. <br>
+	 * As a Resource contains of many different values (and units),
+	 * an absolute comparison of two Resources is not meaningful.
+	 * However, for sorting this compareTo should be enough, as a cumulative sum could somehow define,
+	 * which resource is dominating another. <br>
 	 * This compareTo(B) method has the same three result types as the Comparable Interface proposes:
 	 *    <ul>
 	 *       <li>If a Resource object A (this), representing available Resources, is greater than another Resource object B (that),
@@ -172,8 +192,7 @@ case class 	Resources(nodeIDs:	Vector[NodeID] = Vector(),
 	 * @param other
 	 * @return
 	 */
-	override def compareTo(other: Resources): Int = {
-
+	override def compareTo(other: Resource): Int = {
 		val cpuDiff 			= compareToCPU(other)
 		if (cpuDiff <= 0){
 			return cpuDiff
@@ -198,102 +217,68 @@ case class 	Resources(nodeIDs:	Vector[NodeID] = Vector(),
 		val cumSum: Int		= cpuDiff + ramDiff + storageDiff + bdwhDiff + latencyDiff
 		return cumSum
 	}
-
-	def compareToCPU(other: Resources): Int = {
-		val thisCPUSum = this.cpu.flatMap(t => Vector(t._2)).
-		  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
-		val thatCPUSum = this.cpu.flatMap(t => Vector(t._2)).
-		  map(cpuUnit => CPU_UnitValuator.getValue(cpuUnit)).sum
-
-		return thisCPUSum - thatCPUSum
-	}
-
-	def compareToRAM(resources: Resources): Int = {
-		val thisRAMSum = this.ram.flatMap(t => Vector(t._2)).
-		  								  map(byteSize => byteSize.getBytes).sum
-		val thatRAMSum = this.ram.flatMap(t => Vector(t._2)).
-		  								  map(byteSize => byteSize.getBytes).sum
-		val result: Int= Math.round(thisRAMSum - thatRAMSum).toInt
-		return result
-	}
-
-	def compareToStorage(resources: Resources): Int = {
-	val thisStorageSum = this.ram.flatMap(t => Vector(t._2)).
-	  								  map(byteSize => byteSize.getBytes).sum
-	val thatStorageSum = this.ram.flatMap(t => Vector(t._2)).
-	  								  map(byteSize => byteSize.getBytes).sum
-	val result: Int= Math.round(thisStorageSum - thatStorageSum).toInt
-	return result
 }
 
-	def compareToBandwidth(resources: Resources): Int = {
-		val thisBandwidthSum = this.ram.flatMap(t => Vector(t._2)).
-											   map(byteSize => byteSize.getBytes).sum
-		val thatBandwidthSum = this.ram.flatMap(t => Vector(t._2)).
-											   map(byteSize => byteSize.getBytes).sum
-		val result: Int= Math.round(thisBandwidthSum - thatBandwidthSum).toInt
-		return result
+
+
+case class ResourceAlloc(resources: Vector[Resource], hardSLAs: HardSLA)
+{
+	override def equals(obj: scala.Any): Boolean = obj match{
+		case that: ResourceAlloc 	=> resources.reduce(_ equals _)
+		case _ 							=> false
 	}
 
-	def compareToLatency(resources: Resources): Int = {
-		val thisLatencySum = this.ram.flatMap(t => Vector(t._2)).
-											   map(byteSize => byteSize.getBytes).sum
-		val thatLatencySum = this.ram.flatMap(t => Vector(t._2)).
-											   map(byteSize => byteSize.getBytes).sum
-		val result: Int= Math.round(thisLatencySum - thatLatencySum).toInt
-		return result
-	}
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
 
-
-	/**
-	 * This method should be called, if and only if this.compareTo(other) was positive.
-	 * Otherwise call allocatePartially(..) for performance reasons.
-	 * <p>
-	 *    Even tough compareTo(other) was positive, it is <b><em>not guaranteed</b></em>
-	 *    that the allocation will succeed. If not, an allocationException will be thrown,
-	 *    additionally returning the bundle of allocatable resources as a return value.
-	 * </p><p>
-	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
-	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
-	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will
-	 *    only work on a subset of resources.
-	 * </p><p>
-	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
-	 *    algorithm in order to solve the binpacking problem. </em>
-	 *</p>
-	 * <br />
-	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
-	 * @param other
-	 * @return
-	 */
-	def allocateCompletely(other: Resources): Resources = {
-		//TODO: first sort availResources as well as other in a decreasing order
-		//TODO: then allocate on a per Bundle base with First Fit
-	}
-
-
-	/**
-	 * This method should be called, if and only if this.compareTo(other) was negative or zero.
-	 * Otherwise call allocateCompletely(..) as the allocation would have good chances to be successful.
-	 * <p>
-	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
-	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
-	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will only work on a subset of resources.
-	 * </p><p>
-	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
-	 *    algorithm in order to solve the binpacking problem. </em>
-	 * </p>
-	 * <br />
-	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
-	 * @param other
-	 * @return
-	 */
-	def allocatePartially(other: Resources): Resources = ???
-
-
-	def allocateBundle(cpu: CPU_Unit, ram: ByteSize, storage: ByteSize, bandwidth: ByteSize, latency: Float) = {
-		//TODO: implement
-	}
+//	/**
+//	 * This method should be called, if and only if this.compareTo(other) was positive.
+//	 * Otherwise call allocatePartially(..) for performance reasons.
+//	 * <p>
+//	 *    Even tough compareTo(other) was positive, it is <b><em>not guaranteed</b></em>
+//	 *    that the allocation will succeed. If not, an allocationException will be thrown,
+//	 *    additionally returning the bundle of allocatable resources as a return value.
+//	 * </p><p>
+//	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
+//	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
+//	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will
+//	 *    only work on a subset of resources.
+//	 * </p><p>
+//	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
+//	 *    algorithm in order to solve the binpacking problem. </em>
+//	 *</p>
+//	 * <br />
+//	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
+//	 * @param other
+//	 * @return
+//	 */
+//	def allocateCompletely(other: ResourceAlloc): ResourceAlloc = {
+//		//TODO: first sort availResources as well as other in a decreasing order
+//		//TODO: then allocate on a per Bundle base with First Fit
+//	}
+//
+//
+//	/**
+//	 * This method should be called, if and only if this.compareTo(other) was negative or zero.
+//	 * Otherwise call allocateCompletely(..) as the allocation would have good chances to be successful.
+//	 * <p>
+//	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
+//	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
+//	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will only work on a subset of resources.
+//	 * </p><p>
+//	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
+//	 *    algorithm in order to solve the binpacking problem. </em>
+//	 * </p>
+//	 * <br />
+//	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
+//	 * @param other
+//	 * @return
+//	 */
+//	def allocatePartially(other: ResourceAlloc): ResourceAlloc = ???
+//
+//
+//	def allocateBundle(cpu: CPU_Unit, ram: ByteSize, storage: ByteSize, bandwidth: ByteSize, latency: Float) = {
+//		//TODO: implement
+//	}
 
 //	def allocateByCPU(other: Resources): Resources = {
 //		val cpuVectorA: Vector[CPU_Unit] = this.cpu.flatMap(t => Vector(t._2))

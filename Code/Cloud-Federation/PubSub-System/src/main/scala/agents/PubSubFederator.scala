@@ -3,7 +3,7 @@ package agents
 import java.security.cert.Certificate
 
 import akka.actor._
-import datatypes.SLA
+import datatypes.HardSLA
 import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorReply}
 
 /**
@@ -15,7 +15,7 @@ class PubSubFederator extends Actor with ActorLogging
 /* Variables: */
 /* ========== */
 
-  private var subscriberRefs : Vector[(ActorRef, Vector[SLA])] = Vector()
+  private var subscriberRefs : Vector[(ActorRef, Vector[HardSLA])] = Vector()
   private var subscriberPaths : Vector[ActorPath] = Vector()
   private var subscriberCerts : Vector[(ActorRef, Certificate)] = Vector()
 
@@ -37,7 +37,7 @@ class PubSubFederator extends Actor with ActorLogging
 	 case _										=> log.error("Unknown message received!")
   }
 
-  def recvDiscoverySubscription(slaList: Vector[SLA], cert: Certificate): Unit = {
+  def recvDiscoverySubscription(slaList: Vector[HardSLA], cert: Certificate): Unit = {
 
 	 //When a new DiscoverySubscription drops in, save that sender as a subscriber:
 	 val subscriber: ActorRef = sender()

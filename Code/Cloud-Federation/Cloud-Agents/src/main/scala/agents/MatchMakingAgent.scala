@@ -3,7 +3,7 @@ package agents
 import java.net.InetAddress
 
 import akka.actor.{Actor, ActorLogging}
-import datatypes.Resources
+import datatypes.ResourceAlloc
 import messages.{ResourceReply, ResourceFederationReply, ResourceRequest, NetworkResourceMessage}
 
 /**
@@ -33,7 +33,7 @@ class MatchMakingAgent extends Actor with ActorLogging
 	 * </p>
 	 * @param resources
 	 */
-	def recvResourceRequest(resources: Resources, address: InetAddress): Unit = ???
+	def recvResourceRequest(resources: ResourceAlloc, address: InetAddress): Unit = ???
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	/**
@@ -41,7 +41,7 @@ class MatchMakingAgent extends Actor with ActorLogging
 	 * that this Agent queried before.
 	 * @param resources
 	 */
-	def recvResourceReply(resources: Resources): Unit = ???
+	def recvResourceReply(resources: ResourceAlloc): Unit = ???
 
 
 	override def receive(): Receive = {

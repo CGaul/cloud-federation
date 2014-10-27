@@ -4,7 +4,7 @@ import java.security.cert.Certificate
 
 import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
-import datatypes.SLA
+import datatypes.HardSLA
 import messages._
 
 
@@ -49,7 +49,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends Re
 		case _										=> log.error("Unknown message received!")
 	}
 
-	private def recvDiscoveryInit(slaList: Vector[SLA] ) = {
+	private def recvDiscoveryInit(slaList: Vector[HardSLA] ) = {
 		log.info("Received Discovery-Init Call from CCFM.")
 		log.info("Sending subscription request to PubSub-Federator...")
 

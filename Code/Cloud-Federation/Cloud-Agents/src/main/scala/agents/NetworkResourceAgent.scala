@@ -3,13 +3,14 @@ package agents
 import java.net.InetAddress
 
 import akka.actor._
-import datatypes.Resources
-import messages.{ResourceInfo, ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
+import datatypes.{HardSLA, Resource, ResourceAlloc}
+import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
 
 /**
  * Created by costa on 10/15/14.
  */
-class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
+class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
+									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
 {
 /* Values: */
 /* ======= */
@@ -18,8 +19,7 @@ class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging 
 /* Variables: */
 /* ========== */
 
-	var _totalResources : Resources = new Resources()
-	var _availResources : Resources = new Resources()
+	var _totalResources = _initialResAlloc
 
 
 /* Public Methods: */
@@ -44,13 +44,13 @@ class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging 
 	 * @param totalResources
 	 * @param availResources
 	 */
-	def recvResourceInfo(totalResources: Resources, availResources: Resources): Unit = {
-		_totalResources	= totalResources
-		_availResources	= availResources
-
-		unstashAll()
-		context.become(receivedOnline())
-	}
+//	def recvResourceInfo(totalResources: ResourceAlloc): Unit = {
+//		_totalResources	= _to
+//		_availResources	= availResources
+//
+//		unstashAll()
+//		context.become(receivedOnline())
+//	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	/**
@@ -68,12 +68,8 @@ class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging 
 	 * @param resources
 	 * @param address
 	 */
-	def recvResourceRequest(resources: Resources, address: InetAddress): Unit = {
-		/* Check if local Cloud's Resources could be sufficient:
-		 * As the compareTo(..) method is only a lightweight sufficiency check
-		 * Try to solve the binpacking problem here via an _availresource.allocate(resources).
-		 * This allocation will not be adopted to the available resources, as long as it is not clear if the
-		 * allocation will succeed. */
+	def recvResourceRequest(resources: ResourceAlloc, address: InetAddress): Unit = {
+		//Check if local Cloud's Resources could be sufficient:
 		if(_availResources.compareTo(resources) > 0){
 			_availResources.allocate(resources)
 		}
@@ -99,23 +95,24 @@ class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging 
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
 	 * @param tuples
 	 */
-	def recvResourceReply(tuples: Vector[(ActorRef, Resources)]): Unit = {
+	def recvResourceReply(tuples: Vector[(ActorRef, ResourceAlloc)]): Unit = {
 	}
 
 
-	override def receive(): Receive = {
-		case message: NetworkResourceMessage	=> message match {
-			case ResourceInfo(totalRes, availRes)			=> recvResourceInfo(totalRes, availRes)
-		}
-		case _														=> log.error("Unknown message received!")
-	}
+//	override def receive(): Receive = {
+//		//case message: NetworkResourceMessage	=> message match {
+//			//case ResourceInfo(totalRes, availRes)			=> recvResourceInfo(totalRes, availRes)
+//
+//		//}
+//		case _														=> log.error("Unknown message received!")
+//	}
 
-	def receivedOnline(): Receive = {
+	def receive(): Receive = {
 		case message: NetworkResourceMessage	=> message match {
 			case ResourceRequest(resources, ofcIP)			=> recvResourceRequest(resources, ofcIP)
 			case ResourceFederationReply(allocResources) => recvResourceReply(allocResources)
 		}
-		case _														=> stashMessage()
+		case _														=> log.error("Unknown message received!")
 	}
 
 
@@ -131,6 +128,10 @@ class NetworkResourceAgent(_ovxIP: InetAddress) extends Actor with ActorLogging 
 			case e: StashOverflowException => log.error("Reached Stash buffer. Received message will be ignored."+
 			  e.printStackTrace())
 		}
+	}
+	
+	private def getHardestSLA(): HardSLA ={
+		_totalResources.reduce(_._2.hardSLAs compareTo _._2.hardSLAs)
 	}
 
 }
@@ -149,6 +150,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(ovxIP: InetAddress):
-	Props = Props(new NetworkResourceAgent(ovxIP))
+	def props(initialResAlloc: Map[Resource, ResourceAlloc], ovxIP: InetAddress):
+	Props = Props(new NetworkResourceAgent(initialResAlloc, ovxIP))
 }
