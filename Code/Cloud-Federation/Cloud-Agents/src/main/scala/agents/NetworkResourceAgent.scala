@@ -19,7 +19,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 /* Variables: */
 /* ========== */
 
-	var _totalResources = _initialResAlloc
+	var _totalResources: Map[Resource, ResourceAlloc] = _initialResAlloc
 
 
 /* Public Methods: */
@@ -119,6 +119,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 /* Private Methods: */
 /* ================ */
 
+	//TODO: if not needed anymore, delete.
 	private def stashMessage(): Unit = {
 		log.debug("Received Message, before NetworkResourceAgent went online. Stashed message until being online.")
 		try {
@@ -131,7 +132,8 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 	}
 	
 	private def getHardestSLA(): HardSLA ={
-		_totalResources.reduce(_._2.hardSLAs compareTo _._2.hardSLAs)
+		val hardestSLA = _totalResources.reduce((t1, t2) => t1._2.hardSLAs combineToAmplifiedSLA t2._2.hardSLAs)
+		return hardestSLA //TODO: check if works.
 	}
 
 }

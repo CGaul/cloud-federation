@@ -84,7 +84,7 @@ case class HardSLA(relOnlineTime: 		Float,
  */
 case class SoftSLA(	priceRangePerCPU:		 Vector[(CPU_Unit, Price, Price)],
 						  	priceRangePerRAM:		 (ByteSize, Price, Price),
-						  	priceRangePerStorage: (ByteSize, Price, Price)) extends Comparable[SoftSLA]
+						  	priceRangePerStorage: (ByteSize, Price, Price))
 {
 
 	override def equals(obj: scala.Any): Boolean = obj match{
@@ -96,8 +96,4 @@ case class SoftSLA(	priceRangePerCPU:		 Vector[(CPU_Unit, Price, Price)],
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[SoftSLA]
 
-
-	override def compareTo(other: SoftSLA): Int = {
-
-	}
 }

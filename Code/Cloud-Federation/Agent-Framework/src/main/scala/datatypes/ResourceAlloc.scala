@@ -224,7 +224,7 @@ case class Resource(nodeID: NodeID,
 case class ResourceAlloc(resources: Vector[Resource], hardSLAs: HardSLA)
 {
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: ResourceAlloc 	=> resources.reduce(_ equals _)
+		case that: ResourceAlloc 	=> this.resources == that.resources
 		case _ 							=> false
 	}
 
