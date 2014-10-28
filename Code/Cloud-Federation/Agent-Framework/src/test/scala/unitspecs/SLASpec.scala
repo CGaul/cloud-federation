@@ -1,6 +1,8 @@
+package unitspecs
+
 import datatypes.CPU_Unit.CPU_Unit
-import datatypes.{CPU_Unit, Img_Format, HardSLA}
-import org.scalatest.{ShouldMatchers, FlatSpec}
+import datatypes.{CPU_Unit, HardSLA, Img_Format}
+import org.scalatest.{FlatSpec, ShouldMatchers}
 
 /**
  * Created by costa on 10/28/14.

@@ -1,5 +1,7 @@
-import datatypes.{Byte_Unit, ByteSize}
-import org.scalatest.{ShouldMatchers, FlatSpec}
+package unitspecs
+
+import datatypes.{ByteSize, Byte_Unit}
+import org.scalatest.{FlatSpec, ShouldMatchers}
 
 /**
  * Created by costa on 10/20/14.
