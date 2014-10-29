@@ -9,7 +9,7 @@ import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessag
 /**
  * Created by costa on 10/15/14.
  */
-class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
+class NetworkResourceAgent(_initialResAlloc: Map[Resource, Option[ResourceAlloc]],
 									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
 {
 /* Values: */
@@ -19,7 +19,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 /* Variables: */
 /* ========== */
 
-	var _totalResources: Map[Resource, ResourceAlloc] = _initialResAlloc
+	var _totalResources: Map[Resource, Option[ResourceAlloc]] = _initialResAlloc
 
 
 /* Public Methods: */
@@ -70,15 +70,16 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 	 */
 	def recvResourceRequest(resources: ResourceAlloc, address: InetAddress): Unit = {
 		//Check if local Cloud's Resources could be sufficient:
-		if(_availResources.compareTo(resources) > 0){
-			_availResources.allocate(resources)
-		}
+		getHardestSLA()
+//		if(_availResources.compareTo(resources) > 0){
+//			_availResources.allocate(resources)
+//		}
 		/* Inform the MatchMakingAgent about necessary federated Resources.
 		 * If compareTo fails, it is guaranteed, that the local available resources are not sufficient. */
-		else{
-			//TODO: split resources and fulfill as much as possible locally.
-			//TODO: inform matchMakingAgent.
-		}
+//		else{
+//			//TODO: split resources and fulfill as much as possible locally.
+//			//TODO: inform matchMakingAgent.
+//		}
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -109,8 +110,8 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 
 	def receive(): Receive = {
 		case message: NetworkResourceMessage	=> message match {
-			case ResourceRequest(resources, ofcIP)			=> recvResourceRequest(resources, ofcIP)
-			case ResourceFederationReply(allocResources) => recvResourceReply(allocResources)
+			case ResourceRequest(resourcesToAlloc, ofcIP)		=> recvResourceRequest(resourcesToAlloc, ofcIP)
+			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceReply(resourcesAllocated)
 		}
 		case _														=> log.error("Unknown message received!")
 	}
@@ -131,9 +132,22 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, ResourceAlloc],
 		}
 	}
 	
-	private def getHardestSLA(): HardSLA ={
-		val hardestSLA = _totalResources.reduce((t1, t2) => t1._2.hardSLAs combineToAmplifiedSLA t2._2.hardSLAs)
-		return hardestSLA //TODO: check if works.
+	private def getHardestSLA(): Map[Resource, Option[HardSLA]] ={
+		//Init hardestSLAPerNode with all Nodes (Resources) from _totalResources and map None to it:
+		var hardestSLAPerNode : Map[Resource, Option[HardSLA]] = Map()
+		_totalResources.foreach(t => hardestSLAPerNode += (t._1 -> None))
+
+		for (actNode: Resource <- _totalResources.keys ) {
+			val actResAlloc : Option[ResourceAlloc]	= _totalResources.get(actNode).get
+			//val hardestSLA 	= actResAlloc.reduce(_.hardSLA combineToAmplifiedSLA _.hardSLA)
+			//hardestSLAPerNode += (actNode -> hardestSLA)
+		}
+		return hardestSLAPerNode //TODO: check if works.
+	}
+
+	private def countTotalResAlloc(): Int ={
+		val resAllocCount = _totalResources.toList.count(t => t._2.isDefined)
+		return resAllocCount
 	}
 
 }
@@ -152,6 +166,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialResAlloc: Map[Resource, ResourceAlloc], ovxIP: InetAddress):
+	def props(initialResAlloc: Map[Resource, Option[ResourceAlloc]], ovxIP: InetAddress):
 	Props = Props(new NetworkResourceAgent(initialResAlloc, ovxIP))
 }

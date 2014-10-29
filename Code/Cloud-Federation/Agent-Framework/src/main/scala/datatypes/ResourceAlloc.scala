@@ -221,7 +221,7 @@ case class Resource(nodeID: NodeID,
 
 
 
-case class ResourceAlloc(resources: Vector[Resource], hardSLAs: HardSLA)
+case class ResourceAlloc(resources: Vector[Resource], hardSLA: HardSLA)
 {
 	override def equals(obj: scala.Any): Boolean = obj match{
 		case that: ResourceAlloc 	=> this.resources == that.resources
@@ -229,6 +229,7 @@ case class ResourceAlloc(resources: Vector[Resource], hardSLAs: HardSLA)
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
+
 
 //	/**
 //	 * This method should be called, if and only if this.compareTo(other) was positive.

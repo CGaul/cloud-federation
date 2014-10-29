@@ -13,6 +13,6 @@ sealed trait NetworkResourceMessage
 //TODO: needed or delete?
 //case class ResourceInfo(totalResources: ResourceAlloc, availResources: ResourceAlloc) extends NetworkResourceMessage
 
-case class ResourceRequest(resources: ResourceAlloc, ofcIP: InetAddress) extends NetworkResourceMessage
+case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress) extends NetworkResourceMessage
 case class ResourceReply(allocatedResources: ResourceAlloc) extends NetworkResourceMessage
 case class ResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]) extends NetworkResourceMessage
