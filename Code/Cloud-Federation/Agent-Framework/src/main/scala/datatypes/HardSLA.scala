@@ -57,6 +57,49 @@ case class HardSLA(relOnlineTime: 		Float,
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[HardSLA]
 
 
+	/**
+	 * Checks if this HardSLA is able to <em>fulfill</em> the other HardSLA.
+	 * @param other The HardSLA, that is checked against
+	 * @return true, if this HardSLA is at least as hard as the other, false if this SLA is weaker than the other.
+	 */
+	def fulfills(other: HardSLA): Boolean = {
+		// Check, if the relative online time is at least as high as other's:
+		if(other.relOnlineTime > this.relOnlineTime)
+			return false
+
+		// Check, if at least all imageFormats are supported, that are supported by the other:
+		// To do this, check if every other.imgFormat is in this.imgFormats:
+		val allFormatsContained = other.supportedImgFormats.forall(this.supportedImgFormats.contains)
+		if(! allFormatsContained)
+			return false
+
+		// Check if each Mapping of CPU_Unit to Integer is at least as low as in other's:
+		// (the lower the Integer value, the less VMs are able to run on the same machine)
+		// To do this, first check if each CPU_Unit mapping from other is defined in this SLA:
+		for (actCPUTuple <- other.maxVMsPerCPU) {
+			val actCPUUnit = actCPUTuple._1
+			val index = this.maxVMsPerCPU.indexWhere(t => t._1.equals(actCPUUnit))
+			if(index == -1)
+				return false
+			else{
+				//If a match is found for the actCPUTuple, compare both Int-Values with each other:
+				if(this.maxVMsPerCPU(index)._2 > actCPUTuple._2)
+					return false
+			}
+		}
+
+		//If non of the breaking condition was reached until here, this SLA completely fulfills the other SLA:
+		return true
+	}
+
+	/**
+	 * Amplifies the hardeness of this and the other SLA together.
+	 * <p>
+	 *    Hardeness means that a SLA is <em>harder<em> than the other, if more things have to be fulfilled,
+	 *    or the quality of Service, agreed to by this SLA is higher.
+	 * @param other
+	 * @return
+	 */
 	def combineToAmplifiedSLA(other: HardSLA): HardSLA = {
 		val amplRelOnlineTime = if (this.relOnlineTime >= other.relOnlineTime) this.relOnlineTime else other.relOnlineTime
 		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
