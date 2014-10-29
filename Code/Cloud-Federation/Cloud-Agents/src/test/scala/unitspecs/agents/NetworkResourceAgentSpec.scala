@@ -47,11 +47,12 @@ class NetworkResourceAgentSpec extends FlatSpec with ShouldMatchers{
 
 	
 	val initResAlloc1 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc1), hardSLA1)
-	val initResAlloc2 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc2, hostAlloc3), hardSLA2)
+	val initResAlloc2 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc2), hardSLA1)
+	val initResAlloc3 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc3), hardSLA2)
 	val newResAlloc 	: ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc1, resToAlloc2), hardSLA3)
 
-	var initialResAlloc : Map[Resource, Option[ResourceAlloc]] = Map()
-	initialResAlloc += (hostRes1 -> None, hostRes2 -> Option(initResAlloc2))
+	var initialResAlloc : Map[Resource, Vector[ResourceAlloc]] = Map()
+	initialResAlloc += (hostRes1 -> Vector(), hostRes2 -> Vector(initResAlloc2, initResAlloc3))
 
 	val ovxIP = InetAddress.getLocalHost
 

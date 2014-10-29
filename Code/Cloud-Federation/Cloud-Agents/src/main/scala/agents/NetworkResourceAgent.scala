@@ -9,7 +9,7 @@ import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessag
 /**
  * Created by costa on 10/15/14.
  */
-class NetworkResourceAgent(_initialResAlloc: Map[Resource, Option[ResourceAlloc]],
+class NetworkResourceAgent(_initialResAlloc: Map[Resource, Vector[ResourceAlloc]],
 									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
 {
 /* Values: */
@@ -19,7 +19,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, Option[ResourceAlloc]
 /* Variables: */
 /* ========== */
 
-	var _totalResources: Map[Resource, Option[ResourceAlloc]] = _initialResAlloc
+	var _totalResources: Map[Resource, Vector[ResourceAlloc]] = _initialResAlloc
 
 
 /* Public Methods: */
@@ -137,16 +137,26 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, Option[ResourceAlloc]
 		var hardestSLAPerNode : Map[Resource, Option[HardSLA]] = Map()
 		_totalResources.foreach(t => hardestSLAPerNode += (t._1 -> None))
 
+
 		for (actNode: Resource <- _totalResources.keys ) {
-			val actResAlloc : Option[ResourceAlloc]	= _totalResources.get(actNode).get
-			//val hardestSLA 	= actResAlloc.reduce(_.hardSLA combineToAmplifiedSLA _.hardSLA)
-			//hardestSLAPerNode += (actNode -> hardestSLA)
+			val actResAlloc : Vector[ResourceAlloc]	= _totalResources.get(actNode).get
+
+			if(actResAlloc.size > 0){
+				//List all hardSLAs for the actual ResourceAlloc:
+				var hardSLAs : Vector[HardSLA]	= Vector()
+				actResAlloc.foreach(t => hardSLAs = hardSLAs :+ t.hardSLA)
+
+				//Reduce the Vector of hardSLAs to a single hardestSLA:
+				val hardestSLA : HardSLA = hardSLAs.reduce(_ combineToAmplifiedSLA _)
+				hardestSLAPerNode += (actNode -> Option(hardestSLA))
+			}
 		}
-		return hardestSLAPerNode //TODO: check if works.
+		return hardestSLAPerNode
 	}
 
 	private def countTotalResAlloc(): Int ={
-		val resAllocCount = _totalResources.toList.count(t => t._2.isDefined)
+		var resAllocCount = 0
+		_totalResources.foreach(resAllocCount += _._2.size)
 		return resAllocCount
 	}
 
@@ -166,6 +176,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialResAlloc: Map[Resource, Option[ResourceAlloc]], ovxIP: InetAddress):
+	def props(initialResAlloc: Map[Resource, Vector[ResourceAlloc]], ovxIP: InetAddress):
 	Props = Props(new NetworkResourceAgent(initialResAlloc, ovxIP))
 }
