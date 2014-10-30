@@ -4,8 +4,8 @@ import java.io.{FileInputStream, File}
 import java.security.cert.{CertificateFactory, Certificate}
 
 import akka.actor._
-import datatypes.CPU_Unit.CPU_Unit
-import datatypes.Img_Format.Img_Format
+import datatypes.CPUUnit.CPU_Unit
+import datatypes.ImgFormat.ImgFormat
 import datatypes._
 import messages._
 
@@ -23,28 +23,28 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 
 		val hardSLAs: HostSLA		= new HostSLA(
 														relOnlineTime 		= 0.8f,
-													 	supportedImgFormats = Vector[Img_Format](Img_Format.QCOW2),
+													 	supportedImgFormats = Vector[ImgFormat](ImgFormat.QCOW2),
 													 	maxVMsPerCPU 			= Vector[(CPU_Unit, Integer)](
-																						(CPU_Unit.SMALL, 2), (CPU_Unit.MEDIUM, 2),
-																						(CPU_Unit.LARGE, 3), (CPU_Unit.XLARGE, 4)))
+																						(CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 2),
+																						(CPUUnit.LARGE, 3), (CPUUnit.XLARGE, 4)))
 		val softSLAs: CloudSLA		= new CloudSLA(
 														priceRangePerCPU 	= Vector[(CPU_Unit, Price, Price)](
-															 										(CPU_Unit.SMALL,
+															 										(CPUUnit.SMALL,
 														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
 														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPU_Unit.MEDIUM,
+																									(CPUUnit.MEDIUM,
 																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT),
 																		  								Price(0.10f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPU_Unit.LARGE,
+																									(CPUUnit.LARGE,
 																									  	Price(0.10f, CloudCurrency.CLOUD_CREDIT),
 																		  								Price(0.15f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPU_Unit.XLARGE,
+																									(CPUUnit.XLARGE,
 																									  	Price(0.20f, CloudCurrency.CLOUD_CREDIT),
 																		  								Price(0.50f, CloudCurrency.CLOUD_CREDIT))),
-														priceRangePerRAM		= (new ByteSize(1, Byte_Unit.GB),
+														priceRangePerRAM		= (new ByteSize(1, ByteUnit.GB),
 														  												Price(0.02f, CloudCurrency.CLOUD_CREDIT),
 														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-														priceRangePerStorage= (new ByteSize(1, Byte_Unit.GB),
+														priceRangePerStorage= (new ByteSize(1, ByteUnit.GB),
 																									  	Price(0.02f, CloudCurrency.CLOUD_CREDIT),
 																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT))
 														)

@@ -1,8 +1,8 @@
 package datatypes
 
-import datatypes.CPU_Unit.CPU_Unit
+import datatypes.CPUUnit.CPU_Unit
 import datatypes.CloudCurrency.CloudCurrency
-import datatypes.Img_Format.Img_Format
+import datatypes.ImgFormat.ImgFormat
 
 case class Price(value: Float, currency: CloudCurrency)
 
@@ -26,18 +26,24 @@ case class Price(value: Float, currency: CloudCurrency)
  *
  */
 case class HostSLA(relOnlineTime: 			Float,
-						 supportedImgFormats:	Vector[Img_Format],
-						 maxVMsPerCPU:				Vector[(CPU_Unit, Integer)])
+						 private var _supportedImgFormats:	Vector[ImgFormat],
+						 private var _maxVMsPerCPU:			Vector[(CPU_Unit, Integer)])
 {
 
-	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: HostSLA 	=> return this.supportedImgFormats.equals(that.supportedImgFormats) &&
-		  										 this.maxVMsPerCPU.equals(that.maxVMsPerCPU)
-		case _ 					=> false
-	}
+	_supportedImgFormats = _supportedImgFormats.distinct
+	_supportedImgFormats = _supportedImgFormats.sorted
 
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
 
+/* Case Class Variable Getter: */
+/* =========================== */
+
+	def supportedImgFormats = _supportedImgFormats
+	def maxVMsPerCPU			= _maxVMsPerCPU
+
+
+
+/* Public Methods: */
+/* =============== */
 
 	/**
 	 * Checks if this HostSLA is able to <em>fulfill</em> the other HostSLA.
@@ -90,6 +96,18 @@ case class HostSLA(relOnlineTime: 			Float,
 
 		return new HostSLA(amplRelOnlineTime, amplSupportedImgFormats, amplMaxVMsPerCPU)
 	}
+
+
+/* Method Overrides: */
+/* ================= */
+
+	override def equals(obj: scala.Any): Boolean = obj match{
+		case that: HostSLA 	=> this.supportedImgFormats.equals(that.supportedImgFormats) &&
+		  								this.maxVMsPerCPU.equals(that.maxVMsPerCPU)
+		case _ 					=> false
+	}
+
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
 
 
 	private def getSmallerMaxValPerCPU(tuple: (CPU_Unit, Integer), otherMaxVMsPerCPU: Vector[(CPU_Unit, Integer)]): (CPU_Unit, Integer) = {

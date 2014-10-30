@@ -1,14 +1,14 @@
 package datatypes
 
-import datatypes.Byte_Unit.Byte_Unit
-import datatypes.CPU_Unit.CPU_Unit
+import datatypes.ByteUnit.ByteUnit
+import datatypes.CPUUnit.CPUUnit
 
 /**
  * A CPU_Unit gives insight about the relative strength of the CPU in a Resource-Container.
  */
-object CPU_Unit extends Enumeration
+object CPUUnit extends Enumeration
 {
-	type CPU_Unit 	= Value
+	type CPUUnit 	= Value
 	val SMALL, MEDIUM, LARGE, XLARGE = Value
 	//	val SMALL 		= Value(1)
 	//	val MEDIUM 		= Value(5)
@@ -16,32 +16,37 @@ object CPU_Unit extends Enumeration
 	//	val XLARGE 		= Value(20)
 }
 
-object CPU_UnitValuator
+object CPUUnitOrdering extends Ordering[CPUUnit]
 {
-	val CPU_UnitMap : Map[CPU_Unit, Int] = Map(CPU_Unit.SMALL -> 1, CPU_Unit.MEDIUM -> 5,
-		CPU_Unit.LARGE -> 10, CPU_Unit.XLARGE -> 20)
-	def getValue(cpuUnit : CPU_Unit): Int = {
+	val CPU_UnitMap : Map[CPUUnit, Int] = Map(CPUUnit.SMALL -> 1, CPUUnit.MEDIUM -> 5,
+		CPUUnit.LARGE -> 10, CPUUnit.XLARGE -> 20)
+
+	def getValue(cpuUnit : CPUUnit): Int = {
 		CPU_UnitMap(cpuUnit)
 	}
 
-	def sortUnitsAscending(): List[CPU_Unit] = {
-		var cpuList = CPU_Unit.values.toList
+	def sortUnitsAscending(): List[CPUUnit] = {
+		var cpuList = CPUUnit.values.toList
 		cpuList 		= cpuList.sortBy(x => CPU_UnitMap(x))
 		return cpuList
 	}
 
-	def sortUnitsDescending(): List[CPU_Unit] = {
+	def sortUnitsDescending(): List[CPUUnit] = {
 		var cpuList = sortUnitsAscending()
 		cpuList 		= cpuList.reverse
 		return cpuList
+	}
+
+	override def compare(x: CPUUnit, y: CPUUnit): Int = {
+		return getValue(x) - getValue(y)
 	}
 }
 
 
 
-object Byte_Unit extends Enumeration
+object ByteUnit extends Enumeration
 {
-	type Byte_Unit = Value
+	type ByteUnit = Value
 	val kB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
 }
 
@@ -53,23 +58,23 @@ object Byte_Unit extends Enumeration
  *             size * unit would be the size in bytes.
  * @param unit The Unit of the Byte size, either in Decimal Metric (kB, MB, GB) or in Binary IEC Metric (kiB, MiB, GiB)
  */
-case class ByteSize(size: Double, unit: Byte_Unit) extends Comparable[ByteSize]
+case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 {
 	/* Constants: */
 	/* ========== */
 
-	var sizeConversion = Map[Byte_Unit, Long]()
-	sizeConversion += (Byte_Unit.kB	-> Math.round(Math.pow(1000, 1)),	Byte_Unit.KiB -> Math.round(Math.pow(1024,1)))
-	sizeConversion += (Byte_Unit.MB	-> Math.round(Math.pow(1000, 2)),	Byte_Unit.MiB -> Math.round(Math.pow(1024,2)))
-	sizeConversion += (Byte_Unit.GB	-> Math.round(Math.pow(1000, 3)),	Byte_Unit.GiB -> Math.round(Math.pow(1024,3)))
-	sizeConversion += (Byte_Unit.TB	-> Math.round(Math.pow(1000, 4)),	Byte_Unit.TiB -> Math.round(Math.pow(1024,4)))
-	sizeConversion += (Byte_Unit.PB	-> Math.round(Math.pow(1000, 5)),	Byte_Unit.PiB -> Math.round(Math.pow(1024,5)))
+	var sizeConversion = Map[ByteUnit, Long]()
+	sizeConversion += (ByteUnit.kB	-> Math.round(Math.pow(1000, 1)),	ByteUnit.KiB -> Math.round(Math.pow(1024,1)))
+	sizeConversion += (ByteUnit.MB	-> Math.round(Math.pow(1000, 2)),	ByteUnit.MiB -> Math.round(Math.pow(1024,2)))
+	sizeConversion += (ByteUnit.GB	-> Math.round(Math.pow(1000, 3)),	ByteUnit.GiB -> Math.round(Math.pow(1024,3)))
+	sizeConversion += (ByteUnit.TB	-> Math.round(Math.pow(1000, 4)),	ByteUnit.TiB -> Math.round(Math.pow(1024,4)))
+	sizeConversion += (ByteUnit.PB	-> Math.round(Math.pow(1000, 5)),	ByteUnit.PiB -> Math.round(Math.pow(1024,5)))
 
 
 	/* Public Methods: */
 	/* =============== */
 
-	def convert(destUnit: Byte_Unit): ByteSize = {
+	def convert(destUnit: ByteUnit): ByteSize = {
 		val srcUnitMult: Long	= sizeConversion(this.unit)
 		val destUnitDiv: Long	= sizeConversion(destUnit)
 
@@ -119,8 +124,8 @@ case class ByteSize(size: Double, unit: Byte_Unit) extends Comparable[ByteSize]
  * that are accessible via libvirt.
  * from: http://libvirt.org/storage.html
  */
-object Img_Format extends Enumeration {
-	type Img_Format = Value
+object ImgFormat extends Enumeration {
+	type ImgFormat = Value
 	val RAW, BOCHS, CLOOP, COW, DMG, ISO, QCOW, QCOW2, QED, VMDK, VPC, IMG = Value
 }
 

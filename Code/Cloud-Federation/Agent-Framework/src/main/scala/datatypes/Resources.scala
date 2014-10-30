@@ -1,5 +1,5 @@
 package datatypes
-import datatypes.CPU_Unit.CPU_Unit
+import datatypes.CPUUnit.CPU_Unit
 
 
 
@@ -42,7 +42,7 @@ case class Resource(nodeID: NodeID,
 
 object CPUResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return CPU_UnitValuator.getValue(x.cpu) - CPU_UnitValuator.getValue(y.cpu)
+		return CPUUnitOrdering.getValue(x.cpu) - CPUUnitOrdering.getValue(y.cpu)
 	}
 }
 object RAMResOrdering extends Ordering[Resource]{
