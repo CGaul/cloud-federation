@@ -21,13 +21,13 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 		//TODO: build security interfaces for a Certificate-Store
 		val certFile: File			= new File("filename")
 
-		val hardSLAs: HardSLA		= new HardSLA(
+		val hardSLAs: HostSLA		= new HostSLA(
 														relOnlineTime 		= 0.8f,
 													 	supportedImgFormats = Vector[Img_Format](Img_Format.QCOW2),
 													 	maxVMsPerCPU 			= Vector[(CPU_Unit, Integer)](
 																						(CPU_Unit.SMALL, 2), (CPU_Unit.MEDIUM, 2),
 																						(CPU_Unit.LARGE, 3), (CPU_Unit.XLARGE, 4)))
-		val softSLAs: SoftSLA		= new SoftSLA(
+		val softSLAs: CloudSLA		= new CloudSLA(
 														priceRangePerCPU 	= Vector[(CPU_Unit, Price, Price)](
 															 										(CPU_Unit.SMALL,
 														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
@@ -80,7 +80,7 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
 
-	discoveryAgent ! DiscoveryInit(Vector[HardSLA](CCFMConfig.hardSLAs))
+	discoveryAgent ! DiscoveryInit(Vector[HostSLA](CCFMConfig.hardSLAs))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 

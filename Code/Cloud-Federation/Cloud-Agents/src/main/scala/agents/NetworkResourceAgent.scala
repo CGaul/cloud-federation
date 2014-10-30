@@ -3,13 +3,15 @@ package agents
 import java.net.InetAddress
 
 import akka.actor._
-import datatypes.{HardSLA, Resource, ResourceAlloc}
+import datatypes._
 import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
+
+import scala.util.Sorting
 
 /**
  * Created by costa on 10/15/14.
  */
-class NetworkResourceAgent(_initialResAlloc: Map[Resource, Vector[ResourceAlloc]],
+class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
 {
 /* Values: */
@@ -19,7 +21,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, Vector[ResourceAlloc]
 /* Variables: */
 /* ========== */
 
-	var _totalResources: Map[Resource, Vector[ResourceAlloc]] = _initialResAlloc
+	var _totalResources: Map[Host, Vector[ResourceAlloc]] = _initialResAlloc
 
 
 /* Public Methods: */
@@ -65,29 +67,42 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, Vector[ResourceAlloc]
 	 * 	or all Resources could have been allocated.
 	 * </p>
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
-	 * @param resources
+	 * @param resourceAlloc
 	 * @param address
 	 */
-	def recvResourceRequest(resources: ResourceAlloc, address: InetAddress): Unit = {
-		//Check if local Cloud's Resources could be sufficient:
-		val hardestSLAPerNode :  Map[Resource, Option[HardSLA]] = getHardestSLAPerNode()
-		def func_fulfilling_sla(hardSLAOpt : Option[HardSLA]): Boolean = {
-			if(hardSLAOpt.isDefined)
-				return hardSLAOpt.get.fulfills(resources.hardSLA)
-			else
-				return false
+	def recvResourceRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
+		// Filter all Cloud-Hosts by their SLAs. Each host's SLA has to fulfill the QoS of the requestedSLA:
+		val hostFilteredQoSMap : Map[Host, Vector[ResourceAlloc]] = _totalResources.filter(t => t._1.hostSLA.fulfillsQoS(resourceAlloc.requestedHostSLA))
+		
+		// Afterwards, filter all remaining, QoS matching Cloud-Hosts by their free resources:
+		var potentialHosts: Vector[Host] 		= Vector()
+		var resourcesToAlloc: Vector[Resource] = Vector()
+		for (actResource <- resourceAlloc.resources) {
+			val hostFilteredResMap: Map[Host, Vector[ResourceAlloc]] = hostFilteredQoSMap.filter(t => RelativeResOrdering.compare(t._1.hostDataSpec, actResource) >= 0)
+			potentialHosts 	= potentialHosts ++ hostFilteredResMap.map(t => t._1).toVector
+			resourcesToAlloc 	= resourcesToAlloc :+ actResource
 		}
-		val slaFulfillingHosts : Map[Resource, Option[HardSLA]] = hardestSLAPerNode.filter(t => func_fulfilling_sla(t._2))
-		System.out.println(slaFulfillingHosts)
-//		if(_availResources.compareTo(resources) > 0){
-//			_availResources.allocate(resources)
-//		}
-		/* Inform the MatchMakingAgent about necessary federated Resources.
-		 * If compareTo fails, it is guaranteed, that the local available resources are not sufficient. */
-//		else{
-//			//TODO: split resources and fulfill as much as possible locally.
-//			//TODO: inform matchMakingAgent.
-//		}
+		// Filter all double elements from the potentialHosts-Vector:
+		potentialHosts		= potentialHosts.distinct
+
+		// Sort the potentialHosts as well as the resourceAlloc by their resources:
+		potentialHosts		= potentialHosts.sorted(RelativeHostByResOrdering)
+		resourcesToAlloc	= resourcesToAlloc.sorted(RelativeResOrdering)
+
+		// At last: Binpacking - First Fit Descending:
+		// Fit each resourceToAlloc in the first potentialHost (bin) that is fulfilling the resource & combined SLA requirements:
+		for (actResToAlloc <- resourcesToAlloc) {
+			val potentialHostIndex = potentialHosts.indexWhere(h => RelativeResOrdering.compare(h.hostDataSpec, actResToAlloc) > 0)
+			if(potentialHostIndex != -1){
+				//TODO: Check if the potentialHost is still fulfilling SLA with attached resToAlloc
+
+				//TODO: finally attach resToAlloc to potentialHost & remove resToAlloc from list
+
+				//TODO: update potentialHost's SLA
+			}
+		}
+
+		//TODO: For any left resToAlloc in list, build ResourceAlloc split and inform matchMakingAgent
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -140,26 +155,26 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, Vector[ResourceAlloc]
 		}
 	}
 	
-	private def getHardestSLAPerNode(): Map[Resource, Option[HardSLA]] ={
-		//Init hardestSLAPerNode with all Nodes (Resources) from _totalResources and map None to it:
-		var hardestSLAPerNode : Map[Resource, Option[HardSLA]] = Map()
-		_totalResources.foreach(t => hardestSLAPerNode += (t._1 -> None))
+	private def retrieveHostSLAs(): Map[Host, Option[HostSLA]] ={
+		//Init hostSLAMap with all Nodes (Resources) from _totalResources and map None to it:
+		var hostSLAMap : Map[Host, Option[HostSLA]] = Map()
+		_totalResources.foreach(t => hostSLAMap += (t._1 -> None))
 
 
-		for (actNode: Resource <- _totalResources.keys ) {
+		for (actNode: Host <- _totalResources.keys ) {
 			val actResAlloc : Vector[ResourceAlloc]	= _totalResources.get(actNode).get
 
 			if(actResAlloc.size > 0){
-				//List all hardSLAs for the actual ResourceAlloc:
-				var hardSLAs : Vector[HardSLA]	= Vector()
-				actResAlloc.foreach(t => hardSLAs = hardSLAs :+ t.hardSLA)
+				//List all hostSLAs for the actual ResourceAlloc:
+				var hostSLAs : Vector[HostSLA]	= Vector()
+				actResAlloc.foreach(t => hostSLAs = hostSLAs :+ t.requestedHostSLA)
 
-				//Reduce the Vector of hardSLAs to a single hardestSLA:
-				val hardestSLA : HardSLA = hardSLAs.reduce(_ combineToAmplifiedSLA _)
-				hardestSLAPerNode += (actNode -> Option(hardestSLA))
+				//Reduce the Vector of hostSLAs to a single hardestSLA:
+				val hardestSLA : HostSLA = hostSLAs.reduce(_ combineToAmplifiedSLA _)
+				hostSLAMap += (actNode -> Option(hardestSLA))
 			}
 		}
-		return hardestSLAPerNode
+		return hostSLAMap
 	}
 
 	private def countTotalResAlloc(): Int ={
@@ -184,6 +199,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialResAlloc: Map[Resource, Vector[ResourceAlloc]], ovxIP: InetAddress):
+	def props(initialResAlloc: Map[Host, Vector[ResourceAlloc]], ovxIP: InetAddress):
 	Props = Props(new NetworkResourceAgent(initialResAlloc, ovxIP))
 }

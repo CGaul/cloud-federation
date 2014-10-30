@@ -3,7 +3,7 @@ package messages
 import java.security.cert.Certificate
 
 import akka.actor.ActorPath
-import datatypes.HardSLA
+import datatypes.HostSLA
 
 sealed trait DiscoveryMessage
 
@@ -13,7 +13,7 @@ sealed trait PubSubFederatorReply
 
 
 
-case class DiscoveryInit(slaList: Vector[HardSLA])	extends DiscoveryMessage
+case class DiscoveryInit(slaList: Vector[HostSLA])	extends DiscoveryMessage
 									with DiscoveryAgentReply
 
 case class DiscoveryAck(status: String)	extends DiscoveryMessage
@@ -32,7 +32,7 @@ case class DiscoveryError(error: String)	extends DiscoveryMessage
  * @param slaList
  * @param cert
  */
-case class DiscoverySubscription(slaList: Vector[HardSLA], cert : Certificate)	extends DiscoveryMessage
+case class DiscoverySubscription(slaList: Vector[HostSLA], cert : Certificate)	extends DiscoveryMessage
 																			with PubSubFederatorReply
 
 

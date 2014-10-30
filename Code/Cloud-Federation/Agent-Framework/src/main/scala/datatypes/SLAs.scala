@@ -1,26 +1,8 @@
 package datatypes
 
-import java.util.Currency
-
 import datatypes.CPU_Unit.CPU_Unit
 import datatypes.CloudCurrency.CloudCurrency
 import datatypes.Img_Format.Img_Format
-
-/**
- * Lists all possible virtualization image formats
- * that are accessible via libvirt.
- * from: http://libvirt.org/storage.html
- */
-object Img_Format extends Enumeration {
-	type Img_Format = Value
-	val RAW, BOCHS, CLOOP, COW, DMG, ISO, QCOW, QCOW2, QED, VMDK, VPC, IMG = Value
-}
-
-object CloudCurrency extends Enumeration {
-	type CloudCurrency = Value
-	//val Currency.getAvailableCurrencies
-	val CLOUD_CREDIT = Value
-}
 
 case class Price(value: Float, currency: CloudCurrency)
 
@@ -43,26 +25,27 @@ case class Price(value: Float, currency: CloudCurrency)
  *                     where each Tuple2 has a "CPU_Unit -> max. number of VMs" mapping.
  *
  */
-case class HardSLA(relOnlineTime: 		Float,
-					supportedImgFormats:		Vector[Img_Format],
-					maxVMsPerCPU:				Vector[(CPU_Unit, Integer)])
+case class HostSLA(relOnlineTime: 			Float,
+						 supportedImgFormats:	Vector[Img_Format],
+						 maxVMsPerCPU:				Vector[(CPU_Unit, Integer)])
 {
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: HardSLA 	=> return (	this.supportedImgFormats.equals(that.supportedImgFormats) &&
-		  											this.maxVMsPerCPU.equals(that.maxVMsPerCPU))
+		case that: HostSLA 	=> return this.supportedImgFormats.equals(that.supportedImgFormats) &&
+		  										 this.maxVMsPerCPU.equals(that.maxVMsPerCPU)
 		case _ 					=> false
 	}
 
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[HardSLA]
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
 
 
 	/**
-	 * Checks if this HardSLA is able to <em>fulfill</em> the other HardSLA.
-	 * @param other The HardSLA, that is checked against
-	 * @return true, if this HardSLA is at least as hard as the other, false if this SLA is weaker than the other.
+	 * Checks if this HostSLA is able to <em>fulfill</em> the other HostSLA.
+	 * @param other The HostSLA, that is checked against
+	 * @return true, if this HostSLA is guaranteeing a level of QoS that is at least
+	 * 		  as high as the other, false if this SLA is not guaranteeing that level.
 	 */
-	def fulfills(other: HardSLA): Boolean = {
+	def fulfillsQoS(other: HostSLA): Boolean = {
 		// Check, if the relative online time is at least as high as other's:
 		if(other.relOnlineTime > this.relOnlineTime)
 			return false
@@ -100,12 +83,12 @@ case class HardSLA(relOnlineTime: 		Float,
 	 * @param other
 	 * @return
 	 */
-	def combineToAmplifiedSLA(other: HardSLA): HardSLA = {
+	def combineToAmplifiedSLA(other: HostSLA): HostSLA = {
 		val amplRelOnlineTime = if (this.relOnlineTime >= other.relOnlineTime) this.relOnlineTime else other.relOnlineTime
 		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
 		val amplMaxVMsPerCPU = this.maxVMsPerCPU.map(getSmallerMaxValPerCPU(_, other.maxVMsPerCPU))
 
-		return new HardSLA(amplRelOnlineTime, amplSupportedImgFormats, amplMaxVMsPerCPU)
+		return new HostSLA(amplRelOnlineTime, amplSupportedImgFormats, amplMaxVMsPerCPU)
 	}
 
 
@@ -125,18 +108,18 @@ case class HardSLA(relOnlineTime: 		Float,
  * @param priceRangePerRAM
  * @param priceRangePerStorage
  */
-case class SoftSLA(	priceRangePerCPU:		 Vector[(CPU_Unit, Price, Price)],
+case class CloudSLA(	priceRangePerCPU:		 Vector[(CPU_Unit, Price, Price)],
 						  	priceRangePerRAM:		 (ByteSize, Price, Price),
 						  	priceRangePerStorage: (ByteSize, Price, Price))
 {
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: SoftSLA 	=> return (this.priceRangePerCPU.equals(that.priceRangePerCPU) &&
+		case that: CloudSLA 	=> return (this.priceRangePerCPU.equals(that.priceRangePerCPU) &&
 		  										  this.priceRangePerRAM.equals(that.priceRangePerRAM) &&
 		  										  this.priceRangePerStorage.equals(that.priceRangePerStorage))
 		case _ 					=> false
 	}
 
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[SoftSLA]
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[CloudSLA]
 
 }
