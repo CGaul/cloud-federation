@@ -71,7 +71,14 @@ class NetworkResourceAgent(_initialResAlloc: Map[Resource, Vector[ResourceAlloc]
 	def recvResourceRequest(resources: ResourceAlloc, address: InetAddress): Unit = {
 		//Check if local Cloud's Resources could be sufficient:
 		val hardestSLAPerNode :  Map[Resource, Option[HardSLA]] = getHardestSLAPerNode()
-		val slaFulfillingHosts : Map[Resource, Option[HardSLA]] = hardestSLAPerNode.filter(t => t._2.get.fulfills(resources.hardSLA))
+		def func_fulfilling_sla(hardSLAOpt : Option[HardSLA]): Boolean = {
+			if(hardSLAOpt.isDefined)
+				return hardSLAOpt.get.fulfills(resources.hardSLA)
+			else
+				return false
+		}
+		val slaFulfillingHosts : Map[Resource, Option[HardSLA]] = hardestSLAPerNode.filter(t => func_fulfilling_sla(t._2))
+		System.out.println(slaFulfillingHosts)
 //		if(_availResources.compareTo(resources) > 0){
 //			_availResources.allocate(resources)
 //		}
