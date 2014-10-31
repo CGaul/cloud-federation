@@ -4,7 +4,7 @@ import java.io.{FileInputStream, File}
 import java.security.cert.{CertificateFactory, Certificate}
 
 import akka.actor._
-import datatypes.CPUUnit.CPU_Unit
+import datatypes.CPUUnit.CPUUnit
 import datatypes.ImgFormat.ImgFormat
 import datatypes._
 import messages._
@@ -24,11 +24,11 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 		val hardSLAs: HostSLA		= new HostSLA(
 														relOnlineTime 		= 0.8f,
 													 	supportedImgFormats = Vector[ImgFormat](ImgFormat.QCOW2),
-													 	maxVMsPerCPU 			= Vector[(CPU_Unit, Integer)](
+													 	maxVMsPerCPU 			= Vector[(CPUUnit, Integer)](
 																						(CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 2),
 																						(CPUUnit.LARGE, 3), (CPUUnit.XLARGE, 4)))
 		val softSLAs: CloudSLA		= new CloudSLA(
-														priceRangePerCPU 	= Vector[(CPU_Unit, Price, Price)](
+														priceRangePerCPU 	= Vector[(CPUUnit, Price, Price)](
 															 										(CPUUnit.SMALL,
 														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
 														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),

@@ -4,30 +4,26 @@ import datatypes.ByteUnit.ByteUnit
 import datatypes.CPUUnit.CPUUnit
 
 /**
- * A CPU_Unit gives insight about the relative strength of the CPU in a Resource-Container.
+ * A CPUUnit gives insight about the relative strength of the CPU in a Resource-Container.
  */
 object CPUUnit extends Enumeration
 {
 	type CPUUnit 	= Value
 	val SMALL, MEDIUM, LARGE, XLARGE = Value
-	//	val SMALL 		= Value(1)
-	//	val MEDIUM 		= Value(5)
-	//	val LARGE 		= Value(10)
-	//	val XLARGE 		= Value(20)
 }
 
 object CPUUnitOrdering extends Ordering[CPUUnit]
 {
-	val CPU_UnitMap : Map[CPUUnit, Int] = Map(CPUUnit.SMALL -> 1, CPUUnit.MEDIUM -> 5,
+	val CPUUnitMap : Map[CPUUnit, Int] = Map(CPUUnit.SMALL -> 1, CPUUnit.MEDIUM -> 5,
 		CPUUnit.LARGE -> 10, CPUUnit.XLARGE -> 20)
 
 	def getValue(cpuUnit : CPUUnit): Int = {
-		CPU_UnitMap(cpuUnit)
+		CPUUnitMap(cpuUnit)
 	}
 
 	def sortUnitsAscending(): List[CPUUnit] = {
 		var cpuList = CPUUnit.values.toList
-		cpuList 		= cpuList.sortBy(x => CPU_UnitMap(x))
+		cpuList 		= cpuList.sortBy(x => CPUUnitMap(x))
 		return cpuList
 	}
 

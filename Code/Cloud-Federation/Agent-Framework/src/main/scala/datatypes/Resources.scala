@@ -1,7 +1,6 @@
 package datatypes
-import datatypes.CPUUnit.CPU_Unit
 
-
+import datatypes.CPUUnit.CPUUnit
 
 
 /**
@@ -15,14 +14,14 @@ case class NodeID(id: Integer)
  *
  * @param nodeID The NodeID that is representing this resource. For VMs, this is the nodeID of the hypervising host
  *               (which is also represented as a Resource). May be None for Resource Requests.
- * @param cpu CPU Speed on Node [CPU_Unit]
+ * @param cpu CPU Speed on Node [CPUUnit]
  * @param ram Amount of RAM on Node [ByteSize]
  * @param storage Amount of Storage on Node [ByteSize]
  * @param bandwidth Bandwidth, relatively monitored from GW to Node [ByteSize]
  * @param latency Latency, relatively monitored from GW to Node [ms]
  */
 case class Resource(nodeID: NodeID,
-						  cpu: CPU_Unit,
+						  cpu: CPUUnit,
 						  ram: ByteSize,
 						  storage: ByteSize,
 						  bandwidth: ByteSize,
@@ -42,7 +41,7 @@ case class Resource(nodeID: NodeID,
 
 object CPUResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return CPUUnitOrdering.getValue(x.cpu) - CPUUnitOrdering.getValue(y.cpu)
+		return CPUUnitOrdering.compare(x.cpu, y.cpu)
 	}
 }
 object RAMResOrdering extends Ordering[Resource]{
@@ -194,24 +193,24 @@ case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
 //	def allocatePartially(other: ResourceAlloc): ResourceAlloc = ???
 //
 //
-//	def allocateBundle(cpu: CPU_Unit, ram: ByteSize, storage: ByteSize, bandwidth: ByteSize, latency: Float) = {
+//	def allocateBundle(cpu: CPUUnit, ram: ByteSize, storage: ByteSize, bandwidth: ByteSize, latency: Float) = {
 //		//TODO: implement
 //	}
 
 //	def allocateByCPU(other: Resources): Resources = {
-//		val cpuVectorA: Vector[CPU_Unit] = this.cpu.flatMap(t => Vector(t._2))
-//		val cpuVectorB: Vector[CPU_Unit] = other.cpu.flatMap(t => Vector(t._2))
+//		val cpuVectorA: Vector[CPUUnit] = this.cpu.flatMap(t => Vector(t._2))
+//		val cpuVectorB: Vector[CPUUnit] = other.cpu.flatMap(t => Vector(t._2))
 //
-//		/* Foreach CPU_Unit, filter both CPU-Vectors and compare the size.
+//		/* Foreach CPUUnit, filter both CPU-Vectors and compare the size.
 //		 * If cpuVectorA has at least the size of cpuVectorB,
 //		 * no swap needs to be taken over to the next iteration.
 //		 * Otherwise, each element of cpuVectorB that could not be fulfilled
-//		 * by cpuVectorA will be saved as a swap, as the next higher CPU_Unit
+//		 * by cpuVectorA will be saved as a swap, as the next higher CPUUnit
 //		 * has to be allocated to the left over elements from the current iter of cpuVectorB. */
-//		for (actCPU_Unit <- CPU_UnitValuator.sortUnitsDescending()){
-//			val filteredA = cpuVectorA.filter(cpuUnit => cpuUnit != actCPU_Unit)
-//			val filteredB = cpuVectorB.filter(cpuUnit => cpuUnit != actCPU_Unit)
-//			// all allocations for this CPU_Unit size could be fulfilled:
+//		for (actCPUUnit <- CPUUnitValuator.sortUnitsDescending()){
+//			val filteredA = cpuVectorA.filter(cpuUnit => cpuUnit != actCPUUnit)
+//			val filteredB = cpuVectorB.filter(cpuUnit => cpuUnit != actCPUUnit)
+//			// all allocations for this CPUUnit size could be fulfilled:
 //			if(filteredA.size >= filteredB.size){
 //				//TODO: go on
 //			}

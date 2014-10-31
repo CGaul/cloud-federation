@@ -1,6 +1,6 @@
 package unitspecs
 
-import datatypes.CPUUnit.CPU_Unit
+import datatypes.CPUUnit.CPUUnit
 import datatypes.{CPUUnit, HostSLA, ImgFormat}
 import org.scalatest.{FlatSpec, ShouldMatchers}
 
@@ -13,13 +13,13 @@ class HostSLASpec extends FlatSpec with ShouldMatchers {
 /* ============================ */
 
 	val hostSLA1 = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS),
-										Vector[(CPU_Unit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 4)))
+										Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 4)))
 
 	val hostSLA2 = new HostSLA(0.90f, Vector(ImgFormat.IMG, ImgFormat.BOCHS),
-										Vector[(CPU_Unit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
+										Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
 
 	val hostSLA3 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.QCOW2),
-										Vector[(CPU_Unit, Integer)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
+										Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
 
 
 
@@ -30,11 +30,11 @@ class HostSLASpec extends FlatSpec with ShouldMatchers {
 
 
 		val combinedHostSLA1_required = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS),
-																  Vector[(CPU_Unit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
+																  Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
 		val combinedHostSLA1_result 	= hostSLA1.combineToAmplifiedSLA(hostSLA2)
 
 		val combinedHostSLA2_required = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS),
-																  Vector[(CPU_Unit, Integer)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
+																  Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
 		val combinedHostSLA2_result 	= hostSLA2.combineToAmplifiedSLA(hostSLA3)
 
 		combinedHostSLA1_result.equals(combinedHostSLA1_required) should be (true)

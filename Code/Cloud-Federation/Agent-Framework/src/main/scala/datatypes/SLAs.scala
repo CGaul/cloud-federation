@@ -1,6 +1,6 @@
 package datatypes
 
-import datatypes.CPUUnit.CPU_Unit
+import datatypes.CPUUnit.{CPUUnit}
 import datatypes.CloudCurrency.CloudCurrency
 import datatypes.ImgFormat.ImgFormat
 
@@ -16,18 +16,18 @@ case class Price(value: Float, currency: CloudCurrency)
  * from: http://www.techterms.com/definition/sla
  *
  * @param relOnlineTime The procentual, guaranteed online time for each requested machine in the Cloud-Network.
- * @param supportedImgFormats A list of minimal requirements regarding supported Img_Format.
+ * @param _supportedImgFormats A list of minimal requirements regarding supported ImgFormat.
  *                            Defaults to all known formats
- * @param maxVMsPerCPU A list of maximum allowed VMs per Host with a given CPU_Unit.
- *                     If a Host (classified by its CPU_Unit) hypervises more running VMs than specified here,
+ * @param _maxVMsPerCPU A list of maximum allowed VMs per Host with a given CPUUnit.
+ *                     If a Host (classified by its CPUUnit) hypervises more running VMs than specified here,
  *                     this host must not be a part of a federation, based on the given SLA.
  *                     Represented as a Vector[Tuple2] elements,
- *                     where each Tuple2 has a "CPU_Unit -> max. number of VMs" mapping.
+ *                     where each Tuple2 has a "CPUUnit -> max. number of VMs" mapping.
  *
  */
 case class HostSLA(relOnlineTime: 			Float,
 						 private var _supportedImgFormats:	Vector[ImgFormat],
-						 private var _maxVMsPerCPU:			Vector[(CPU_Unit, Integer)])
+						 private var _maxVMsPerCPU:			Vector[(CPUUnit, Integer)])
 {
 
 	_supportedImgFormats = _supportedImgFormats.distinct
@@ -62,9 +62,9 @@ case class HostSLA(relOnlineTime: 			Float,
 		if(! allFormatsContained)
 			return false
 
-		// Check if each Mapping of CPU_Unit to Integer is at least as low as in other's:
+		// Check if each Mapping of CPUUnit to Integer is at least as low as in other's:
 		// (the lower the Integer value, the less VMs are able to run on the same machine)
-		// To do this, first check if each CPU_Unit mapping from other is defined in this SLA:
+		// To do this, first check if each CPUUnit mapping from other is defined in this SLA:
 		for (actCPUTuple <- other.maxVMsPerCPU) {
 			val actCPUUnit = actCPUTuple._1
 			val index = this.maxVMsPerCPU.indexWhere(t => t._1.equals(actCPUUnit))
@@ -110,12 +110,12 @@ case class HostSLA(relOnlineTime: 			Float,
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
 
 
-	private def getSmallerMaxValPerCPU(tuple: (CPU_Unit, Integer), otherMaxVMsPerCPU: Vector[(CPU_Unit, Integer)]): (CPU_Unit, Integer) = {
-		//Find the element with the same CPU_Unit of tuple in otherMaxVMsPerCPU-Vector:
-		val otherTuple: Option[(CPU_Unit, Integer)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
+	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Integer), otherMaxVMsPerCPU: Vector[(CPUUnit, Integer)]): (CPUUnit, Integer) = {
+		//Find the element with the same CPUUnit of tuple in otherMaxVMsPerCPU-Vector:
+		val otherTuple: Option[(CPUUnit, Integer)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
 
-		//Then return the smaller Integer value from both of the (CPU_Unit, Integer) tuples:
-		val newTuple : (CPU_Unit, Integer) = if(tuple._2 < otherTuple.get._2) tuple else otherTuple.get
+		//Then return the smaller Integer value from both of the (CPUUnit, Integer) tuples:
+		val newTuple : (CPUUnit, Integer) = if(tuple._2 < otherTuple.get._2) tuple else otherTuple.get
 		return newTuple
 	}
 }
@@ -126,7 +126,7 @@ case class HostSLA(relOnlineTime: 			Float,
  * @param priceRangePerRAM
  * @param priceRangePerStorage
  */
-case class CloudSLA(	priceRangePerCPU:		 Vector[(CPU_Unit, Price, Price)],
+case class CloudSLA(	priceRangePerCPU:		 Vector[(CPUUnit, Price, Price)],
 						  	priceRangePerRAM:		 (ByteSize, Price, Price),
 						  	priceRangePerStorage: (ByteSize, Price, Price))
 {
