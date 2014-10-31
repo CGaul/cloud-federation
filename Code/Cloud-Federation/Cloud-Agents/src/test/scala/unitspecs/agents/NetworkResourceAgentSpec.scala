@@ -3,7 +3,9 @@ package unitspecs.agents
 import java.net.InetAddress
 
 import agents.NetworkResourceAgent
-import akka.actor.Props
+import akka.actor.{ActorSystem, Props}
+import akka.testkit.TestActorRef
+import com.typesafe.config.ConfigFactory
 import datatypes.CPUUnit._
 import datatypes._
 import messages.ResourceRequest
@@ -59,9 +61,15 @@ class NetworkResourceAgentSpec extends FlatSpec with ShouldMatchers{
 	val ovxIP = InetAddress.getLocalHost
 
 
-	val testAgentSystem = AgentTestSystem[NetworkResourceAgent]("testApplication.conf", "CloudAgents")
+//	val testAgentSystem = AgentTestSystem[NetworkResourceAgent]("testApplication.conf", "CloudAgents")
+//	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent], initialResAlloc, ovxIP)
+//	val (nraRef, nraActor) = testAgentSystem.prepareAgentTestSystem(networkResourceAgentProps)
+
+	val config = ConfigFactory.load("testApplication.conf")
+	implicit val system = ActorSystem("CloudAgents", config.getConfig("cloudAgents").withFallback(config))
 	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent], initialResAlloc, ovxIP)
-	val (nraRef, nraActor) = testAgentSystem.prepareAgentTestSystem(networkResourceAgentProps)
+	val nraRef : TestActorRef[NetworkResourceAgent] = TestActorRef[NetworkResourceAgent](networkResourceAgentProps)
+	//val nraActor = nraRef.underlyingActor
 
 	nraRef.receive(ResourceRequest(newResAlloc, ovxIP))
 
