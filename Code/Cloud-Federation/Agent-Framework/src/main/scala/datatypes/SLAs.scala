@@ -25,14 +25,21 @@ case class Price(value: Float, currency: CloudCurrency)
  *                     where each Tuple2 has a "CPUUnit -> max. number of VMs" mapping.
  *
  */
-case class HostSLA(relOnlineTime: 			Float,
+case class HostSLA(relOnlineTime: 							Float,
 						 private var _supportedImgFormats:	Vector[ImgFormat],
 						 private var _maxVMsPerCPU:			Vector[(CPUUnit, Integer)])
 {
 
+	// Each supported Image format should only be once in the Vector
+	// and the Vector should be sorted by the natural ordering of the ImgFormat enum:
 	_supportedImgFormats = _supportedImgFormats.distinct
 	_supportedImgFormats = _supportedImgFormats.sorted
 
+	// Each CPUUnit should only have one representing Tuple in the maxVMsPerCPU Vector
+	// and the Vector should be sorted by the CPUUnitOrdering, extending Ordering[CPUUnit]
+	// If the maxVMsPerCPU Vector has duplicate tuples, both representing one CPUUnit, drop the whole mapping for it:
+	_maxVMsPerCPU = _maxVMsPerCPU.filter(t1 => _maxVMsPerCPU.count(t2 => t1._1 == t2._1) == 1)
+	_maxVMsPerCPU = _maxVMsPerCPU.sortBy(_._1)(CPUUnitOrdering)
 
 /* Case Class Variable Getter: */
 /* =========================== */
@@ -72,7 +79,7 @@ case class HostSLA(relOnlineTime: 			Float,
 				return false
 			else{
 				//If a match is found for the actCPUTuple, compare both Int-Values with each other:
-				if(this.maxVMsPerCPU(index)._2 > actCPUTuple._2)
+				if(actCPUTuple._2 > this.maxVMsPerCPU(index)._2)
 					return false
 			}
 		}

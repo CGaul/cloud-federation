@@ -122,7 +122,7 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
  */
 object ImgFormat extends Enumeration {
 	type ImgFormat = Value
-	val RAW, BOCHS, CLOOP, COW, DMG, ISO, QCOW, QCOW2, QED, VMDK, VPC, IMG = Value
+	val BOCHS, CLOOP, COW, DMG, IMG, ISO, QCOW, QCOW2, QED, RAW, VMDK, VPC = Value
 }
 
 
