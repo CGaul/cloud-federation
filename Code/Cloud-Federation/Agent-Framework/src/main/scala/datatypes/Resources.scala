@@ -30,9 +30,9 @@ case class Resource(nodeID: NodeID,
 {
 	override def equals(obj: scala.Any): Boolean = obj match {
 		case that: Resource => (that canEqual this) &&
-		  (this.cpu == that.cpu) && (this.ram == that.ram) &&
-		  (this.storage == that.storage) && (this.bandwidth == that.bandwidth) &&
-		  (this.latency == that.latency)
+										(this.cpu == that.cpu) && (this.ram == that.ram) &&
+										(this.storage == that.storage) && (this.bandwidth == that.bandwidth) &&
+						 			 	(this.latency == that.latency)
 		case _ => false
 	}
 

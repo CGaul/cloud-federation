@@ -43,7 +43,7 @@ class NetworkResourceAgentSpec extends FlatSpec with ShouldMatchers{
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														20.0f, Vector[NodeID]())
 
-	val reqHostSLA1 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.COW),
+	val reqHostSLA1 = new HostSLA(0.90f, Vector(ImgFormat.IMG, ImgFormat.COW),
 											Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
 	val reqHostSLA2 = new HostSLA(0.91f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.BOCHS),
 											Vector[(CPUUnit, Integer)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 4)))
@@ -53,7 +53,7 @@ class NetworkResourceAgentSpec extends FlatSpec with ShouldMatchers{
 	val initResAlloc1 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc1), reqHostSLA1)
 	val initResAlloc2 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc2), reqHostSLA2)
 	val initResAlloc3 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc3), reqHostSLA3)
-	val newResAlloc 	: ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA3)
+	val newResAlloc 	: ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
 
 	var initialResAlloc : Map[Host, Vector[ResourceAlloc]] = Map()
 	initialResAlloc += (host1 -> Vector(), host2 -> Vector(initResAlloc2, initResAlloc3))

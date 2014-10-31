@@ -7,7 +7,8 @@ import org.scalatest.{FlatSpec, ShouldMatchers}
 /**
  * Created by costa on 10/28/14.
  */
-class HostSLASpec extends FlatSpec with ShouldMatchers {
+class HostSLASpec extends FlatSpec with ShouldMatchers
+{
 
 /* Definition of three HostSLAs */
 /* ============================ */
