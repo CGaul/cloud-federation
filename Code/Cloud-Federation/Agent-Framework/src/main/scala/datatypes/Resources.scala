@@ -36,7 +36,7 @@ case class Resource(nodeID: NodeID,
 		case _ => false
 	}
 
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[Resource]
 }
 
 object CPUResOrdering extends Ordering[Resource]{
@@ -46,17 +46,17 @@ object CPUResOrdering extends Ordering[Resource]{
 }
 object RAMResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round(x.ram.getBytes - y.ram.getBytes).toInt
+		return x.ram compareSafely y.ram
 	}
 }
 object StorageResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round(x.storage.getBytes - y.storage.getBytes).toInt
+		return x.storage compareSafely y.storage
 	}
 }
 object BandwidthResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round(x.ram.getBytes - y.ram.getBytes).toInt
+		return x.bandwidth compareSafely y.bandwidth
 	}
 }
 object LatencyResOrdering extends Ordering[Resource]{
@@ -92,23 +92,23 @@ object RelativeResOrdering extends Ordering[Resource]{
 	 */
 	override def compare(x: Resource, y: Resource): Int = {
 		val cpuDiff 			= CPUResOrdering.compare(x,y)
-		if (cpuDiff <= 0){
+		if (cpuDiff < 0){
 			return cpuDiff
 		}
 		val ramDiff: Int 		= RAMResOrdering.compare(x,y)
-		if (ramDiff <= 0){
+		if (ramDiff < 0){
 			return ramDiff
 		}
 		val storageDiff: Int = StorageResOrdering.compare(x,y)
-		if (storageDiff <= 0){
+		if (storageDiff < 0){
 			return storageDiff
 		}
 		val bdwhDiff: Int 	= BandwidthResOrdering.compare(x,y)
-		if (bdwhDiff <= 0){
+		if (bdwhDiff < 0){
 			return bdwhDiff
 		}
 		val latencyDiff: Int = LatencyResOrdering.compare(x,y)
-		if (latencyDiff <= 0){
+		if (latencyDiff < 0){
 			return latencyDiff
 		}
 

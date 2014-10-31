@@ -79,6 +79,26 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 		return new ByteSize(destSize, destUnit)
 	}
 
+	def compareSafely(other: ByteSize): Int = {
+		val mbDiff: Double  = this.normalizeToMB - other.normalizeToMB
+		try{
+			val diffRnd: Int = Math.toIntExact(Math.round(mbDiff))
+			return diffRnd
+		}
+		catch {
+			case e: ArithmeticException =>
+				//If mbDiff is not fitting in Integer cast, reduce it to gbDiff, then try again:
+				val gbDiff			 = mbDiff / 1000;
+				val reducedDiffRnd = Math.toIntExact(Math.round(gbDiff))
+				return reducedDiffRnd
+		}
+	}
+
+	def normalizeToMB: Double = {
+		val normalizedBytes : ByteSize = convert(ByteUnit.MB)
+		return normalizedBytes.size
+	}
+
 	def getBytes: Double = {
 		val srcUnitMult: Long	= sizeConversion(this.unit)
 		val byteSize: Double 	= this.size * srcUnitMult
