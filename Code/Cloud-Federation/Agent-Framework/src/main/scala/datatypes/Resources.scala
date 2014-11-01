@@ -1,7 +1,10 @@
 package datatypes
 
-import datatypes.CPUUnit.CPUUnit
+import datatypes.CPUUnit._
 
+
+/* Data Containers (case classes): */
+/* =============================== */
 
 /**
  * Just a wrapper case class for an Integer ID.
@@ -28,6 +31,10 @@ case class Resource(nodeID: NodeID,
 						  latency: Float,
 						  links: Vector[NodeID])
 {
+
+	/* Basic Overrides: */
+	/* ---------------- */
+
 	override def equals(obj: scala.Any): Boolean = obj match {
 		case that: Resource => (that canEqual this) &&
 										(this.cpu == that.cpu) && (this.ram == that.ram) &&
@@ -38,6 +45,166 @@ case class Resource(nodeID: NodeID,
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Resource]
 }
+
+
+//TODO: use http://docs.scala-lang.org/style/scaladoc.html to go on with ScalaDocs in code.
+/**
+ *  ==How to use==
+ *  {{{
+ *     val host = Host
+ *  }}}
+ * @constructor create a new Host, specifying the Host's Hardware Spec, the initial Allocation (if any)
+ *             and the Host's SLA
+ * @param hardwareSpec
+ * @param allocatedResources
+ * @param _hostSLA bla
+ */
+case class Host(hardwareSpec: Resource,
+					 allocatedResources: Vector[ResourceAlloc] = new Vector(),
+					 private var _hostSLA: HostSLA){
+
+	/* Getter: */
+	/* ======= */
+
+	def hostSLA = _hostSLA
+
+
+	/* Public Methods: */
+	/* --------------- */
+
+	/**
+	 * Allocates a new Resource to this Host.
+	 *
+	 * Before the allocation occurs, a ''pre-allocation'' is tested.
+	 * If it fails, this allocate() method will return false,
+	 * otherwise the allocation will take place and true will be returned.
+	 *
+	 * @param resToAlloc
+	 * @return
+	 */
+	def allocate(resToAlloc: ResourceAlloc): Boolean = {
+		val success = testAllocation(resToAlloc)
+		if(success){
+			//TODO: implement allocation
+
+			//At last, update the HostSLA:
+			updateHostSLA()
+		}
+		else return success
+	}
+
+
+	/* Private Methods: */
+	/* --------------- */
+
+	/**
+	 * When [[datatypes.Host.allocate]] is called, the new allocation needs to be tested first (pre-allocation phase),
+	 * before the real allocation occurs. The allocation will only take place, if this method returns `true`.
+	 * @param resToAlloc
+	 * @return
+	 */
+	private def testAllocation(resToAlloc: ResourceAlloc): Boolean = {
+		val testedResAlloc: Vector[ResourceAlloc] = allocatedResources :+ resToAlloc
+
+		// Find the hardest, combined HostSLA specification from the actual Host's SLA & the testedResAlloc:
+		val combinedTestResSLA: HostSLA 				= combineHostResSLAs(testedResAlloc)
+
+		// Test if the combinedTestResSLA still fulfills the Host's SLA QoS:
+		val fulfillsCombinedQoS = hostSLA.fulfillsQoS(combinedTestResSLA)
+		if(! fulfillsCombinedQoS){
+			return false
+		}
+
+		// If the QoS Test was successful,
+		// prepare a resource Test that the combined SLA is checked against:
+		var resCountByCPU: Vector[(CPUUnit, Int)] = Vector()
+		for (actResAlloc <- testedResAlloc) {
+			resCountByCPU = actResAlloc.countResourcesByCPU(resCountByCPU)
+		}
+		val fulfillsResCount: Boolean = combinedTestResSLA.checkAgainstVMsPerCPU(resCountByCPU)
+		if(! fulfillsResCount){
+			return false
+		}
+
+		return true
+	}
+
+	private def combineHostResSLAs(resAlloc: Vector[ResourceAlloc]): HostSLA ={
+		// Extract all requested HostSLAs from the ResourceAlloc-Vector:
+		val allocatedSLAs: Vector[HostSLA] 	= resAlloc.map(_.requestedHostSLA)
+		// Combine all allocated-Resource's SLAs to a hardened QoS SLA:
+		val combinedAllocSLA: HostSLA			= allocatedSLAs.reduce(_ combineToAmplifiedSLA _)
+		// Afterwards combine this hardened SLA with the actual hostSLA and update this value:
+		val combinedHostSLA						= combinedAllocSLA combineToAmplifiedSLA _hostSLA
+		return combinedHostSLA
+	}
+
+	/**
+	 * Once the testAllocation completed successful, this method is called in the allocate(..) method.
+	 * It updates the Host's [[datatypes.HostSLA]]
+	 */
+	private def updateHostSLA() ={
+		_hostSLA	 = combineHostResSLAs(allocatedResources)
+	}
+
+
+	/* Basic Overrides: */
+	/* ---------------- */
+
+	override def equals(obj: scala.Any): Boolean = obj match{
+		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA
+		case _ 				=> false
+	}
+
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
+}
+
+
+
+case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
+{
+	/* Public Methods: */
+	/* --------------- */
+
+	def countResourcesByCPU(resCountByCPU: Vector[(CPUUnit, Int)] = Vector()) : Vector[(CPUUnit, Int)] = {
+		var dirtyResCountByCPU = resCountByCPU
+		// Filter this ResourceAlloc by each CPUUnit and fill the resCount Vector with the Resource data:
+		for (actCPUUnit <- CPUUnit.values) {
+			val resAllocByCPU: Vector[Resource] = this.resources.filter(_.cpu == actCPUUnit)
+			dirtyResCountByCPU = dirtyResCountByCPU :+ (actCPUUnit, resAllocByCPU.size)
+		}
+		var cleanedResCountByCPU: Vector[(CPUUnit, Int)] 	= Vector()
+		for (actCPUUnit <- CPUUnit.values) {
+			// For each CPUUnit reduce the matching tuples to only one Tuple per CPUUnit, summing the Ints up:
+			cleanedResCountByCPU = cleanedResCountByCPU :+ dirtyResCountByCPU.filter(_._1 == actCPUUnit).reduce(func_reduceto_cpusum)
+		}
+		return cleanedResCountByCPU
+
+		// Used Functions:
+		def func_reduceto_cpusum(t1: (CPUUnit, Int), t2: (CPUUnit, Int)): (CPUUnit, Int) ={
+			//For equal CPUUnits
+			val sum = t1._2 + t2._2
+			return (t1._1, sum)
+		}
+
+	}
+
+	/* Basic Overrides: */
+	/* ---------------- */
+
+	override def equals(obj: scala.Any): Boolean = obj match {
+		case that: ResourceAlloc 	=> this.resources == that.resources
+		case _ 							=> false
+	}
+
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
+}
+
+
+
+
+/* Ordering Objects for Resource Container: */
+/* ======================================== */
 
 object ResOrderingMult{
 	val CPU_MULT:		Float	= 10
@@ -127,14 +294,8 @@ object RelativeResOrdering extends Ordering[Resource]{
 
 
 
-case class Host(hardwareSpec: Resource, hostSLA: HostSLA){
-	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA
-		case _ 				=> false
-	}
-
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
-}
+/* Ordering Objects for Host Container: */
+/* ==================================== */
 
 object RelativeHostByResOrdering extends Ordering[Host]{
 	override def compare(x: Host, y: Host): Int = {
@@ -144,12 +305,3 @@ object RelativeHostByResOrdering extends Ordering[Host]{
 
 
 
-case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
-{
-	override def equals(obj: scala.Any): Boolean = obj match {
-		case that: ResourceAlloc 	=> this.resources == that.resources
-		case _ 							=> false
-	}
-
-	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
-}

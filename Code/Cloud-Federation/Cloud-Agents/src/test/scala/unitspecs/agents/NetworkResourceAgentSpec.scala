@@ -21,10 +21,10 @@ class NetworkResourceAgentSpec extends FlatSpec with ShouldMatchers{
 
 	val host1 : Host = Host(Resource(NodeID(1), CPUUnit.MEDIUM, ByteSize(16.0, ByteUnit.GiB),
 														ByteSize(320.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
-														10.0f, Vector[NodeID]()), hostSLA)
+														10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
 	val host2 : Host = Host(Resource(NodeID(2), CPUUnit.LARGE, ByteSize(32.0, ByteUnit.GiB),
 														ByteSize(500.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
-														10.0f, Vector[NodeID]()), hostSLA)
+														10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
 
 	val hostAlloc1 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(4.0, ByteUnit.GiB),
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),

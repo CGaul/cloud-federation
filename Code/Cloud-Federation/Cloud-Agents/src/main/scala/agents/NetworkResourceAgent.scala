@@ -94,8 +94,10 @@ class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 		for (actResToAlloc <- resourcesToAlloc) {
 			val potentialHostIndex = potentialHosts.indexWhere(h => RelativeResOrdering.compare(h.hardwareSpec, actResToAlloc) > 0)
 			if(potentialHostIndex != -1){
-				System.out.println("Pre-Allocation done.")
+				//System.out.println("Pre-Allocation done.")
 				//TODO: Check if the potentialHost is still fulfilling SLA with attached resToAlloc
+				val potentialHost = potentialHosts(potentialHostIndex)
+
 
 				//TODO: finally attach resToAlloc to potentialHost and remove resToAlloc & potentialHost from lists
 

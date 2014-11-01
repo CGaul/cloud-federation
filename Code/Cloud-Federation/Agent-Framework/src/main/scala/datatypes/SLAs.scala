@@ -27,7 +27,7 @@ case class Price(value: Float, currency: CloudCurrency)
  */
 case class HostSLA(relOnlineTime: 							Float,
 						 private var _supportedImgFormats:	Vector[ImgFormat],
-						 private var _maxVMsPerCPU:			Vector[(CPUUnit, Integer)])
+						 private var _maxVMsPerCPU:			Vector[(CPUUnit, Int)])
 {
 
 	// Each supported Image format should only be once in the Vector
@@ -65,8 +65,8 @@ case class HostSLA(relOnlineTime: 							Float,
 
 		// Check, if at least all imageFormats are supported, that are supported by the other:
 		// To do this, check if every other.imgFormat is in this.imgFormats:
-		val allFormatsContained = other.supportedImgFormats.forall(this.supportedImgFormats.contains)
-		if(! allFormatsContained)
+		val allFormatsSupported = other.supportedImgFormats.forall(this.supportedImgFormats.contains)
+		if(! allFormatsSupported)
 			return false
 
 		// Check if each Mapping of CPUUnit to Integer is at least as low as in other's:
@@ -85,6 +85,25 @@ case class HostSLA(relOnlineTime: 							Float,
 		}
 
 		//If non of the breaking condition was reached until here, this SLA completely fulfills the other SLA:
+		return true
+	}
+
+	def checkAgainstVMsPerCPU(vmCountByCPU: Vector[(CPUUnit, Int)]): Boolean ={
+		//For each available CPUUnit, check if a resource Count is violating the SLA-Limit:
+		for (actCPUUnit <- CPUUnit.values) {
+			val resByCPUUnit: Option[(CPUUnit, Int)] = vmCountByCPU.find(t => t._1 == actCPUUnit)
+			val slaByCPUUnit: Option[(CPUUnit, Int)] = this.maxVMsPerCPU.find(t => t._1 == actCPUUnit)
+
+			// The SLA is violated, if more defined resources are available per CPUUnit, then allowed per SLA.
+			// If there is no SLA defined for that CPUUnit, unlimited resources are allowed.
+			// If there is no resource defined for that CPUUnit, no resource could violate the SLA.
+			val undefinedSLA 		 = (actCPUUnit, Int.MaxValue)
+			val undefinedResource = (actCPUUnit, 0)
+			val violatingSLA: Boolean = slaByCPUUnit.getOrElse(undefinedSLA)._2 < resByCPUUnit.getOrElse(undefinedResource)._2
+			if(violatingSLA){
+				return false
+			}
+			
 		return true
 	}
 
