@@ -78,7 +78,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 		var potentialHosts: Vector[Host] 		= Vector()
 		var resourcesToAlloc: Vector[Resource] = Vector()
 		for (actResource <- resourceAlloc.resources) {
-			val hostFilteredResMap: Map[Host, Vector[ResourceAlloc]] = hostFilteredQoSMap.filter(t => RelativeResOrdering.compare(t._1.hostDataSpec, actResource) >= 0)
+			val hostFilteredResMap: Map[Host, Vector[ResourceAlloc]] = hostFilteredQoSMap.filter(t => RelativeResOrdering.compare(t._1.hardwareSpec, actResource) >= 0)
 			potentialHosts 	= potentialHosts ++ hostFilteredResMap.map(t => t._1).toVector
 			resourcesToAlloc 	= resourcesToAlloc :+ actResource
 		}
@@ -92,11 +92,12 @@ class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 		// At last: Binpacking - First Fit Descending:
 		// Fit each resourceToAlloc in the first potentialHost (bin) that is fulfilling the resource & combined SLA requirements:
 		for (actResToAlloc <- resourcesToAlloc) {
-			val potentialHostIndex = potentialHosts.indexWhere(h => RelativeResOrdering.compare(h.hostDataSpec, actResToAlloc) > 0)
+			val potentialHostIndex = potentialHosts.indexWhere(h => RelativeResOrdering.compare(h.hardwareSpec, actResToAlloc) > 0)
 			if(potentialHostIndex != -1){
+				System.out.println("Pre-Allocation done.")
 				//TODO: Check if the potentialHost is still fulfilling SLA with attached resToAlloc
 
-				//TODO: finally attach resToAlloc to potentialHost & remove resToAlloc from list
+				//TODO: finally attach resToAlloc to potentialHost and remove resToAlloc & potentialHost from lists
 
 				//TODO: update potentialHost's SLA
 			}

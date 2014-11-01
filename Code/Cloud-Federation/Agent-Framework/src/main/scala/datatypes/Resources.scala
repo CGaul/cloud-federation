@@ -39,29 +39,37 @@ case class Resource(nodeID: NodeID,
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Resource]
 }
 
+object ResOrderingMult{
+	val CPU_MULT:		Float	= 10
+	val RAM_MULT: 		Float	= 1/10
+	val STORAGE_MULT: Float	= 1/10
+	val BDWTH_MULT: 	Float = 1/10
+	val LATENCY_MULT:	Float	= 100
+}
+
 object CPUResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return CPUUnitOrdering.compare(x.cpu, y.cpu)
+		return Math.round(CPUUnitOrdering.compare(x.cpu, y.cpu) * ResOrderingMult.CPU_MULT)
 	}
 }
 object RAMResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return x.ram compareSafely y.ram
+		return Math.round((x.ram compareSafely y.ram) * ResOrderingMult.RAM_MULT)
 	}
 }
 object StorageResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return x.storage compareSafely y.storage
+		return Math.round((x.storage compareSafely y.storage) * ResOrderingMult.STORAGE_MULT)
 	}
 }
 object BandwidthResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return x.bandwidth compareSafely y.bandwidth
+		return Math.round((x.bandwidth compareSafely y.bandwidth) * ResOrderingMult.BDWTH_MULT)
 	}
 }
 object LatencyResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round((x.latency - y.latency) * 1000)
+		return Math.round((y.latency - x.latency) * ResOrderingMult.LATENCY_MULT)
 	}
 }
 
@@ -119,9 +127,9 @@ object RelativeResOrdering extends Ordering[Resource]{
 
 
 
-case class Host(hostDataSpec: Resource, hostSLA: HostSLA){
+case class Host(hardwareSpec: Resource, hostSLA: HostSLA){
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Host 	=> this.hostDataSpec == that.hostDataSpec && this.hostSLA == that.hostSLA
+		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA
 		case _ 				=> false
 	}
 
@@ -130,7 +138,7 @@ case class Host(hostDataSpec: Resource, hostSLA: HostSLA){
 
 object RelativeHostByResOrdering extends Ordering[Host]{
 	override def compare(x: Host, y: Host): Int = {
-		return RelativeResOrdering.compare(x.hostDataSpec, y.hostDataSpec)
+		return RelativeResOrdering.compare(x.hardwareSpec, y.hardwareSpec)
 	}
 }
 
@@ -145,77 +153,3 @@ case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
 }
-
-
-//	/**
-//	 * This method should be called, if and only if this.compareTo(other) was positive.
-//	 * Otherwise call allocatePartially(..) for performance reasons.
-//	 * <p>
-//	 *    Even tough compareTo(other) was positive, it is <b><em>not guaranteed</b></em>
-//	 *    that the allocation will succeed. If not, an allocationException will be thrown,
-//	 *    additionally returning the bundle of allocatable resources as a return value.
-//	 * </p><p>
-//	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
-//	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
-//	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will
-//	 *    only work on a subset of resources.
-//	 * </p><p>
-//	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
-//	 *    algorithm in order to solve the binpacking problem. </em>
-//	 *</p>
-//	 * <br />
-//	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
-//	 * @param other
-//	 * @return
-//	 */
-//	def allocateCompletely(other: ResourceAlloc): ResourceAlloc = {
-//		//TODO: first sort availResources as well as other in a decreasing order
-//		//TODO: then allocate on a per Bundle base with First Fit
-//	}
-//
-//
-//	/**
-//	 * This method should be called, if and only if this.compareTo(other) was negative or zero.
-//	 * Otherwise call allocateCompletely(..) as the allocation would have good chances to be successful.
-//	 * <p>
-//	 *    Both, the allocateCompletely(other) and allocatePartially(other) are trying to solve
-//	 *    the binpacking problem that is part of this kind of resource allocation as optimal as possible.
-//	 *    However, as this is a complex progress (combinatorial NP-hard), allocatePartially will only work on a subset of resources.
-//	 * </p><p>
-//	 *    <em> Both methods are using the <b>First Fit Decreasing</b>
-//	 *    algorithm in order to solve the binpacking problem. </em>
-//	 * </p>
-//	 * <br />
-//	 * Jira: CITMASTER-30 - Resource-Allocation Binpacking
-//	 * @param other
-//	 * @return
-//	 */
-//	def allocatePartially(other: ResourceAlloc): ResourceAlloc = ???
-//
-//
-//	def allocateBundle(cpu: CPUUnit, ram: ByteSize, storage: ByteSize, bandwidth: ByteSize, latency: Float) = {
-//		//TODO: implement
-//	}
-
-//	def allocateByCPU(other: Resources): Resources = {
-//		val cpuVectorA: Vector[CPUUnit] = this.cpu.flatMap(t => Vector(t._2))
-//		val cpuVectorB: Vector[CPUUnit] = other.cpu.flatMap(t => Vector(t._2))
-//
-//		/* Foreach CPUUnit, filter both CPU-Vectors and compare the size.
-//		 * If cpuVectorA has at least the size of cpuVectorB,
-//		 * no swap needs to be taken over to the next iteration.
-//		 * Otherwise, each element of cpuVectorB that could not be fulfilled
-//		 * by cpuVectorA will be saved as a swap, as the next higher CPUUnit
-//		 * has to be allocated to the left over elements from the current iter of cpuVectorB. */
-//		for (actCPUUnit <- CPUUnitValuator.sortUnitsDescending()){
-//			val filteredA = cpuVectorA.filter(cpuUnit => cpuUnit != actCPUUnit)
-//			val filteredB = cpuVectorB.filter(cpuUnit => cpuUnit != actCPUUnit)
-//			// all allocations for this CPUUnit size could be fulfilled:
-//			if(filteredA.size >= filteredB.size){
-//				//TODO: go on
-//			}
-//			// else, load the left overs into a temporary swap
-//		}
-
-//	}
-//}
