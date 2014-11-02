@@ -11,7 +11,7 @@ import messages._
 
 
 /**
- * Created by costa on 5/27/14.
+ * @author Constantin Gaul, created on 5/27/14.
  */
 class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Actor with ActorLogging
 {

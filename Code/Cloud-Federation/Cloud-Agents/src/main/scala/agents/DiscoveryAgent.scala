@@ -9,10 +9,9 @@ import messages._
 
 
 /**
- * Created by costa on 5/27/14.
- *
  * This agent is able to connect to the Discovery-Subscription-Service
  * and establishes a communication with the CCFM as its Supervisor.
+ * @author Constantin Gaul created on 5/27/14.
  */
 class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends RemoteDependencyAgent(Vector(pubSubServer))
 																							 with ActorLogging

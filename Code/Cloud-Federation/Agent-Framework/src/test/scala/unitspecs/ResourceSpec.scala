@@ -4,7 +4,7 @@ import datatypes._
 import org.scalatest.{GivenWhenThen, FlatSpec, ShouldMatchers}
 
 /**
- * Created by costa on 10/28/14.
+ * @author Cosntantin Gaul, created on 10/28/14.
  */
 class ResourceSpec extends FlatSpec with ShouldMatchers with GivenWhenThen
 {

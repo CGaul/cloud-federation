@@ -4,7 +4,7 @@ import datatypes.{ByteSize, ByteUnit}
 import org.scalatest.{FlatSpec, ShouldMatchers}
 
 /**
- * Created by costa on 10/20/14.
+ * @author Constantin Gaul, created on 10/20/14.
  */
 class ByteSizeSpec extends FlatSpec with ShouldMatchers{
 	"A ByteSize Value" should "be printed correctly" in{

@@ -3,7 +3,7 @@ import akka.actor.{Props, ActorSystem}
 import com.typesafe.config.ConfigFactory
 
 /**
- * Created by costa on 6/23/14.
+ * @author Constantin Gaul, created on 6/23/14.
  */
 object PubSubManagement extends App
 {

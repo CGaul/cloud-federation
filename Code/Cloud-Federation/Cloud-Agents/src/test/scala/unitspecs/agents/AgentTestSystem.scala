@@ -5,7 +5,7 @@ import akka.testkit.TestActorRef
 import com.typesafe.config.ConfigFactory
 
 /**
- * Created by costa on 10/30/14.
+ * @author Constantin Gaul, createdd  on 10/30/14.
  */
 //case class AgentTestSystem[T](confName: String, actorSysname: String) {
 //	def prepareAgentTestSystem(testAgentProps: Props): (TestActorRef[T], T) = {

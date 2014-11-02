@@ -7,7 +7,7 @@ import datatypes.ResourceAlloc
 import messages.{ResourceReply, ResourceFederationReply, ResourceRequest, NetworkResourceMessage}
 
 /**
- * Created by costa on 5/31/14.
+ * @author Constantin Gaul, created on 5/31/14.
  */
 class MatchMakingAgent extends Actor with ActorLogging
 {

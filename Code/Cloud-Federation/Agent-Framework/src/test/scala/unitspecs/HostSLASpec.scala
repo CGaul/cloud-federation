@@ -5,7 +5,7 @@ import datatypes.{CPUUnit, HostSLA, ImgFormat}
 import org.scalatest.{FlatSpec, ShouldMatchers}
 
 /**
- * Created by costa on 10/28/14.
+ * @author Constantin Gaul, created on 10/28/14.
  */
 class HostSLASpec extends FlatSpec with ShouldMatchers
 {

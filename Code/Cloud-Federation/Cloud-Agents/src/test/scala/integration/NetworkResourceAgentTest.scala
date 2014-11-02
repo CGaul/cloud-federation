@@ -3,7 +3,7 @@ package integration
 import org.scalatest.junit.AssertionsForJUnit
 
 /**
- * Created by costa on 10/28/14.
+ * @author Constantin Gaul, created on 10/28/14.
  */
 class NetworkResourceAgentTest extends AssertionsForJUnit
 {

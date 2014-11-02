@@ -9,7 +9,7 @@ import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessag
 import scala.util.Sorting
 
 /**
- * Created by costa on 10/15/14.
+ * @author Constantin Gaul, created on 10/15/14.
  */
 class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash

@@ -7,7 +7,7 @@ import datatypes.HostSLA
 import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorReply}
 
 /**
- * Created by costa on 5/31/14.
+ * @author Constantin Gaul, created on 5/31/14.
  */
 class PubSubFederator extends Actor with ActorLogging
 {

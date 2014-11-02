@@ -1,7 +1,7 @@
 package messages
 
 /**
- * Created by costa on 6/19/14.
+ * @author Constantin Gaul, created on 6/19/14.
  */
 sealed abstract class AgentMessages
 

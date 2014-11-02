@@ -7,7 +7,6 @@ import datatypes.ImgFormat.ImgFormat
 case class Price(value: Float, currency: CloudCurrency)
 
 /**
- * Created by costa on 10/16/14.
  * A service level agreement is a contract between a service provider and a user.
  * In most cases, the agreement is between a business and a consumer,
  * though SLAs may be established between two business as well.
@@ -23,7 +22,7 @@ case class Price(value: Float, currency: CloudCurrency)
  *                     this host must not be a part of a federation, based on the given SLA.
  *                     Represented as a Vector[Tuple2] elements,
  *                     where each Tuple2 has a "CPUUnit -> max. number of VMs" mapping.
- *
+ * @author Constantin Gaul, created on 10/16/14.
  */
 case class HostSLA(relOnlineTime: 							Float,
 						 private var _supportedImgFormats:	Vector[ImgFormat],
@@ -69,8 +68,8 @@ case class HostSLA(relOnlineTime: 							Float,
 		if(! allFormatsSupported)
 			return false
 
-		// Check if each Mapping of CPUUnit to Integer is at least as low as in other's:
-		// (the lower the Integer value, the less VMs are able to run on the same machine)
+		// Check if each Mapping of CPUUnit to Int is at least as low as in other's:
+		// (the lower the Int value, the less VMs are able to run on the same machine)
 		// To do this, first check if each CPUUnit mapping from other is defined in this SLA:
 		for (actCPUTuple <- other.maxVMsPerCPU) {
 			val actCPUUnit = actCPUTuple._1
@@ -95,15 +94,16 @@ case class HostSLA(relOnlineTime: 							Float,
 			val slaByCPUUnit: Option[(CPUUnit, Int)] = this.maxVMsPerCPU.find(t => t._1 == actCPUUnit)
 
 			// The SLA is violated, if more defined resources are available per CPUUnit, then allowed per SLA.
+			// Cornercases:
 			// If there is no SLA defined for that CPUUnit, unlimited resources are allowed.
 			// If there is no resource defined for that CPUUnit, no resource could violate the SLA.
-			val undefinedSLA 		 = (actCPUUnit, Int.MaxValue)
+			val undefinedSLA = (actCPUUnit, Int.MaxValue)
 			val undefinedResource = (actCPUUnit, 0)
 			val violatingSLA: Boolean = slaByCPUUnit.getOrElse(undefinedSLA)._2 < resByCPUUnit.getOrElse(undefinedResource)._2
-			if(violatingSLA){
+			if (violatingSLA) {
 				return false
 			}
-			
+		}
 		return true
 	}
 
@@ -136,12 +136,12 @@ case class HostSLA(relOnlineTime: 							Float,
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
 
 
-	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Integer), otherMaxVMsPerCPU: Vector[(CPUUnit, Integer)]): (CPUUnit, Integer) = {
+	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Int), otherMaxVMsPerCPU: Vector[(CPUUnit, Int)]): (CPUUnit, Int) = {
 		//Find the element with the same CPUUnit of tuple in otherMaxVMsPerCPU-Vector:
-		val otherTuple: Option[(CPUUnit, Integer)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
+		val otherTuple: Option[(CPUUnit, Int)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
 
-		//Then return the smaller Integer value from both of the (CPUUnit, Integer) tuples:
-		val newTuple : (CPUUnit, Integer) = if(tuple._2 < otherTuple.get._2) tuple else otherTuple.get
+		//Then return the smaller Int value from both of the (CPUUnit, Int) tuples:
+		val newTuple : (CPUUnit, Int) = if(tuple._2 < otherTuple.get._2) tuple else otherTuple.get
 		return newTuple
 	}
 }

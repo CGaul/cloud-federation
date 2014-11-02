@@ -6,7 +6,7 @@ import akka.actor.ActorRef
 import datatypes.ResourceAlloc
 
 /**
- * Created by costa on 10/16/14.
+ * @author Constantin Gaul, created on 10/16/14.
  */
 sealed trait NetworkResourceMessage
 
