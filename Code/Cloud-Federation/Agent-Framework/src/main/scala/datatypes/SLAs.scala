@@ -52,7 +52,20 @@ case class HostSLA(relOnlineTime: 							Float,
 /* =============== */
 
 	/**
-	 * Checks if this HostSLA is able to <em>fulfill</em> the other HostSLA.
+	 * Combines the Quality of Service from this and the other SLA, building an amplified HostSLA.
+	 * @param other
+	 * @return
+	 */
+	def combineToAmplifiedSLA(other: HostSLA): HostSLA = {
+		val amplRelOnlineTime = if (this.relOnlineTime >= other.relOnlineTime) this.relOnlineTime else other.relOnlineTime
+		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
+		val amplMaxVMsPerCPU = this.maxVMsPerCPU.map(getSmallerMaxValPerCPU(_, other.maxVMsPerCPU))
+
+		return new HostSLA(amplRelOnlineTime, amplSupportedImgFormats, amplMaxVMsPerCPU)
+	}
+
+	/**
+	  * Checks if this HostSLA is able to <em>fulfill</em> the other HostSLA.
 	 * @param other The HostSLA, that is checked against
 	 * @return true, if this HostSLA is guaranteeing a level of QoS that is at least
 	 * 		  as high as the other, false if this SLA is not guaranteeing that level.
@@ -60,13 +73,13 @@ case class HostSLA(relOnlineTime: 							Float,
 	def fulfillsQoS(other: HostSLA): Boolean = {
 		// Check, if the relative online time is at least as high as other's:
 		if(other.relOnlineTime > this.relOnlineTime)
-			return false
+		return false
 
 		// Check, if at least all imageFormats are supported, that are supported by the other:
 		// To do this, check if every other.imgFormat is in this.imgFormats:
 		val allFormatsSupported = other.supportedImgFormats.forall(this.supportedImgFormats.contains)
 		if(! allFormatsSupported)
-			return false
+		return false
 
 		// Check if each Mapping of CPUUnit to Int is at least as low as in other's:
 		// (the lower the Int value, the less VMs are able to run on the same machine)
@@ -75,11 +88,11 @@ case class HostSLA(relOnlineTime: 							Float,
 			val actCPUUnit = actCPUTuple._1
 			val index = this.maxVMsPerCPU.indexWhere(t => t._1.equals(actCPUUnit))
 			if(index == -1)
-				return false
+			return false
 			else{
 				//If a match is found for the actCPUTuple, compare both Int-Values with each other:
 				if(actCPUTuple._2 > this.maxVMsPerCPU(index)._2)
-					return false
+				return false
 			}
 		}
 
@@ -107,21 +120,6 @@ case class HostSLA(relOnlineTime: 							Float,
 		return true
 	}
 
-	/**
-	 * Amplifies the hardeness of this and the other SLA together.
-	 * <p>
-	 *    Hardeness means that a SLA is <em>harder<em> than the other, if more things have to be fulfilled,
-	 *    or the quality of Service, agreed to by this SLA is higher.
-	 * @param other
-	 * @return
-	 */
-	def combineToAmplifiedSLA(other: HostSLA): HostSLA = {
-		val amplRelOnlineTime = if (this.relOnlineTime >= other.relOnlineTime) this.relOnlineTime else other.relOnlineTime
-		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
-		val amplMaxVMsPerCPU = this.maxVMsPerCPU.map(getSmallerMaxValPerCPU(_, other.maxVMsPerCPU))
-
-		return new HostSLA(amplRelOnlineTime, amplSupportedImgFormats, amplMaxVMsPerCPU)
-	}
 
 
 /* Method Overrides: */

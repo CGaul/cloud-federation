@@ -60,7 +60,7 @@ case class Resource(nodeID: NodeID,
  * @param _hostSLA bla
  */
 case class Host(hardwareSpec: Resource,
-					 allocatedResources: Vector[ResourceAlloc] = new Vector(),
+					 var allocatedResources: Vector[ResourceAlloc] = new Vector(),
 					 private var _hostSLA: HostSLA){
 
 	/* Getter: */
@@ -83,14 +83,16 @@ case class Host(hardwareSpec: Resource,
 	 * @return
 	 */
 	def allocate(resToAlloc: ResourceAlloc): Boolean = {
-		val success = testAllocation(resToAlloc)
+		val (success, testedSLA) = testAllocation(resToAlloc)
 		if(success){
-			//TODO: implement allocation
+			//Add the resToAlloc to Host's allocatedResources:
+			allocatedResources = allocatedResources :+ resToAlloc
 
-			//At last, update the HostSLA:
-			updateHostSLA()
+			//Update the Host's HostSLA with the tested pre-allocation SLA
+			_hostSLA = testedSLA.get
 		}
-		else return success
+
+		return success
 	}
 
 
@@ -103,7 +105,7 @@ case class Host(hardwareSpec: Resource,
 	 * @param resToAlloc
 	 * @return
 	 */
-	private def testAllocation(resToAlloc: ResourceAlloc): Boolean = {
+	private def testAllocation(resToAlloc: ResourceAlloc): (Boolean, Option[HostSLA]) = {
 		val testedResAlloc: Vector[ResourceAlloc] = allocatedResources :+ resToAlloc
 
 		// Find the hardest, combined HostSLA specification from the actual Host's SLA & the testedResAlloc:
@@ -112,7 +114,7 @@ case class Host(hardwareSpec: Resource,
 		// Test if the combinedTestResSLA still fulfills the Host's SLA QoS:
 		val fulfillsCombinedQoS = hostSLA.fulfillsQoS(combinedTestResSLA)
 		if(! fulfillsCombinedQoS){
-			return false
+			return (false, None)
 		}
 
 		// If the QoS Test was successful,
@@ -123,10 +125,10 @@ case class Host(hardwareSpec: Resource,
 		}
 		val fulfillsResCount: Boolean = combinedTestResSLA.checkAgainstVMsPerCPU(resCountByCPU)
 		if(! fulfillsResCount){
-			return false
+			return (false, None)
 		}
 
-		return true
+		return (true, Option(combinedTestResSLA))
 	}
 
 	private def combineHostResSLAs(resAlloc: Vector[ResourceAlloc]): HostSLA ={
@@ -137,14 +139,6 @@ case class Host(hardwareSpec: Resource,
 		// Afterwards combine this hardened SLA with the actual hostSLA and update this value:
 		val combinedHostSLA						= combinedAllocSLA combineToAmplifiedSLA _hostSLA
 		return combinedHostSLA
-	}
-
-	/**
-	 * Once the testAllocation completed successful, this method is called in the allocate(..) method.
-	 * It updates the Host's [[datatypes.HostSLA]]
-	 */
-	private def updateHostSLA() ={
-		_hostSLA	 = combineHostResSLAs(allocatedResources)
 	}
 
 

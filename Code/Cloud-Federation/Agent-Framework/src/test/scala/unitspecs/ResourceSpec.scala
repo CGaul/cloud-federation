@@ -1,5 +1,7 @@
 package unitspecs
 
+import datatypes.CPUUnit
+import datatypes.CPUUnit._
 import datatypes._
 import org.scalatest.{GivenWhenThen, FlatSpec, ShouldMatchers}
 
@@ -8,10 +10,11 @@ import org.scalatest.{GivenWhenThen, FlatSpec, ShouldMatchers}
  */
 class ResourceSpec extends FlatSpec with ShouldMatchers with GivenWhenThen
 {
-/* Definition of three HostSLAs */
-/* ============================ */
+/* Resource-Class Unit-Spec */
+/* ======================== */
 
-behavior of "A Resource"
+	behavior of "A Resource"
+
 	val res1 = new Resource(NodeID(1), CPUUnit.SMALL,
 									ByteSize(8, ByteUnit.GiB), ByteSize(50, ByteUnit.GiB),
 									ByteSize(10, ByteUnit.MB), 10, Vector())
@@ -88,4 +91,27 @@ behavior of "A Resource"
 		(RelativeResOrdering.compare(res2, res1) > 0) should be (true)
 		info("Comparison tests completed!")
 	}
+
+
+
+/* Host-Class Unit-Spec */
+/* ==================== */
+
+	behavior of "A Host"
+
+	val hostSLA1 	= new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.COW, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
+									  	  Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 10)))
+
+	val hostSLA1 	= new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.COW, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
+		Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 10)))
+
+	val hostSLA1 	= new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.COW, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
+		Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 10)))
+
+
+	val host1 		= new Host()
+
+/* Test-Specs */
+/* ========== */
+
 }
