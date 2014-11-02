@@ -180,7 +180,6 @@ case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
 			val sum = t1._2 + t2._2
 			return (t1._1, sum)
 		}
-
 	}
 
 	/* Basic Overrides: */
