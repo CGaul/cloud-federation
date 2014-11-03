@@ -60,7 +60,7 @@ case class Resource(nodeID: NodeID,
  * @param _hostSLA bla
  */
 case class Host(hardwareSpec: Resource,
-					 var allocatedResources: Vector[ResourceAlloc] = new Vector(),
+					 var allocatedResources: Vector[ResourceAlloc] = Vector(),
 					 private var _hostSLA: HostSLA){
 
 	/* Getter: */
@@ -137,7 +137,7 @@ case class Host(hardwareSpec: Resource,
 		// Combine all allocated-Resource's SLAs to a hardened QoS SLA:
 		val combinedAllocSLA: HostSLA			= allocatedSLAs.reduce(_ combineToAmplifiedSLA _)
 		// Afterwards combine this hardened SLA with the actual hostSLA and update this value:
-		val combinedHostSLA						= combinedAllocSLA combineToAmplifiedSLA _hostSLA
+		val combinedHostSLA						= _hostSLA combineToAmplifiedSLA combinedAllocSLA
 		return combinedHostSLA
 	}
 
@@ -161,25 +161,26 @@ case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
 	/* --------------- */
 
 	def countResourcesByCPU(resCountByCPU: Vector[(CPUUnit, Int)] = Vector()) : Vector[(CPUUnit, Int)] = {
+		// Used inner Functions:
+		def func_reduceto_cpusum(t1: (CPUUnit, Int), t2: (CPUUnit, Int)): (CPUUnit, Int) = {
+			//For equal CPUUnits
+			val sum = t1._2 + t2._2
+			return (t1._1, sum)
+		}
+
 		var dirtyResCountByCPU = resCountByCPU
 		// Filter this ResourceAlloc by each CPUUnit and fill the resCount Vector with the Resource data:
 		for (actCPUUnit <- CPUUnit.values) {
 			val resAllocByCPU: Vector[Resource] = this.resources.filter(_.cpu == actCPUUnit)
-			dirtyResCountByCPU = dirtyResCountByCPU :+ (actCPUUnit, resAllocByCPU.size)
+			dirtyResCountByCPU = dirtyResCountByCPU :+(actCPUUnit, resAllocByCPU.size)
 		}
-		var cleanedResCountByCPU: Vector[(CPUUnit, Int)] 	= Vector()
+		var cleanedResCountByCPU: Vector[(CPUUnit, Int)] = Vector()
 		for (actCPUUnit <- CPUUnit.values) {
 			// For each CPUUnit reduce the matching tuples to only one Tuple per CPUUnit, summing the Ints up:
 			cleanedResCountByCPU = cleanedResCountByCPU :+ dirtyResCountByCPU.filter(_._1 == actCPUUnit).reduce(func_reduceto_cpusum)
 		}
 		return cleanedResCountByCPU
 
-		// Used Functions:
-		def func_reduceto_cpusum(t1: (CPUUnit, Int), t2: (CPUUnit, Int)): (CPUUnit, Int) ={
-			//For equal CPUUnits
-			val sum = t1._2 + t2._2
-			return (t1._1, sum)
-		}
 	}
 
 	/* Basic Overrides: */

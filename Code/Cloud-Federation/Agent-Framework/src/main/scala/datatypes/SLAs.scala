@@ -17,7 +17,7 @@ case class Price(value: Float, currency: CloudCurrency)
  * @param relOnlineTime The procentual, guaranteed online time for each requested machine in the Cloud-Network.
  * @param _supportedImgFormats A list of minimal requirements regarding supported ImgFormat.
  *                            Defaults to all known formats
- * @param _maxVMsPerCPU A list of maximum allowed VMs per Host with a given CPUUnit.
+ * @param _maxResPerCPU A list of maximum allowed VMs per Host with a given CPUUnit.
  *                     If a Host (classified by its CPUUnit) hypervises more running VMs than specified here,
  *                     this host must not be a part of a federation, based on the given SLA.
  *                     Represented as a Vector[Tuple2] elements,
@@ -26,7 +26,7 @@ case class Price(value: Float, currency: CloudCurrency)
  */
 case class HostSLA(relOnlineTime: 							Float,
 						 private var _supportedImgFormats:	Vector[ImgFormat],
-						 private var _maxVMsPerCPU:			Vector[(CPUUnit, Int)])
+						 private var _maxResPerCPU:			Vector[(CPUUnit, Int)])
 {
 
 	// Each supported Image format should only be once in the Vector
@@ -37,14 +37,14 @@ case class HostSLA(relOnlineTime: 							Float,
 	// Each CPUUnit should only have one representing Tuple in the maxVMsPerCPU Vector
 	// and the Vector should be sorted by the CPUUnitOrdering, extending Ordering[CPUUnit]
 	// If the maxVMsPerCPU Vector has duplicate tuples, both representing one CPUUnit, drop the whole mapping for it:
-	_maxVMsPerCPU = _maxVMsPerCPU.filter(t1 => _maxVMsPerCPU.count(t2 => t1._1 == t2._1) == 1)
-	_maxVMsPerCPU = _maxVMsPerCPU.sortBy(_._1)(CPUUnitOrdering)
+	_maxResPerCPU = _maxResPerCPU.filter(t1 => _maxResPerCPU.count(t2 => t1._1 == t2._1) == 1)
+	_maxResPerCPU = _maxResPerCPU.sortBy(_._1)(CPUUnitOrdering)
 
 /* Case Class Variable Getter: */
 /* =========================== */
 
 	def supportedImgFormats = _supportedImgFormats
-	def maxVMsPerCPU			= _maxVMsPerCPU
+	def maxVMsPerCPU			= _maxResPerCPU
 
 
 
@@ -57,11 +57,22 @@ case class HostSLA(relOnlineTime: 							Float,
 	 * @return
 	 */
 	def combineToAmplifiedSLA(other: HostSLA): HostSLA = {
+		// The new (amplified) relative online time is the larger of both relOnlineTimes:
 		val amplRelOnlineTime = if (this.relOnlineTime >= other.relOnlineTime) this.relOnlineTime else other.relOnlineTime
-		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
-		val amplMaxVMsPerCPU = this.maxVMsPerCPU.map(getSmallerMaxValPerCPU(_, other.maxVMsPerCPU))
 
-		return new HostSLA(amplRelOnlineTime, amplSupportedImgFormats, amplMaxVMsPerCPU)
+		// Amplified Supported Images of two combined HostSLAs are the concatenation of both:
+		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
+
+		// For each resource-per-CPU Tuple in this.maxVMsPerCPU, find the smallest Int-Limit from this and other.
+		val thisAmplResPerCPU: Vector[(CPUUnit, Int)] = this.maxVMsPerCPU.map(getSmallerMaxValPerCPU(_, other.maxVMsPerCPU))
+		// Find each CPUUnit that is not yet defined in this.maxVMsPerCPU but in other.maxVMsPerCPU:
+		val undefinedCPUUnits: Vector[CPUUnit]				= other.maxVMsPerCPU.map(_._1).filter(this.maxVMsPerCPU.map(_._1).contains(_) == false)
+		//For each of these undefined CPUUnits, use the values of other.maxVMPerCPU:
+		val otherResPerCPU: Vector[(CPUUnit, Int)]		= other.maxVMsPerCPU.filter(t => undefinedCPUUnits.contains(t._1))
+
+		val amplResPerCPU				= thisAmplResPerCPU ++ otherResPerCPU
+
+		return new HostSLA(amplRelOnlineTime, amplSupportedImgFormats, amplResPerCPU)
 	}
 
 	/**
@@ -81,15 +92,14 @@ case class HostSLA(relOnlineTime: 							Float,
 		if(! allFormatsSupported)
 		return false
 
-		// Check if each Mapping of CPUUnit to Int is at least as low as in other's:
+		// Check if each Mapping of other.(CPUUnit, Int) is at least as low as in this.(CPUUnit, Int):
 		// (the lower the Int value, the less VMs are able to run on the same machine)
-		// To do this, first check if each CPUUnit mapping from other is defined in this SLA:
+		// If this SLA does not have a value for the other's (CPUUnit, Int) - Tuple,
+		// this SLA is still fulfilling the QoS, as theoretically unlimited CPUUnit Resources could be spawned there:
 		for (actCPUTuple <- other.maxVMsPerCPU) {
 			val actCPUUnit = actCPUTuple._1
 			val index = this.maxVMsPerCPU.indexWhere(t => t._1.equals(actCPUUnit))
-			if(index == -1)
-			return false
-			else{
+			if(index != -1){
 				//If a match is found for the actCPUTuple, compare both Int-Values with each other:
 				if(actCPUTuple._2 > this.maxVMsPerCPU(index)._2)
 				return false
@@ -121,6 +131,19 @@ case class HostSLA(relOnlineTime: 							Float,
 	}
 
 
+	/* Private Methods: */
+	/* ================ */
+
+	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Int), otherMaxVMsPerCPU: Vector[(CPUUnit, Int)]): (CPUUnit, Int) = {
+		//Find the element with the same CPUUnit of tuple in otherMaxVMsPerCPU-Vector:
+		val otherTuple: Option[(CPUUnit, Int)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
+
+		// Then return the smaller Int value from both of the (CPUUnit, Int) tuples:
+		// If otherTuple is None, compare tuple with itself and return tuple
+		val newTuple : (CPUUnit, Int) = if(tuple._2 <= otherTuple.getOrElse(tuple)._2) tuple else otherTuple.get
+		return newTuple
+	}
+
 
 /* Method Overrides: */
 /* ================= */
@@ -132,16 +155,6 @@ case class HostSLA(relOnlineTime: 							Float,
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
-
-
-	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Int), otherMaxVMsPerCPU: Vector[(CPUUnit, Int)]): (CPUUnit, Int) = {
-		//Find the element with the same CPUUnit of tuple in otherMaxVMsPerCPU-Vector:
-		val otherTuple: Option[(CPUUnit, Int)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
-
-		//Then return the smaller Int value from both of the (CPUUnit, Int) tuples:
-		val newTuple : (CPUUnit, Int) = if(tuple._2 < otherTuple.get._2) tuple else otherTuple.get
-		return newTuple
-	}
 }
 
 /**

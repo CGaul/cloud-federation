@@ -9,12 +9,12 @@ import com.typesafe.config.ConfigFactory
 import datatypes.CPUUnit._
 import datatypes._
 import messages.ResourceRequest
-import org.scalatest.{ShouldMatchers, FlatSpec}
+import org.scalatest.{Matchers, FlatSpec}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.
  */
-class NetworkResourceAgentSpec extends FlatSpec with ShouldMatchers{
+class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 
 	val hostSLA = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.COW, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
 									Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 10)))

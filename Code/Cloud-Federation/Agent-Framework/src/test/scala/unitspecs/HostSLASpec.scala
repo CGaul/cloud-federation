@@ -13,11 +13,11 @@ class HostSLASpec extends FlatSpec with ShouldMatchers
 /* Definition of three HostSLAs */
 /* ============================ */
 
-	val hostSLA1 = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS),
+	val hostSLA1 = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS, ImgFormat.CLOOP),
 										Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 4)))
 
-	val hostSLA2 = new HostSLA(0.90f, Vector(ImgFormat.IMG, ImgFormat.BOCHS),
-										Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
+	val hostSLA2 = new HostSLA(0.90f, Vector(ImgFormat.IMG, ImgFormat.BOCHS, ImgFormat.CLOOP),
+										Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3), (CPUUnit.LARGE, 1)))
 
 	val hostSLA3 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.QCOW2),
 										Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
@@ -28,7 +28,7 @@ class HostSLASpec extends FlatSpec with ShouldMatchers
 /* ========== */
 
 	"A HostSLA" should "be equal to itself and another HostSLA with the same Vectors (in arbitrary element order)" in{
-		val hostSLA1Rebuild = new HostSLA(0.99f, Vector(ImgFormat.QCOW2, ImgFormat.IMG, ImgFormat.BOCHS),
+		val hostSLA1Rebuild = new HostSLA(0.99f, Vector(ImgFormat.QCOW2, ImgFormat.IMG, ImgFormat.BOCHS,  ImgFormat.CLOOP),
 													 Vector[(CPUUnit, Int)]((CPUUnit.MEDIUM, 4), (CPUUnit.SMALL, 2)))
 
 		// Test equality via equals...
@@ -60,16 +60,18 @@ class HostSLASpec extends FlatSpec with ShouldMatchers
 	}
 
 	it should "be amplifiable in a combination of another HostSLA" in {
-		val combinedHostSLA1_required = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS),
-													 			  Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
-		val combinedHostSLA1_result 	= hostSLA1.combineToAmplifiedSLA(hostSLA2)
+		val reqHostSLA1 = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS, ImgFormat.CLOOP),
+													 			  Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3), (CPUUnit.LARGE, 1)))
 
-		val combinedHostSLA2_required = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.QCOW2, ImgFormat.BOCHS),
-													 			  Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
-		val combinedHostSLA2_result 	= hostSLA2.combineToAmplifiedSLA(hostSLA3)
+		val reqHostSLA2 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
+													 			  Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2), (CPUUnit.LARGE, 1)))
 
-		combinedHostSLA1_result.equals(combinedHostSLA1_required) should be (true)
-		combinedHostSLA2_result.equals(combinedHostSLA2_required) should be (true)
+
+		(hostSLA1 combineToAmplifiedSLA hostSLA2).equals(reqHostSLA1) should be (true)
+		(hostSLA2 combineToAmplifiedSLA hostSLA1).equals(reqHostSLA1) should be (true)
+
+		(hostSLA2 combineToAmplifiedSLA hostSLA3).equals(reqHostSLA2) should be (true)
+		(hostSLA3 combineToAmplifiedSLA hostSLA2).equals(reqHostSLA2) should be (true)
 		info("HostSLA.combineToAmplifiedSLA(other) Tests passed.")
 	}
 

@@ -28,7 +28,7 @@ libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"
 // ===========================
 
 libraryDependencies ++= Seq(
-	"org.scalatest" %% "scalatest" % "2.1.6" % "test",
+	"org.scalatest" %% "scalatest_2.11" % "2.2.1" % "test",
 	"junit" % "junit" % "4.11" % "test",
 	"com.novocode" % "junit-interface" % "0.11" % "test",
 	"org.mockito" % "mockito-core" % "1.10" % "test"
