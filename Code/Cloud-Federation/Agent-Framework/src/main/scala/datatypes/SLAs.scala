@@ -34,9 +34,9 @@ case class HostSLA(relOnlineTime: 							Float,
 	_supportedImgFormats = _supportedImgFormats.distinct
 	_supportedImgFormats = _supportedImgFormats.sorted
 
-	// Each CPUUnit should only have one representing Tuple in the maxVMsPerCPU Vector
+	// Each CPUUnit should only have one representing Tuple in the maxResPerCPU Vector
 	// and the Vector should be sorted by the CPUUnitOrdering, extending Ordering[CPUUnit]
-	// If the maxVMsPerCPU Vector has duplicate tuples, both representing one CPUUnit, drop the whole mapping for it:
+	// If the maxResPerCPU Vector has duplicate tuples, both representing one CPUUnit, drop the whole mapping for it:
 	_maxResPerCPU = _maxResPerCPU.filter(t1 => _maxResPerCPU.count(t2 => t1._1 == t2._1) == 1)
 	_maxResPerCPU = _maxResPerCPU.sortBy(_._1)(CPUUnitOrdering)
 
@@ -44,7 +44,7 @@ case class HostSLA(relOnlineTime: 							Float,
 /* =========================== */
 
 	def supportedImgFormats = _supportedImgFormats
-	def maxVMsPerCPU			= _maxResPerCPU
+	def maxResPerCPU			= _maxResPerCPU
 
 
 
@@ -63,12 +63,12 @@ case class HostSLA(relOnlineTime: 							Float,
 		// Amplified Supported Images of two combined HostSLAs are the concatenation of both:
 		val amplSupportedImgFormats = this.supportedImgFormats ++ other.supportedImgFormats.filter(!this.supportedImgFormats.contains(_))
 
-		// For each resource-per-CPU Tuple in this.maxVMsPerCPU, find the smallest Int-Limit from this and other.
-		val thisAmplResPerCPU: Vector[(CPUUnit, Int)] = this.maxVMsPerCPU.map(getSmallerMaxValPerCPU(_, other.maxVMsPerCPU))
-		// Find each CPUUnit that is not yet defined in this.maxVMsPerCPU but in other.maxVMsPerCPU:
-		val undefinedCPUUnits: Vector[CPUUnit]				= other.maxVMsPerCPU.map(_._1).filter(this.maxVMsPerCPU.map(_._1).contains(_) == false)
+		// For each resource-per-CPU Tuple in this.maxResPerCPU, find the smallest Int-Limit from this and other.
+		val thisAmplResPerCPU: Vector[(CPUUnit, Int)] = this.maxResPerCPU.map(getSmallerMaxValPerCPU(_, other.maxResPerCPU))
+		// Find each CPUUnit that is not yet defined in this.maxResPerCPU but in other.maxResPerCPU:
+		val undefinedCPUUnits: Vector[CPUUnit]				= other.maxResPerCPU.map(_._1).filter(this.maxResPerCPU.map(_._1).contains(_) == false)
 		//For each of these undefined CPUUnits, use the values of other.maxVMPerCPU:
-		val otherResPerCPU: Vector[(CPUUnit, Int)]		= other.maxVMsPerCPU.filter(t => undefinedCPUUnits.contains(t._1))
+		val otherResPerCPU: Vector[(CPUUnit, Int)]		= other.maxResPerCPU.filter(t => undefinedCPUUnits.contains(t._1))
 
 		val amplResPerCPU				= thisAmplResPerCPU ++ otherResPerCPU
 
@@ -96,12 +96,12 @@ case class HostSLA(relOnlineTime: 							Float,
 		// (the lower the Int value, the less VMs are able to run on the same machine)
 		// If this SLA does not have a value for the other's (CPUUnit, Int) - Tuple,
 		// this SLA is still fulfilling the QoS, as theoretically unlimited CPUUnit Resources could be spawned there:
-		for (actCPUTuple <- other.maxVMsPerCPU) {
+		for (actCPUTuple <- other.maxResPerCPU) {
 			val actCPUUnit = actCPUTuple._1
-			val index = this.maxVMsPerCPU.indexWhere(t => t._1.equals(actCPUUnit))
+			val index = this.maxResPerCPU.indexWhere(t => t._1.equals(actCPUUnit))
 			if(index != -1){
 				//If a match is found for the actCPUTuple, compare both Int-Values with each other:
-				if(actCPUTuple._2 > this.maxVMsPerCPU(index)._2)
+				if(actCPUTuple._2 > this.maxResPerCPU(index)._2)
 				return false
 			}
 		}
@@ -110,11 +110,14 @@ case class HostSLA(relOnlineTime: 							Float,
 		return true
 	}
 
-	def checkAgainstVMsPerCPU(vmCountByCPU: Vector[(CPUUnit, Int)]): Boolean ={
-		//For each available CPUUnit, check if a resource Count is violating the SLA-Limit:
+	def checkAgainstResPerCPU(resCountByCPU: Vector[(CPUUnit, Int)]): (Boolean, Vector[(CPUUnit, Int)]) ={
+		// The output val of this method:
+		var resourceCheck: (Boolean, Vector[(CPUUnit, Int)]) = (true, Vector())
+
+		// For each available CPUUnit, check if a resource Count is violating the SLA-Limit:
 		for (actCPUUnit <- CPUUnit.values) {
-			val resByCPUUnit: Option[(CPUUnit, Int)] = vmCountByCPU.find(t => t._1 == actCPUUnit)
-			val slaByCPUUnit: Option[(CPUUnit, Int)] = this.maxVMsPerCPU.find(t => t._1 == actCPUUnit)
+			val resByCPUUnit: Option[(CPUUnit, Int)] = resCountByCPU.find(t => t._1 == actCPUUnit)
+			val slaByCPUUnit: Option[(CPUUnit, Int)] = this.maxResPerCPU.find(t => t._1 == actCPUUnit)
 
 			// The SLA is violated, if more defined resources are available per CPUUnit, then allowed per SLA.
 			// Cornercases:
@@ -122,21 +125,22 @@ case class HostSLA(relOnlineTime: 							Float,
 			// If there is no resource defined for that CPUUnit, no resource could violate the SLA.
 			val undefinedSLA = (actCPUUnit, Int.MaxValue)
 			val undefinedResource = (actCPUUnit, 0)
-			val violatingSLA: Boolean = slaByCPUUnit.getOrElse(undefinedSLA)._2 < resByCPUUnit.getOrElse(undefinedResource)._2
+			val slaResDiff: Int 			= slaByCPUUnit.getOrElse(undefinedSLA)._2 - resByCPUUnit.getOrElse(undefinedResource)._2
+			val violatingSLA: Boolean = slaResDiff < 0
 			if (violatingSLA) {
-				return false
+				resourceCheck = (false, resourceCheck._2:+ (actCPUUnit, slaResDiff))
 			}
 		}
-		return true
+		return resourceCheck
 	}
 
 
 	/* Private Methods: */
 	/* ================ */
 
-	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Int), otherMaxVMsPerCPU: Vector[(CPUUnit, Int)]): (CPUUnit, Int) = {
-		//Find the element with the same CPUUnit of tuple in otherMaxVMsPerCPU-Vector:
-		val otherTuple: Option[(CPUUnit, Int)] = otherMaxVMsPerCPU.find(t => t._1.equals(tuple._1))
+	private def getSmallerMaxValPerCPU(tuple: (CPUUnit, Int), othermaxResPerCPU: Vector[(CPUUnit, Int)]): (CPUUnit, Int) = {
+		//Find the element with the same CPUUnit of tuple in othermaxResPerCPU-Vector:
+		val otherTuple: Option[(CPUUnit, Int)] = othermaxResPerCPU.find(t => t._1.equals(tuple._1))
 
 		// Then return the smaller Int value from both of the (CPUUnit, Int) tuples:
 		// If otherTuple is None, compare tuple with itself and return tuple
@@ -150,7 +154,7 @@ case class HostSLA(relOnlineTime: 							Float,
 
 	override def equals(obj: scala.Any): Boolean = obj match{
 		case that: HostSLA 	=> this.supportedImgFormats.equals(that.supportedImgFormats) &&
-		  								this.maxVMsPerCPU.equals(that.maxVMsPerCPU)
+		  								this.maxResPerCPU.equals(that.maxResPerCPU)
 		case _ 					=> false
 	}
 

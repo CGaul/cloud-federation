@@ -2,7 +2,7 @@ name := "Cloud-Federation"
 
 version := "0.1-SNAPSHOT"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.4"
 
 
 // Library Dependencies (MAIN)
@@ -13,10 +13,10 @@ resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/release
 
 //Akka Libraries:
 libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor" % "2.3.3",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.3",
-  	"com.typesafe.akka" %% "akka-slf4j" % "2.3.3",
-	"com.typesafe.akka" %% "akka-testkit" % "2.3.3"
+	"com.typesafe.akka" %% "akka-actor" % "2.4-SNAPSHOT",
+	"com.typesafe.akka" %% "akka-remote" % "2.4-SNAPSHOT",
+	"com.typesafe.akka" %% "akka-slf4j" % "2.4-SNAPSHOT",
+	"com.typesafe.akka" %% "akka-testkit" % "2.4-SNAPSHOT"
 )
 
 //Logging (SLF4J):
@@ -31,5 +31,5 @@ libraryDependencies ++= Seq(
 	"org.scalatest" %% "scalatest_2.11" % "2.2.1" % "test",
 	"junit" % "junit" % "4.11" % "test",
 	"com.novocode" % "junit-interface" % "0.11" % "test",
-	"org.mockito" % "mockito-core" % "1.9.5" % "test"
+	"org.mockito" % "mockito-core" % "1.10" % "test"
 )

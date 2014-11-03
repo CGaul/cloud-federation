@@ -80,19 +80,45 @@ case class Host(hardwareSpec: Resource,
 	 * otherwise the allocation will take place and true will be returned.
 	 *
 	 * @param resToAlloc
-	 * @return
+	 * @return A [[Tuple2]] that states, if the at least some of the resToAlloc
+	 *         where allocated (result._1 == true) and returns the ResourceAlloc
+	 *         Split that is left over after the allocation at this Host
+	 *         (result._1 == None if resToAlloc was fully allocated, otherwise subset of resToAlloc)
 	 */
-	def allocate(resToAlloc: ResourceAlloc): Boolean = {
-		val (success, testedSLA) = testAllocation(resToAlloc)
+	def allocate(resToAlloc: ResourceAlloc): (Boolean, Option[ResourceAlloc]) = {
+		val (success, testedSLA, resSplitAmount) = testAllocation(resToAlloc)
+		// If the allocation Test was successful,
+		// all resToAlloc could be fulfilled by this Host.
 		if(success){
 			//Add the resToAlloc to Host's allocatedResources:
 			allocatedResources = allocatedResources :+ resToAlloc
 
 			//Update the Host's HostSLA with the tested pre-allocation SLA
 			_hostSLA = testedSLA.get
+			return (true, None)
 		}
-
-		return success
+		// If the Test was not successful, only a part or no resources at all
+		// could be allocated by this Host.
+		else{
+			// If the Option[HostSLA] is None, no allocation of the resToAlloc
+			// could be handled by this host at all.
+			if(testedSLA.isEmpty){
+				return (false, Option(resToAlloc))
+			}
+			// Otherwise (if the testedSLA is not None), a ResourceAlloc split needs
+			// to be defined. The one split is allocated at this Host, the other part is
+			// returned as a result of the Tuple2 of this method
+			else{
+				val (resSplitHost, resSplitOther) = splitAllocation(testedSLA.get, resToAlloc, resSplitAmount)
+				if(resSplitHost.resources.size > 0){
+					allocate(resSplitHost)
+					return (true, Option(resSplitOther))
+				}
+				else {
+					return (false, Option(resSplitOther))
+				}
+			}
+		}
 	}
 
 
@@ -100,21 +126,36 @@ case class Host(hardwareSpec: Resource,
 	/* --------------- */
 
 	/**
-	 * When [[datatypes.Host.allocate]] is called, the new allocation needs to be tested first (pre-allocation phase),
-	 * before the real allocation occurs. The allocation will only take place, if this method returns `true`.
-	 * @param resToAlloc
-	 * @return
+	 *  When [[datatypes.Host.allocate]] is called, the new allocation needs to be tested first (pre-allocation phase),
+	 * before the real allocation occurs. The allocation will only take place, if this method returns `true`
+	 * as the first entry in the [[Tuple3]]. Inside this method, the new ResourceAllocation's requested SLAs will be
+	 * checked against the Host SLA and its currently allocated Resources.
+	 *
+	 * The expected input of this method is the ResourceAlloc that should be attached to this Host and was handed over to
+	 * Host.allocate(resAlloc) before.
+	 *
+	 * The Output is quite more complex: As an all-embracing Host-to-Resource analysis is done in this method,
+	 * the results (as a [[Tuple3]]) are handed over to the calling allocate(resAlloc) method, so that no
+	 * calculations, already done here, have to be repeated outside of this method.
+	 * @param resToAlloc The [[ResourceAlloc]] that is checkedAgainst the Host's SLA and currently allocated Resources.
+	 * @return A [[Tuple3]], with(
+	 * - [[Boolean]] = whether the Allocation test completed successfully or not. Only true, if ''all'' resources
+	 * 								 could have been allocated by this Host. Partial allocation returns false,
+	 * - Option([[HostSLA]]) = the combined, new HostSLA, or None if the combined QoS could not have been fulfilled,
+	 * - [[Vector]]([[CPUUnit]], [[Int]]) = negative number of unallocateable Resources)
 	 */
-	private def testAllocation(resToAlloc: ResourceAlloc): (Boolean, Option[HostSLA]) = {
+	private def testAllocation(resToAlloc: ResourceAlloc): (Boolean, Option[HostSLA], Vector[(CPUUnit, Int)]) = {
 		val testedResAlloc: Vector[ResourceAlloc] = allocatedResources :+ resToAlloc
 
 		// Find the hardest, combined HostSLA specification from the actual Host's SLA & the testedResAlloc:
-		val combinedTestResSLA: HostSLA 				= combineHostResSLAs(testedResAlloc)
+		val combinedTestResSLA: HostSLA = combineHostResSLAs(testedResAlloc)
 
 		// Test if the combinedTestResSLA still fulfills the Host's SLA QoS:
 		val fulfillsCombinedQoS = hostSLA.fulfillsQoS(combinedTestResSLA)
 		if(! fulfillsCombinedQoS){
-			return (false, None)
+			// If the QoS for the resToAlloc could not be fulfilled by the Host,
+			// the allocation has no chance to succeed:
+			return (false, None, Vector())
 		}
 
 		// If the QoS Test was successful,
@@ -123,22 +164,45 @@ case class Host(hardwareSpec: Resource,
 		for (actResAlloc <- testedResAlloc) {
 			resCountByCPU = actResAlloc.countResourcesByCPU(resCountByCPU)
 		}
-		val fulfillsResCount: Boolean = combinedTestResSLA.checkAgainstVMsPerCPU(resCountByCPU)
-		if(! fulfillsResCount){
-			return (false, None)
+		val fulfillsResCount: (Boolean, Vector[(CPUUnit, Int)]) = combinedTestResSLA.checkAgainstResPerCPU(resCountByCPU)
+		if(! fulfillsResCount._1){
+			// If the resources are not completely appliable to this Host, return false, but also append
+			// the tested SLA and the resSplitAmount, as a resource-split could possibly
+			// make at least some resources allocateable:
+			return (false, Option(combinedTestResSLA), fulfillsResCount._2)
 		}
 
-		return (true, Option(combinedTestResSLA))
+		// If every resource could be allocated by this host, return true as the first tuple elem:
+		// (the tested SLA and the resSplitAmount are no interesting return values in this case)
+		return (true, Option(combinedTestResSLA), fulfillsResCount._2)
 	}
 
 	private def combineHostResSLAs(resAlloc: Vector[ResourceAlloc]): HostSLA ={
 		// Extract all requested HostSLAs from the ResourceAlloc-Vector:
 		val allocatedSLAs: Vector[HostSLA] 	= resAlloc.map(_.requestedHostSLA)
 		// Combine all allocated-Resource's SLAs to a hardened QoS SLA:
-		val combinedAllocSLA: HostSLA			= allocatedSLAs.reduce(_ combineToAmplifiedSLA _)
+		val combinedAllocSLA: HostSLA				= allocatedSLAs.reduce(_ combineToAmplifiedSLA _)
 		// Afterwards combine this hardened SLA with the actual hostSLA and update this value:
-		val combinedHostSLA						= _hostSLA combineToAmplifiedSLA combinedAllocSLA
+		val combinedHostSLA									= _hostSLA combineToAmplifiedSLA combinedAllocSLA
 		return combinedHostSLA
+	}
+
+
+	private def splitAllocation(testedSLA: HostSLA, resToAlloc: ResourceAlloc, resSplitAmount: Vector[(CPUUnit, Int)] ):
+														 (ResourceAlloc, ResourceAlloc) = {
+
+		val allocSLA = resToAlloc.requestedHostSLA
+		var splitResForHost: Vector[Resource] = Vector()
+		var splitResForOther: Vector[Resource] = Vector()
+
+		for ((actCPU, actSplitAmount) <- resSplitAmount) {
+			val resByCPU: Vector[Resource] 	= resToAlloc.resources.filter(_.cpu == actCPU)
+			val allowedResByCPU: Int 			 	= testedSLA.maxResPerCPU.find(_._1 == actCPU).get._2
+			val (resSplit1, resSplit2) = resByCPU.splitAt(allowedResByCPU + actSplitAmount) //actSplitAmount is negative
+			splitResForHost = splitResForHost ++ resSplit1
+			splitResForOther = splitResForOther ++ resSplit2
+		}
+		return (ResourceAlloc(splitResForHost, allocSLA), ResourceAlloc(splitResForOther, allocSLA))
 	}
 
 
@@ -152,6 +216,7 @@ case class Host(hardwareSpec: Resource,
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
 }
+
 
 
 

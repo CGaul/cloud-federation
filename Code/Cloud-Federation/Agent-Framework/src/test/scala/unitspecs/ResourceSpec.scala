@@ -166,7 +166,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should "be equal to another Host with the same Host footprint (even with different Resource Allocations)" in{
 
 		Given("A Respource with the host1 footprint, with additional link descriptions")
-		val equalHost1 		= Host(res2, Vector(resAlloc1), hostSLA1)
+		val equalHost1 = Host(res2, Vector(resAlloc1), hostSLA1)
 
 
 		When("host1 is compared with the resourceAlloc-different equalHost1")
@@ -210,7 +210,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc1 is allocated to host1")
 		Then("host1.allocate(resAlloc1) should be true")
 		And ("resAlloc1 should be in host1's allocatedResources")
-		host1.allocate(resAlloc1) should be (true)
+		host1.allocate(resAlloc1)._1 should be (true)
 		host1.allocatedResources.size should be (1)
 		host1.allocatedResources.contains(resAlloc1) should be (true)
 		host2.allocatedResources.contains(resAlloc2) should be (false)
@@ -219,7 +219,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc2 is allocated to host1")
 		Then("host1.allocate(resAlloc2) should be false, as the requested resAlloc2's image-formats are not supported")
 		And("resAlloc1 should still be in host1's allocatedResources")
-		host1.allocate(resAlloc2) should be (false)
+		host1.allocate(resAlloc2)._1 should be (false)
 		host1.allocatedResources.size should be (1)
 		host1.allocatedResources.contains(resAlloc1) should be (true)
 		host1.allocatedResources.contains(resAlloc2) should be (false)
@@ -228,7 +228,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc3 is allocated to host1")
 		Then("host1.allocate(resAlloc3) should be false, as the resAlloc3 SLA uptime limit is above Host1's uptime possibility")
 		And("resAlloc1 should still be in host1's allocatedResources")
-		host1.allocate(resAlloc3) should be (false)
+		host1.allocate(resAlloc3)._1 should be (false)
 		host1.allocatedResources.size should be (1)
 		host1.allocatedResources.contains(resAlloc1) should be (true)
 		host1.allocatedResources.contains(resAlloc2) should be (false)
@@ -239,7 +239,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc1 is allocated to host2")
 		Then("host2.allocate(resAlloc1) should be false, as the requested resAlloc1's image-formats are not supported")
 		And ("resAlloc1 should not be in host2's allocatedResources")
-		host2.allocate(resAlloc1) should be (false)
+		host2.allocate(resAlloc1)._1 should be (false)
 		host2.allocatedResources.size should be (0)
 		host2.allocatedResources.contains(resAlloc1) should be (false)
 		host2.allocatedResources.contains(resAlloc2) should be (false)
@@ -248,7 +248,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc2 is allocated to host2")
 		Then("host2.allocate(resAlloc2) should be true")
 		And("resAlloc2 should be in host2's allocatedResources")
-		host2.allocate(resAlloc2) should be (true)
+		host2.allocate(resAlloc2)._1 should be (true)
 		host2.allocatedResources.size should be (1)
 		host2.allocatedResources.contains(resAlloc1) should be (false)
 		host2.allocatedResources.contains(resAlloc2) should be (true)
@@ -257,7 +257,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc3 is allocated to host2")
 		Then("host2.allocate(resAlloc3) should be false, as the resAlloc3 SLA uptime limit is above host2's uptime possibility")
 		And("resAlloc1 should still be in host2's allocatedResources")
-		host2.allocate(resAlloc3) should be (false)
+		host2.allocate(resAlloc3)._1 should be (false)
 		host2.allocatedResources.size should be (1)
 		host2.allocatedResources.contains(resAlloc1) should be (false)
 		host2.allocatedResources.contains(resAlloc2) should be (true)
@@ -268,7 +268,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc1 is allocated to host3")
 		Then("host3.allocate(resAlloc1) should be true")
 		And ("resAlloc1 should be in host3's allocatedResources")
-		host3.allocate(resAlloc1) should be (true)
+		host3.allocate(resAlloc1)._1 should be (true)
 		host3.allocatedResources.size should be (1)
 		host3.allocatedResources.contains(resAlloc1) should be (true)
 		host3.allocatedResources.contains(resAlloc2) should be (false)
@@ -277,20 +277,26 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc2 is allocated to host3")
 		Then("host3.allocate(resAlloc2) should be true, as there is only a SMALL Node in it")
 		And("resAlloc2 should be in host3's allocatedResources")
-		host3.allocate(resAlloc2) should be (true)
+		host3.allocate(resAlloc2)._1 should be (true)
 		host3.allocatedResources.size should be (2)
 		host3.allocatedResources.contains(resAlloc1) should be (true)
 		host3.allocatedResources.contains(resAlloc2) should be (true)
 		host3.allocatedResources.contains(resAlloc3) should be (false)
 
 		When("resAlloc3 is allocated to host3")
-		Then("host3.allocate(resAlloc3) should be false, as the current SLA prohibits to have more then one MEDIUM Node on this host")
+		Then("host3.allocate(resAlloc3) should be false, as the current SLA prohibits to have more than one MEDIUM Node on this host")
 		And("resAlloc3 should not be in host3's allocatedResources, but the other two should be")
-		host3.allocate(resAlloc3) should be (false)
+		host3.allocate(resAlloc3)._1 should be (false)
 		host3.allocatedResources.size should be (2)
 		host3.allocatedResources.contains(resAlloc1) should be (true)
 		host3.allocatedResources.contains(resAlloc2) should be (true)
 		host3.allocatedResources.contains(resAlloc3) should be (false)
+	}
+
+	it should "be able to split ResourceAllocations, if the allocation would violate the" +
+						"QoS, defined by the combined SLA" in {
+		pending
+		//TODO: check allocation split via host.allocate()
 	}
 
 }
