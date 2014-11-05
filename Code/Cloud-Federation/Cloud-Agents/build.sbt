@@ -1,4 +1,4 @@
-name := "agentFramework"
+name := "cloudAgents"
 
 version := "0.1-SNAPSHOT"
 

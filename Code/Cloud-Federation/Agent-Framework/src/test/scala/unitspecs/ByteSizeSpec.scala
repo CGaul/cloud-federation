@@ -1,12 +1,12 @@
 package unitspecs
 
 import datatypes.{ByteSize, ByteUnit}
-import org.scalatest.{FlatSpec, ShouldMatchers}
+import org.scalatest.{Matchers, FlatSpec}
 
 /**
  * @author Constantin Gaul, created on 10/20/14.
  */
-class ByteSizeSpec extends FlatSpec with ShouldMatchers{
+class ByteSizeSpec extends FlatSpec with Matchers{
 	"A ByteSize Value" should "be printed correctly" in{
 		val byteSize1 = new ByteSize(5, ByteUnit.MB)
 		val byteSize2 = new ByteSize(125.123, ByteUnit.KiB)

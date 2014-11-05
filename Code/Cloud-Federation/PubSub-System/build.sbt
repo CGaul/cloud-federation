@@ -1,4 +1,4 @@
-name := "agentFramework"
+name := "pubSubSystem"
 
 version := "0.1-SNAPSHOT"
 
