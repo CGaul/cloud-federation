@@ -1,6 +1,6 @@
 package agents.cloudfederation
 
-import akka.actor.{ActorIdentity, Identify, Stash, _}
+import akka.actor._
 
 import scala.collection.mutable.ArrayBuffer
 

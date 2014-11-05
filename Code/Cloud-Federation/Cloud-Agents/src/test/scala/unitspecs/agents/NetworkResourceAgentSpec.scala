@@ -26,20 +26,19 @@ class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 														ByteSize(500.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
 
-	val hostAlloc1 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(4.0, ByteUnit.GiB),
+	val resToAlloc1 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(4.0, ByteUnit.GiB),
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														20.0f, Vector[NodeID]())
-	val hostAlloc2 : Resource = Resource(	NodeID(2), CPUUnit.MEDIUM, ByteSize(8.0, ByteUnit.GiB),
+	val resToAlloc2 : Resource = Resource(	NodeID(2), CPUUnit.MEDIUM, ByteSize(8.0, ByteUnit.GiB),
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														20.0f, Vector[NodeID]())
-	val hostAlloc3 : Resource = Resource(	NodeID(2), CPUUnit.MEDIUM, ByteSize(8.0, ByteUnit.GiB),
+	val resToAlloc3 : Resource = Resource(	NodeID(2), CPUUnit.MEDIUM, ByteSize(8.0, ByteUnit.GiB),
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														20.0f, Vector[NodeID]())
-
-	val resToAlloc1 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(8.0, ByteUnit.GiB),
+	val resToAlloc4 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(8.0, ByteUnit.GiB),
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														20.0f, Vector[NodeID]())
-	val resToAlloc2 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(4.0, ByteUnit.GiB),
+	val resToAlloc5 : Resource = Resource(	NodeID(1), CPUUnit.SMALL, ByteSize(4.0, ByteUnit.GiB),
 														ByteSize(50.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
 														20.0f, Vector[NodeID]())
 
@@ -47,16 +46,14 @@ class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 											Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 3)))
 	val reqHostSLA2 = new HostSLA(0.91f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.BOCHS),
 											Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 4)))
-	val reqHostSLA3 = new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
+	val reqHostSLA3 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
 											Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
 
-	val initResAlloc1 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc1), reqHostSLA1)
-	val initResAlloc2 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc2), reqHostSLA2)
-	val initResAlloc3 : ResourceAlloc = ResourceAlloc(Vector[Resource](hostAlloc3), reqHostSLA3)
-	val newResAlloc 	: ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
+	val resAlloc1 : ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
+	val resAlloc2 : ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc3), 							reqHostSLA2)
+	val resAlloc3 : ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc4, resToAlloc5), reqHostSLA3)
 
-	var initialResAlloc : Map[Host, Vector[ResourceAlloc]] = Map()
-	initialResAlloc += (host1 -> Vector(), host2 -> Vector(initResAlloc2, initResAlloc3))
+	val cloudHosts: Vector[Host] = Vector(host1, host2)
 
 	val ovxIP = InetAddress.getLocalHost
 
@@ -67,10 +64,12 @@ class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 
 	val config = ConfigFactory.load("testApplication.conf")
 	implicit val system = ActorSystem("CloudAgents", config.getConfig("cloudAgents").withFallback(config))
-	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent], initialResAlloc, ovxIP)
+	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent], cloudHosts, ovxIP)
 	val nraRef : TestActorRef[NetworkResourceAgent] = TestActorRef[NetworkResourceAgent](networkResourceAgentProps)
 	//val nraActor = nraRef.underlyingActor
 
-	nraRef.receive(ResourceRequest(newResAlloc, ovxIP))
+	nraRef.receive(ResourceRequest(resAlloc1, ovxIP))
+	nraRef.receive(ResourceRequest(resAlloc2, ovxIP))
+	nraRef.receive(ResourceRequest(resAlloc3, ovxIP))
 
 }

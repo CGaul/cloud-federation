@@ -24,7 +24,7 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 		val hardSLAs: HostSLA		= new HostSLA(
 														relOnlineTime 		= 0.8f,
 													 	_supportedImgFormats = Vector[ImgFormat](ImgFormat.QCOW2),
-													 	_maxVMsPerCPU 			= Vector[(CPUUnit, Int)](
+													 	_maxResPerCPU 			= Vector[(CPUUnit, Int)](
 																						(CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 2),
 																						(CPUUnit.LARGE, 3), (CPUUnit.XLARGE, 4)))
 		val softSLAs: CloudSLA		= new CloudSLA(

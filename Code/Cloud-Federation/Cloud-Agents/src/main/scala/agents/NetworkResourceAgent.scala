@@ -3,15 +3,14 @@ package agents
 import java.net.InetAddress
 
 import akka.actor._
+import util.control.Breaks._
 import datatypes._
 import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
-
-import scala.util.Sorting
 
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
-class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
+class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
 {
 /* Values: */
@@ -21,7 +20,7 @@ class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 /* Variables: */
 /* ========== */
 
-	var _totalResources: Map[Host, Vector[ResourceAlloc]] = _initialResAlloc
+	var _cloudHosts: Vector[Host] = _initialHostAlloc
 
 
 /* Public Methods: */
@@ -71,41 +70,46 @@ class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 	 * @param address
 	 */
 	def recvResourceRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
-		// Filter all Cloud-Hosts by their SLAs. Each host's SLA has to fulfill the QoS of the requestedSLA:
-		val hostFilteredQoSMap : Map[Host, Vector[ResourceAlloc]] = _totalResources.filter(t => t._1.hostSLA.fulfillsQoS(resourceAlloc.requestedHostSLA))
-		
-		// Afterwards, filter all remaining, QoS matching Cloud-Hosts by their free resources:
-		var potentialHosts: Vector[Host] 		= Vector()
-		var resourcesToAlloc: Vector[Resource] = Vector()
-		for (actResource <- resourceAlloc.resources) {
-			val hostFilteredResMap: Map[Host, Vector[ResourceAlloc]] = hostFilteredQoSMap.filter(t => RelativeResOrdering.compare(t._1.hardwareSpec, actResource) >= 0)
-			potentialHosts 	= potentialHosts ++ hostFilteredResMap.map(t => t._1).toVector
-			resourcesToAlloc 	= resourcesToAlloc :+ actResource
-		}
-		// Filter all double elements from the potentialHosts-Vector:
-		potentialHosts		= potentialHosts.distinct
 
-		// Sort the potentialHosts as well as the resourceAlloc by their resources:
-		potentialHosts		= potentialHosts.sorted(RelativeHostByResOrdering)
-		resourcesToAlloc	= resourcesToAlloc.sorted(RelativeResOrdering)
+		// Sort the potentialHosts as well as the resourceAlloc by their resources in descending Order:
+		val sortedHosts			= _cloudHosts.sorted(RelativeHostByResOrdering)
+		val sortedResAlloc	= ResourceAlloc(resourceAlloc.resources.sorted(RelativeResOrdering), resourceAlloc.requestedHostSLA)
 
-		// At last: Binpacking - First Fit Descending:
-		// Fit each resourceToAlloc in the first potentialHost (bin) that is fulfilling the resource & combined SLA requirements:
-		for (actResToAlloc <- resourcesToAlloc) {
-			val potentialHostIndex = potentialHosts.indexWhere(h => RelativeResOrdering.compare(h.hardwareSpec, actResToAlloc) > 0)
-			if(potentialHostIndex != -1){
-				//System.out.println("Pre-Allocation done.")
-				//TODO: Check if the potentialHost is still fulfilling SLA with attached resToAlloc
-				val potentialHost = potentialHosts(potentialHostIndex)
+		// Binpacking - First Fit Descending:
+		// Fit each resourceToAlloc in the first potentialHost (bin)
+		// that is fulfilling the resource & combined SLA requirements:
+		var remainResAlloc: Option[ResourceAlloc]	= Option(sortedResAlloc)
+		breakable {
+			for (actHost <- sortedHosts) {
+				log.debug("Host: {}", actHost)
+				// Try to allocate the remaining ResourceAlloc to the actual Host:
+				val (allocatedSome, allocSplit) = actHost.allocate(remainResAlloc.get)
 
+				// If the actual ResourceAlloc could be allocated completely to the actHost,
+				// set the remaining ResourceAlloc to None and break out of the loop.
+				if (allocatedSome && allocSplit.isEmpty) {
+					remainResAlloc = None
+					break
+				}
 
-				//TODO: finally attach resToAlloc to potentialHost and remove resToAlloc & potentialHost from lists
-
-				//TODO: update potentialHost's SLA
+				// If not the whole ResourceAlloc could be allocated to the actHost,
+				// the remainResAlloc for the next iteration is the allocSplit of this iteration:
+				if (allocSplit.isDefined)  {
+					remainResAlloc = allocSplit
+				}
 			}
+
 		}
 
-		//TODO: For any left resToAlloc in list, build ResourceAlloc split and inform matchMakingAgent
+		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
+		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
+		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
+		if(remainResAlloc.isDefined){
+			//TODO: send to MatchMakingAgent
+			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
+				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceAlloc, remainResAlloc)
+		}
+		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceAlloc)
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -157,34 +161,6 @@ class NetworkResourceAgent(_initialResAlloc: Map[Host, Vector[ResourceAlloc]],
 			  e.printStackTrace())
 		}
 	}
-	
-	private def retrieveHostSLAs(): Map[Host, Option[HostSLA]] ={
-		//Init hostSLAMap with all Nodes (Resources) from _totalResources and map None to it:
-		var hostSLAMap : Map[Host, Option[HostSLA]] = Map()
-		_totalResources.foreach(t => hostSLAMap += (t._1 -> None))
-
-
-		for (actNode: Host <- _totalResources.keys ) {
-			val actResAlloc : Vector[ResourceAlloc]	= _totalResources.get(actNode).get
-
-			if(actResAlloc.size > 0){
-				//List all hostSLAs for the actual ResourceAlloc:
-				var hostSLAs : Vector[HostSLA]	= Vector()
-				actResAlloc.foreach(t => hostSLAs = hostSLAs :+ t.requestedHostSLA)
-
-				//Reduce the Vector of hostSLAs to a single hardestSLA:
-				val hardestSLA : HostSLA = hostSLAs.reduce(_ combineToAmplifiedSLA _)
-				hostSLAMap += (actNode -> Option(hardestSLA))
-			}
-		}
-		return hostSLAMap
-	}
-
-	private def countTotalResAlloc(): Int ={
-		var resAllocCount = 0
-		_totalResources.foreach(resAllocCount += _._2.size)
-		return resAllocCount
-	}
 
 }
 
@@ -202,6 +178,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialResAlloc: Map[Host, Vector[ResourceAlloc]], ovxIP: InetAddress):
-	Props = Props(new NetworkResourceAgent(initialResAlloc, ovxIP))
+	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress):
+	Props = Props(new NetworkResourceAgent(initialHostAlloc, ovxIP))
 }

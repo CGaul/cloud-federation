@@ -192,15 +192,30 @@ case class Host(hardwareSpec: Resource,
 														 (ResourceAlloc, ResourceAlloc) = {
 
 		val allocSLA = resToAlloc.requestedHostSLA
-		var splitResForHost: Vector[Resource] = Vector()
-		var splitResForOther: Vector[Resource] = Vector()
+		var splitResForHost: Vector[Resource] 				= Vector()
+		var splitResForOther: Vector[Resource] 				= Vector()
+		//val combinedResAllocs: Vector[ResourceAlloc] 	= this.allocatedResources :+ resToAlloc
 
 		for ((actCPU, actSplitAmount) <- resSplitAmount) {
-			val resByCPU: Vector[Resource] 	= resToAlloc.resources.filter(_.cpu == actCPU)
-			val allowedResByCPU: Int 			 	= testedSLA.maxResPerCPU.find(_._1 == actCPU).get._2
-			val (resSplit1, resSplit2) = resByCPU.splitAt(allowedResByCPU + actSplitAmount) //actSplitAmount is negative
-			splitResForHost = splitResForHost ++ resSplit1
-			splitResForOther = splitResForOther ++ resSplit2
+			val allowedResByCPU: Int 		= testedSLA.maxResPerCPU.find(_._1 == actCPU).get._2
+
+			val resToAllocByCPU: Vector[Resource] = resToAlloc.resources.filter(_.cpu == actCPU)
+			val allocedResByCPU: Vector[Resource] = this.allocatedResources.flatMap(_.resources).filter(_.cpu == actCPU)
+
+			// Check if an allocation Split is possible:
+			// Another Resource for actCPU can only be allocated, if number of already
+			// allocated Resources of that CPU Type is lower than allowedResByCPU
+			if(allocedResByCPU.size < allowedResByCPU){
+				val (resSplit1, resSplit2) 	= resToAllocByCPU.splitAt(allowedResByCPU + actSplitAmount +1) //actSplitAmount is negative
+				splitResForHost = splitResForHost ++ resSplit1
+				splitResForOther = splitResForOther ++ resSplit2
+			}
+			// Else, if allocation is not possible, just add the resToAllocByCPU to splitResForOther:
+			else{
+				splitResForOther = splitResForOther ++ resToAllocByCPU
+			}
+
+
 		}
 		return (ResourceAlloc(splitResForHost, allocSLA), ResourceAlloc(splitResForOther, allocSLA))
 	}
