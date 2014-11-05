@@ -132,9 +132,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	val reqSLA3		= new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
 															Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 1)))
 
-	val resAlloc1 = new ResourceAlloc(Vector(res1), reqSLA1)
-	val resAlloc2 = new ResourceAlloc(Vector(res2), reqSLA2)
-	val resAlloc3 = new ResourceAlloc(Vector(res3), reqSLA3)
+	val resAlloc1 = new ResourceAlloc(1, Vector(res1), reqSLA1)
+	val resAlloc2 = new ResourceAlloc(1, Vector(res2), reqSLA2)
+	val resAlloc3 = new ResourceAlloc(1, Vector(res3), reqSLA3)
 
 
 	val host1 		= new Host(res2, Vector(), hostSLA1)

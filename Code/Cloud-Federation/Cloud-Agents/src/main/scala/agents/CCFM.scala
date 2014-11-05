@@ -1,6 +1,7 @@
 package agents
 
 import java.io.{FileInputStream, File}
+import java.net.InetAddress
 import java.security.cert.{CertificateFactory, Certificate}
 
 import akka.actor._
@@ -21,13 +22,25 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 		//TODO: build security interfaces for a Certificate-Store
 		val certFile: File			= new File("filename")
 
-		val hardSLAs: HostSLA		= new HostSLA(
+		val ovxIP: InetAddress 	= InetAddress.getLocalHost
+
+		val hostSLA: HostSLA		= new HostSLA(
 														relOnlineTime 		= 0.8f,
 													 	_supportedImgFormats = Vector[ImgFormat](ImgFormat.QCOW2),
 													 	_maxResPerCPU 			= Vector[(CPUUnit, Int)](
 																						(CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 2),
 																						(CPUUnit.LARGE, 3), (CPUUnit.XLARGE, 4)))
-		val softSLAs: CloudSLA		= new CloudSLA(
+
+		val host1 : Host = Host(Resource(NodeID(1), CPUUnit.MEDIUM, ByteSize(16.0, ByteUnit.GiB),
+			ByteSize(320.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
+			10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
+		val host2 : Host = Host(Resource(NodeID(2), CPUUnit.LARGE, ByteSize(32.0, ByteUnit.GiB),
+			ByteSize(500.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
+			10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
+
+		val cloudHosts = Vector(host1, host2)
+
+		val softSLAs: CloudSLA	= new CloudSLA(
 														priceRangePerCPU 	= Vector[(CPUUnit, Price, Price)](
 															 										(CPUUnit.SMALL,
 														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
@@ -55,14 +68,20 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 /* Values: */
 /* ======= */
 
-  // Akka Child-Actor Instantiation-Preparation:
-	val discoveryAgentProps:			Props = Props(classOf[DiscoveryAgent], pubSubServerAddr, cloudCert)
-	val matchMakingAgentProps:			Props = Props(classOf[MatchMakingAgent])
-	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent])
-
 	// Akka Child-Actor spawning:
-	val discoveryAgent: ActorRef 			= context.actorOf(discoveryAgentProps, 		name="discoveryAgent")
-	val networkResourceAgent: ActorRef 	= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
+	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
+																								pubSubServerAddr, cloudCert)
+	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, 				name="discoveryAgent")
+
+	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],
+																								CCFMConfig.softSLAs)
+	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, 			name="matchMakinAgent")
+
+	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
+																								CCFMConfig.cloudHosts, CCFMConfig.ovxIP, matchMakingAgent)
+	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, 	name="networkResourceAgent")
+
+
 
 /* Variables: */
 /* ========== */
@@ -80,7 +99,7 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
 
-	discoveryAgent ! DiscoveryInit(Vector[HostSLA](CCFMConfig.hardSLAs))
+	discoveryAgent ! DiscoveryInit(Vector[HostSLA](CCFMConfig.hostSLA))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 

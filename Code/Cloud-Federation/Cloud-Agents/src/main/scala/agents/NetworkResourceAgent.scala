@@ -11,7 +11,8 @@ import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessag
  * @author Constantin Gaul, created on 10/15/14.
  */
 class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
-									_ovxIP: InetAddress) extends Actor with ActorLogging with Stash
+													 _ovxIP: InetAddress, matchMakingAgent: ActorRef)
+													extends Actor with ActorLogging with Stash
 {
 /* Values: */
 /* ======= */
@@ -71,9 +72,14 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 	 */
 	def recvResourceRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
 
+		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
+			resourceAlloc.tenantID, resourceAlloc.resources.size, address)
+
 		// Sort the potentialHosts as well as the resourceAlloc by their resources in descending Order:
 		val sortedHosts			= _cloudHosts.sorted(RelativeHostByResOrdering)
-		val sortedResAlloc	= ResourceAlloc(resourceAlloc.resources.sorted(RelativeResOrdering), resourceAlloc.requestedHostSLA)
+		val sortedResAlloc	= ResourceAlloc(resourceAlloc.tenantID,
+																				resourceAlloc.resources.sorted(RelativeResOrdering),
+																				resourceAlloc.requestedHostSLA)
 
 		// Binpacking - First Fit Descending:
 		// Fit each resourceToAlloc in the first potentialHost (bin)
@@ -81,7 +87,6 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 		var remainResAlloc: Option[ResourceAlloc]	= Option(sortedResAlloc)
 		breakable {
 			for (actHost <- sortedHosts) {
-				log.debug("Host: {}", actHost)
 				// Try to allocate the remaining ResourceAlloc to the actual Host:
 				val (allocatedSome, allocSplit) = actHost.allocate(remainResAlloc.get)
 
@@ -105,9 +110,9 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
 		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
 		if(remainResAlloc.isDefined){
-			//TODO: send to MatchMakingAgent
 			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceAlloc, remainResAlloc)
+			matchMakingAgent ! ResourceRequest(remainResAlloc.get, address)
 		}
 		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceAlloc)
 	}
@@ -178,6 +183,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress):
-	Props = Props(new NetworkResourceAgent(initialHostAlloc, ovxIP))
+	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
+	Props = Props(new NetworkResourceAgent(initialHostAlloc, ovxIP, matchMakingAgent))
 }

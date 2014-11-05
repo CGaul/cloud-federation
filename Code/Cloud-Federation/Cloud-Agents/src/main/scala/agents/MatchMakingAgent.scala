@@ -2,8 +2,8 @@ package agents
 
 import java.net.InetAddress
 
-import akka.actor.{Actor, ActorLogging}
-import datatypes.ResourceAlloc
+import akka.actor.{Props, ActorRef, Actor, ActorLogging}
+import datatypes.{Host, ResourceAlloc}
 import messages.{ResourceReply, ResourceFederationReply, ResourceRequest, NetworkResourceMessage}
 
 /**
@@ -31,17 +31,20 @@ class MatchMakingAgent extends Actor with ActorLogging
 	 *    		 Resources are on the table. </li>
 	 *    <ul>
 	 * </p>
-	 * @param resources
+	 * @param resourceAlloc
 	 */
-	def recvResourceRequest(resources: ResourceAlloc, address: InetAddress): Unit = ???
+	def recvResourceRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
+		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at MatchMakingAgent.",
+						 resourceAlloc.tenantID, resourceAlloc.resources.size, address)
+	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	/**
 	 * Received from one of the foreign MatchMakingAgents
 	 * that this Agent queried before.
-	 * @param resources
+	 * @param resourceAlloc
 	 */
-	def recvResourceReply(resources: ResourceAlloc): Unit = ???
+	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
 
 
 	override def receive(): Receive = {
@@ -52,3 +55,22 @@ class MatchMakingAgent extends Actor with ActorLogging
 		case _										=> log.error("Unknown message received!")
 	}
 }
+
+/**
+ * Companion Object of the MatchMaking-Agent,
+ * in order to implement some default behaviours
+ */
+object MatchMakingAgent
+{
+	/**
+	 * props-method is used in the AKKA-Context, spawning a new Agent.
+	 * In this case, to generate a new NetworkResource Agent, call
+	 * 	val ccfmProps = Props(classOf[NetworkResourceAgent], args = ovxIP)
+	 * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkResourceAgent-x")
+	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
+	 * @return An Akka Properties-Object
+	 */
+	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
+	Props = Props(new MatchMakingAgent(initialHostAlloc, ovxIP, matchMakingAgent))
+}
+

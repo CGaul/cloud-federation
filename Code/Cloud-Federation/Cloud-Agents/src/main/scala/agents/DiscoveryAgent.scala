@@ -13,8 +13,8 @@ import messages._
  * and establishes a communication with the CCFM as its Supervisor.
  * @author Constantin Gaul created on 5/27/14.
  */
-class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends RemoteDependencyAgent(Vector(pubSubServer))
-																							 with ActorLogging
+class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
+									extends RemoteDependencyAgent(Vector(pubSubServer)) with ActorLogging
 {
 
 /* Values: */

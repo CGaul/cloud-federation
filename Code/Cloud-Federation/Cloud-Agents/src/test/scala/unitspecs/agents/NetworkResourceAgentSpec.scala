@@ -49,9 +49,9 @@ class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 	val reqHostSLA3 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
 											Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 1), (CPUUnit.MEDIUM, 2)))
 
-	val resAlloc1 : ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
-	val resAlloc2 : ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc3), 							reqHostSLA2)
-	val resAlloc3 : ResourceAlloc = ResourceAlloc(Vector[Resource](resToAlloc4, resToAlloc5), reqHostSLA3)
+	val resAlloc1 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
+	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc3), 							reqHostSLA2)
+	val resAlloc3 : ResourceAlloc = ResourceAlloc(2, Vector[Resource](resToAlloc4, resToAlloc5), reqHostSLA3)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 

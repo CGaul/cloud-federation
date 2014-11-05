@@ -191,10 +191,10 @@ case class Host(hardwareSpec: Resource,
 	private def splitAllocation(testedSLA: HostSLA, resToAlloc: ResourceAlloc, resSplitAmount: Vector[(CPUUnit, Int)] ):
 														 (ResourceAlloc, ResourceAlloc) = {
 
-		val allocSLA = resToAlloc.requestedHostSLA
+		val allocTenant = resToAlloc.tenantID
+		val allocSLA 		= resToAlloc.requestedHostSLA
 		var splitResForHost: Vector[Resource] 				= Vector()
 		var splitResForOther: Vector[Resource] 				= Vector()
-		//val combinedResAllocs: Vector[ResourceAlloc] 	= this.allocatedResources :+ resToAlloc
 
 		for ((actCPU, actSplitAmount) <- resSplitAmount) {
 			val allowedResByCPU: Int 		= testedSLA.maxResPerCPU.find(_._1 == actCPU).get._2
@@ -217,7 +217,8 @@ case class Host(hardwareSpec: Resource,
 
 
 		}
-		return (ResourceAlloc(splitResForHost, allocSLA), ResourceAlloc(splitResForOther, allocSLA))
+		return (ResourceAlloc(allocTenant, splitResForHost, allocSLA),
+						ResourceAlloc(allocTenant, splitResForOther, allocSLA))
 	}
 
 
@@ -226,7 +227,7 @@ case class Host(hardwareSpec: Resource,
 
 	override def equals(obj: scala.Any): Boolean = obj match{
 		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA
-		case _ 				=> false
+		case _ 						=> false
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
@@ -235,7 +236,7 @@ case class Host(hardwareSpec: Resource,
 
 
 
-case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
+case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHostSLA: HostSLA)
 {
 	/* Public Methods: */
 	/* --------------- */
@@ -267,7 +268,7 @@ case class ResourceAlloc(resources: Vector[Resource], requestedHostSLA: HostSLA)
 	/* ---------------- */
 
 	override def equals(obj: scala.Any): Boolean = obj match {
-		case that: ResourceAlloc 	=> this.resources == that.resources
+		case that: ResourceAlloc 	=> this.tenantID == that.tenantID && this.resources == that.resources
 		case _ 							=> false
 	}
 
