@@ -4,7 +4,7 @@ import java.security.cert.Certificate
 
 import akka.actor._
 import datatypes.HostSLA
-import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorReply}
+import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorDestination}
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
@@ -31,7 +31,7 @@ class PubSubFederator extends Actor with ActorLogging
   }
 
   override def receive(): Receive = {
-	 case message: PubSubFederatorReply	=> message match {
+	 case message: PubSubFederatorDestination	=> message match {
      case DiscoverySubscription(slaList, cert)	=> recvDiscoverySubscription(slaList, cert)
 	 }
 	 case _										=> log.error("Unknown message received!")

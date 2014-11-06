@@ -4,7 +4,7 @@ import java.security.cert.Certificate
 
 import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
-import datatypes.HostSLA
+import datatypes.{CloudSLA, HostSLA}
 import messages._
 
 
@@ -40,19 +40,19 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
 	override def receivedOnline(): Receive = {
 	  	case KillNotifier()						=> super.recv_offlineNotifier()
 
-	  	case message: DiscoveryAgentReply	=> message match {
-			case DiscoveryInit(slaList)					=> recvDiscoveryInit(slaList)
-			case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
+	  	case message: DiscoveryAgentDestination	=> message match {
+			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> recvDiscoveryInit(cloudSLA, possibleHostSLAs)
+			case DiscoveryPublication(discoveries)					=> recvDiscoveryPublication(discoveries)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
 	}
 
-	private def recvDiscoveryInit(slaList: Vector[HostSLA] ) = {
+	private def recvDiscoveryInit(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received Discovery-Init Call from CCFM.")
 		log.info("Sending subscription request to PubSub-Federator...")
 
-		pubSubServer ! DiscoverySubscription(slaList, cert)
+		pubSubServer ! DiscoverySubscription(cloudSLA, possibleHostSLAs, cert)
 
 //		try{
 //			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
@@ -78,9 +78,9 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
 
 	}
 
-	def recvDiscoveryPublication(discoveryActors: Vector[ActorPath]) = {
+	def recvDiscoveryPublication(discoveryActors: Vector[(ActorPath, CloudSLA, Vector[HostSLA])]) = {
 		log.info("Received Publication Call from PubSubFederator.")
-	  	this.discoveryActors = discoveryActors
+//	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
 	}
 
 	private def recvCCFMShutdown() = {

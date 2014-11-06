@@ -173,9 +173,9 @@ case class CloudSLA(	priceRangePerCPU:		 Vector[(CPUUnit, Price, Price)],
 {
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: CloudSLA 	=> return (this.priceRangePerCPU.equals(that.priceRangePerCPU) &&
-		  										  this.priceRangePerRAM.equals(that.priceRangePerRAM) &&
-		  										  this.priceRangePerStorage.equals(that.priceRangePerStorage))
+		case that: CloudSLA 	=> return this.priceRangePerCPU.equals(that.priceRangePerCPU) &&
+														 this.priceRangePerRAM.equals(that.priceRangePerRAM) &&
+														 this.priceRangePerStorage.equals(that.priceRangePerStorage)
 		case _ 					=> false
 	}
 

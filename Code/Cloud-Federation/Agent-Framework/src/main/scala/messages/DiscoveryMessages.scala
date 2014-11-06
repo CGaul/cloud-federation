@@ -3,22 +3,28 @@ package messages
 import java.security.cert.Certificate
 
 import akka.actor.ActorPath
-import datatypes.HostSLA
+import datatypes.{CloudSLA, HostSLA}
 
 sealed trait DiscoveryMessage
 
-sealed trait DiscoveryAgentReply
+sealed trait DiscoveryAgentDestination
 
-sealed trait PubSubFederatorReply
+sealed trait PubSubFederatorDestination
 
 
+/**
+ * Sent from CCFM to DiscoveryAgent
+ * @param cloudSLA
+ * @param possibleHostSLAs
+ */
+case class FederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA])
+	extends DiscoveryMessage with DiscoveryAgentDestination
 
-case class DiscoveryInit(slaList: Vector[HostSLA])	extends DiscoveryMessage
-									with DiscoveryAgentReply
+case class DiscoveryAck(status: String)
+	extends DiscoveryMessage
 
-case class DiscoveryAck(status: String)	extends DiscoveryMessage
-
-case class DiscoveryError(error: String)	extends DiscoveryMessage
+case class DiscoveryError(error: String)
+	extends DiscoveryMessage
 
 
 /**
@@ -29,13 +35,18 @@ case class DiscoveryError(error: String)	extends DiscoveryMessage
  *    The answer of a DiscoverySubscription will be a DiscoveryPublication from the PubSubFederator
  *    to the Discovery-Agent
  * </p>
- * @param slaList
+ * @param cloudSLA
+ * @param possibleHostSLAs
  * @param cert
  */
-case class DiscoverySubscription(slaList: Vector[HostSLA], cert : Certificate)	extends DiscoveryMessage
-																			with PubSubFederatorReply
+case class DiscoverySubscription(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: Certificate)
+	extends DiscoveryMessage with PubSubFederatorDestination
 
+case class AuthenticationInquiry(hashedKey: Long)
+	extends DiscoveryMessage with DiscoveryAgentDestination
 
+case class AuthenticationAnswer(solvedKey: Long)
+	extends DiscoveryMessage with PubSubFederatorDestination
 /**
  * <p>
  *    A DiscoveryPublication contains a List of all akka.tcp connections to Discovery-Agents
@@ -44,8 +55,8 @@ case class DiscoverySubscription(slaList: Vector[HostSLA], cert : Certificate)	e
  *    This message will be send from the PubSubFederator to the pre-subscribed Discovery-Agent
  *    so that this Agent is able to get into contact with all Discovery-Agents in that list.
  * </p>
- * @param federatedDiscoveryActors A list of akka.tcp connections, each belonging to another Discovery-Agent from
+ * @param discoveries A list of akka.tcp connections, each belonging to another Discovery-Agent from
  *                         possible matches of a Cloud-Federation
  */
-case class DiscoveryPublication(federatedDiscoveryActors: Vector[ActorPath]) 	extends DiscoveryMessage 
-																										with DiscoveryAgentReply
+case class DiscoveryPublication(discoveries: Vector[(ActorPath, CloudSLA, Vector[HostSLA])])
+	extends DiscoveryMessage with DiscoveryAgentDestination

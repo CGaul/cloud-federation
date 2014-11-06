@@ -99,7 +99,8 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
 
-	discoveryAgent ! DiscoveryInit(Vector[HostSLA](CCFMConfig.hostSLA))
+	//TODO: DiscoveryInit really needed? Yes -> for every update of SLA, send a new one and forward to PubSubFederator.
+	discoveryAgent ! FederationSLAs(Vector[HostSLA](CCFMConfig.hostSLA))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 
