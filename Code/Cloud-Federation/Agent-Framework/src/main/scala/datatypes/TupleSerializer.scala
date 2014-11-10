@@ -61,7 +61,7 @@ object TupleSerializer {
     return tupleVector
   }
 
-  def xmlToTuple4Vector(node: xml.NodeSeq): Vector[(String, String, String, String, String)] = {
+  def xmlToTuple5Vector(node: xml.NodeSeq): Vector[(String, String, String, String, String)] = {
 
     var tupleVector: Vector[(String, String, String, String, String)] = Vector()
 
@@ -72,7 +72,7 @@ object TupleSerializer {
     return tupleVector
   }
 
-  def xmlToTuple4Vector(node: xml.NodeSeq): Vector[(String, String, String, String, String, String)] = {
+  def xmlToTuple6Vector(node: xml.NodeSeq): Vector[(String, String, String, String, String, String)] = {
 
     var tupleVector: Vector[(String, String, String, String, String, String)] = Vector()
 

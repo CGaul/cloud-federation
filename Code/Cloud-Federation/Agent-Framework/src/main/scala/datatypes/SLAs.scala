@@ -309,11 +309,12 @@ object CloudSLA {
 	/* De-Serialization: */
 	/* ================= */
 
-	def fromXML(node: xml.Node): HostSLA = {
+	def fromXML(node: xml.Node): CloudSLA = {
 		//val cpuRangeVector = (node \ "PriceRangeCPU").text().split(" ")
 
 		val priceRangeCPUTuple: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \ "PriceRangeCPU")
 		val priceRAMTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeRAM")
+		println("node = " + node)
 		val priceStorageTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeStorage")
 
 		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3._1),
@@ -324,7 +325,7 @@ object CloudSLA {
 		val priceRangePerStorage:  (ByteSize, Price, Price)	= (ByteSize.fromString(priceStorageTuple._1),
 																														Price.fromString(priceStorageTuple._2),
 																														Price.fromString(priceStorageTuple._3))
-		return HostSLA(priceRangePerCPU, priceRangePerRAM, priceRangePerStorage)
+		return CloudSLA(priceRangePerCPU, priceRangePerRAM, priceRangePerStorage)
 	}
 
 	def loadFromXML(file: File): CloudSLA = {

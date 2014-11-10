@@ -24,7 +24,6 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 
 		val ovxIP: InetAddress 	= InetAddress.getLocalHost
 
-		val cloudSLA: CloudSLA 	=
 		val hostSLA: HostSLA		= new HostSLA(
 														relOnlineTime 		= 0.8f,
 													 	_supportedImgFormats = Vector[ImgFormat](ImgFormat.QCOW2),
