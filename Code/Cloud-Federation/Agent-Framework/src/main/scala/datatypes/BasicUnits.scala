@@ -1,5 +1,7 @@
 package datatypes
 
+import java.io.File
+
 import datatypes.ByteUnit.ByteUnit
 import datatypes.CPUUnit.CPUUnit
 
@@ -10,6 +12,13 @@ object CPUUnit extends Enumeration
 {
 	type CPUUnit 	= Value
 	val SMALL, MEDIUM, LARGE, XLARGE = Value
+
+	def fromString(str: String): CPUUnit = str match{
+		case "SMALL" 	=> SMALL
+		case "MEDIUM" => MEDIUM
+		case "LARGE"	=> LARGE
+		case "XLARGE"	=> XLARGE
+	}
 }
 
 object CPUUnitOrdering extends Ordering[CPUUnit]
@@ -43,7 +52,20 @@ object CPUUnitOrdering extends Ordering[CPUUnit]
 object ByteUnit extends Enumeration
 {
 	type ByteUnit = Value
-	val kB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
+	val KB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
+
+	def fromString(str: String): ByteUnit = str match{
+		case "KB" 	=> KB
+		case "KiB" 	=> KiB
+		case "MB" 	=> MB
+		case "MiB" 	=> MiB
+		case "GB" 	=> GB
+		case "GiB" 	=> GiB
+		case "TB" 	=> TB
+		case "TiB" 	=> TiB
+		case "PB" 	=> PB
+		case "PiB" 	=> PiB
+	}
 }
 
 
@@ -60,7 +82,7 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 	/* ========== */
 
 	var sizeConversion = Map[ByteUnit, Long]()
-	sizeConversion += (ByteUnit.kB	-> Math.round(Math.pow(1000, 1)),	ByteUnit.KiB -> Math.round(Math.pow(1024,1)))
+	sizeConversion += (ByteUnit.KB	-> Math.round(Math.pow(1000, 1)),	ByteUnit.KiB -> Math.round(Math.pow(1024,1)))
 	sizeConversion += (ByteUnit.MB	-> Math.round(Math.pow(1000, 2)),	ByteUnit.MiB -> Math.round(Math.pow(1024,2)))
 	sizeConversion += (ByteUnit.GB	-> Math.round(Math.pow(1000, 3)),	ByteUnit.GiB -> Math.round(Math.pow(1024,3)))
 	sizeConversion += (ByteUnit.TB	-> Math.round(Math.pow(1000, 4)),	ByteUnit.TiB -> Math.round(Math.pow(1024,4)))
@@ -134,6 +156,39 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 	override def hashCode(): Int = super.hashCode()
 }
 
+/**
+ * Companion Object for ByteSize case-class
+ */
+object ByteSize {
+
+	/* Serialization: */
+	/* ============== */
+
+	def toXML(byteSize: ByteSize): xml.Node =
+		<ByteSize>
+			{byteSize.size} {byteSize.unit}
+		</ByteSize>
+
+	def saveToXML(file: File, byteSize: ByteSize) = {
+		val xmlNode = toXML(byteSize)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+	/* De-Serialization: */
+	/* ================= */
+
+	def fromXML(node: xml.Node): ByteSize = {
+		val strSplit = (node \ "ByteSize").text.split(" ")
+		val (size, unit): (Double, ByteUnit) = (strSplit(0).toDouble, ByteUnit.fromString(strSplit(1)))
+		return ByteSize(size, unit)
+	}
+
+	def loadFromXML(file: File): ByteSize = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
+}
+
 
 
 /**
@@ -144,6 +199,21 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 object ImgFormat extends Enumeration {
 	type ImgFormat = Value
 	val BOCHS, CLOOP, COW, DMG, IMG, ISO, QCOW, QCOW2, QED, RAW, VMDK, VPC = Value
+
+	def fromString(str: String): ImgFormat = str match{
+			case "BOCHS" => BOCHS
+			case "CLOOP" => CLOOP
+			case "COW"	 => COW
+			case "DMG"	 => DMG
+			case "IMG"	 => IMG
+			case "ISO"	 => ISO
+			case "QCOW"	 => QCOW
+			case "QCOW2" => QCOW2
+			case "QED"	 => QED
+			case "RAW"	 => RAW
+			case "VMDK"	 => VMDK
+			case "VPC"	 => VPC
+	}
 }
 
 
@@ -152,4 +222,8 @@ object CloudCurrency extends Enumeration {
 	type CloudCurrency = Value
 	//val Currency.getAvailableCurrencies
 	val CLOUD_CREDIT = Value
+
+	def fromString(str: String) = str match {
+		case "CLOUD_CREDIT" => CLOUD_CREDIT
+	}
 }

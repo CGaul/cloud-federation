@@ -85,4 +85,14 @@ class HostSLASpec extends FlatSpec with ShouldMatchers
 		info("HostSLA.fullfillsQoS(other) Tests passed.")
 	}
 
+
+	it should "be fully serializable toXML" in{
+		val xmlSerialHostSLA = HostSLA.toXML(hostSLA1)
+		println("serialized hostSLA1 = " + xmlSerialHostSLA)
+
+		val xmlDeserialHostSLA = HostSLA.fromXML(xmlSerialHostSLA)
+		println("deserialized hostSLA1 = " + xmlDeserialHostSLA)
+
+		hostSLA1 == xmlDeserialHostSLA should be (true)
+	}
 }

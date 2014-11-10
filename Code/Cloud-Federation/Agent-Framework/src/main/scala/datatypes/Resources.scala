@@ -231,6 +231,14 @@ case class Host(hardwareSpec: Resource,
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
+
+//	def toXML =
+//		<Host>
+//			<Hardware>{hardwareSpec.toXML}</Hardware>
+//			<ResourceAlloc>{allocatedResources.foreach(r => r.toXML)}</ResourceAlloc>
+//			<HostSLA>{hostSLA.toXML}</HostSLA>
+//		</Host>
+
 }
 
 

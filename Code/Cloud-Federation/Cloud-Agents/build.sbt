@@ -22,6 +22,9 @@ libraryDependencies ++= Seq(
 //Logging (SLF4J):
 libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"
 
+//Scala XML Support:
+libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2"
+
 
 
 // Library Dependencies (TEST)

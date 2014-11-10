@@ -1,10 +1,59 @@
 package datatypes
 
+import java.io.File
+
 import datatypes.CPUUnit.{CPUUnit}
 import datatypes.CloudCurrency.CloudCurrency
 import datatypes.ImgFormat.ImgFormat
 
-case class Price(value: Float, currency: CloudCurrency)
+import scala.xml.Node
+
+case class Price(value: Float, currency: CloudCurrency){
+	override def toString: String = value.toString +" "+ currency.toString
+
+	override def equals(obj: scala.Any): Boolean = obj match {
+		case that: Price => that.value == this.value && that.currency == this.currency
+	}
+
+	override def hashCode(): Int = super.hashCode()
+}
+
+/**
+ * Companion Object for Price case class
+ */
+object Price {
+
+ /* Serialization: */
+ /* ============== */
+
+ 	def toXML(price: Price): Node =
+ 		<Price>
+ 			{price.value} {price.currency}
+ 		</Price>
+
+ 	def saveToXML(file: File, price: Price) = {
+ 		val xmlNode = toXML(price)
+ 		xml.XML.save(file.getAbsolutePath, xmlNode)
+ 	}
+
+ /* De-Serialization: */
+ /* ================= */
+
+	def fromString(str: String): Price = {
+		val strSplit = str.split(" ")
+		val (value, currency) = (strSplit(0).toFloat, CloudCurrency.fromString(strSplit(1)))
+		return Price(value, currency)
+	}
+
+ 	def fromXML(node: Node): Price = {
+		fromString((node \ "Price").text)
+ 	}
+
+ 	def loadFromXML(file: File): Price = {
+ 		val xmlNode = xml.XML.loadFile(file)
+ 		return fromXML(xmlNode)
+ 	}
+}
 
 /**
  * A service level agreement is a contract between a service provider and a user.
@@ -159,7 +208,53 @@ case class HostSLA(relOnlineTime: 							Float,
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[HostSLA]
+
+
+
 }
+
+/**
+ * Companion Object for HostSLA case-class
+ */
+object HostSLA {
+
+/* Serialization: */
+/* ============== */
+
+	def toXML(hostSLA: HostSLA): xml.Node =
+		<HostSLA>
+			<RelOnlineTime>{hostSLA.relOnlineTime}</RelOnlineTime>
+			<ImgFormats>{hostSLA.supportedImgFormats.map(_.toString +" ")}</ImgFormats>
+			<maxResPerCPU>{hostSLA.maxResPerCPU.map(TupleSerializer.tupleToXML)}</maxResPerCPU>
+		</HostSLA>
+
+	def saveToXML(file: File, hostSLA: HostSLA) = {
+		val xmlNode = toXML(hostSLA)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+/* De-Serialization: */
+/* ================= */
+
+	def fromXML(node: xml.Node): HostSLA = {
+		val relOnlineTime: Float 					= (node \ "RelOnlineTime").text.toFloat
+		val imgFormatStrArr								= (node \ "ImgFormats").text.split(" ")
+		val imgFormats: Vector[ImgFormat] = imgFormatStrArr.map(ImgFormat.fromString).toVector
+
+		val maxResRaw: Vector[(String, String)] = TupleSerializer.xmlToTuple2Vector(node \ "maxResPerCPU")
+		val maxResPerCPU: Vector[(CPUUnit, Int)] = maxResRaw.map(t => (CPUUnit.fromString(t._1), t._2.toInt))
+
+		return HostSLA(relOnlineTime, imgFormats, maxResPerCPU)
+	}
+
+	def loadFromXML(file: File): HostSLA = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
+}
+
+
+
 
 /**
  *
@@ -167,10 +262,13 @@ case class HostSLA(relOnlineTime: 							Float,
  * @param priceRangePerRAM
  * @param priceRangePerStorage
  */
-case class CloudSLA(	priceRangePerCPU:		 Vector[(CPUUnit, Price, Price)],
-						  	priceRangePerRAM:		 (ByteSize, Price, Price),
-						  	priceRangePerStorage: (ByteSize, Price, Price))
+case class CloudSLA(priceRangePerCPU:		 Vector[(CPUUnit, Price, Price)],
+										priceRangePerRAM:		 (ByteSize, Price, Price),
+										priceRangePerStorage: (ByteSize, Price, Price))
 {
+
+/* Method Overrides: */
+/* ================= */
 
 	override def equals(obj: scala.Any): Boolean = obj match{
 		case that: CloudSLA 	=> return this.priceRangePerCPU.equals(that.priceRangePerCPU) &&
@@ -180,5 +278,63 @@ case class CloudSLA(	priceRangePerCPU:		 Vector[(CPUUnit, Price, Price)],
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[CloudSLA]
+}
 
+/**
+ * Companion Object for CloudSLA case-class
+ */
+object CloudSLA {
+
+	/* Serialization: */
+	/* ============== */
+
+	def toXML(cloudSLA: CloudSLA): xml.Node =
+		<CloudSLA>
+			<PriceRangeCPU>
+				{cloudSLA.priceRangePerCPU.map(t3 => TupleSerializer.tupleToXML(t3) + " ")}
+			</PriceRangeCPU>
+			<PriceRangeRAM>
+				{TupleSerializer.tupleToXML(cloudSLA.priceRangePerRAM)}
+			</PriceRangeRAM>
+			<PriceRangeStorage>
+				{TupleSerializer.tupleToXML(cloudSLA.priceRangePerStorage)}
+			</PriceRangeStorage>
+		</CloudSLA>
+
+	def saveToXML(file: File, cloudSLA: CloudSLA) = {
+		val xmlNode = toXML(cloudSLA)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+	/* De-Serialization: */
+	/* ================= */
+
+	def fromXML(node: xml.Node) = {
+		//val cpuRangeVector = (node \ "PriceRangeCPU").text().split(" ")
+
+		val priceRangeCPUTuple = TupleSerializer.xmlToTuple3(node \ "PriceRangeCPU")
+		val priceRAMTuple = TupleSerializer.xmlToTuple2(node \ "PriceRangeRAM")
+		val priceStorageTuple = TupleSerializer.xmlToTuple2(node \ "PriceRangeStorage")
+	}
+
+//		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = (CPUUnit.fromString(priceRangeCPUTuple._1),
+//																																		 Price.fromString(priceRangeCPUTuple._2),
+//																																		 Price.fromString(priceRangeCPUTuple._3))
+//		val priceRangePerRAM: (ByteSize, Price, Price)	= (node \ "PriceRangeRAM").text.split(" ")
+//		val priceRangePerStorage:  (ByteSize, Price, Price)	= imgFormatStrArr.map(ImgFormat.fromString).toVector
+//	}
+//
+//
+//		val maxResStrArr													= (node \ "maxResPerCPU").text.split(" ")
+//		val maxResPerCPU: Vector[(CPUUnit, Int)] 	= maxResStrArr.map(strTuple =>
+//			(CPUUnit.fromString(strTuple.split(",")(0).replace("(", "")),
+//				strTuple.split(",")(1).replace(")", "").toInt)).toVector
+//
+//		return CloudSLA(relOnlineTime, imgFormats, maxResPerCPU)
+//	}
+//
+//	def loadFromXML(file: File): CloudSLA = {
+//		val xmlNode = xml.XML.loadFile(file)
+//		return fromXML(xmlNode)
+//	}
 }

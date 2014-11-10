@@ -65,7 +65,7 @@ class ByteSizeSpec extends FlatSpec with Matchers{
 	  "using Decimal Metric (kB, MB, GB) - used in regular HDD calculation" in {
 		val byteSize1 = new ByteSize(1, ByteUnit.GB)
 		val byteSize2 = new ByteSize(1000, ByteUnit.MB)
-		val byteSize3 = new ByteSize(1000000, ByteUnit.kB)
+		val byteSize3 = new ByteSize(1000000, ByteUnit.KB)
 
 	//Check for equality and comparability:
 		byteSize1.equals(byteSize2) should be (true)
@@ -91,7 +91,7 @@ class ByteSizeSpec extends FlatSpec with Matchers{
 	it should "be equal and comparable between " +
 	  "Decimal and Binary IEC Metric (KB vs. KiB, MB vs. MiB, GB vs. GiB)" in {
 		val byteSize1 = new ByteSize(1000, ByteUnit.KiB)
-		val byteSize2 = new ByteSize(1024, ByteUnit.kB)
+		val byteSize2 = new ByteSize(1024, ByteUnit.KB)
 
 		val byteSize3 = new ByteSize(100, ByteUnit.MiB)
 		val byteSize4 = new ByteSize(104.85759999999999, ByteUnit.MB)
@@ -116,7 +116,7 @@ class ByteSizeSpec extends FlatSpec with Matchers{
 		byteSize6.compareTo(byteSize5) should be (0)
 
 	//Convert byteSize1 first to byteSize2's unit and check for equality
-		val convByteSize1 = byteSize1.convert(ByteUnit.kB)
+		val convByteSize1 = byteSize1.convert(ByteUnit.KB)
 		convByteSize1.equals(byteSize2) should be (true)
 	}
 }
