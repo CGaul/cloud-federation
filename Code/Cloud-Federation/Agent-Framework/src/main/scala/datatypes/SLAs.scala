@@ -314,7 +314,8 @@ object CloudSLA {
 
 		val priceRangeCPUTuple: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \ "PriceRangeCPU")
 		val priceRAMTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeRAM")
-		println("node = " + node)
+		val priceRAMTuple2: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \ "PriceRangeRAM")
+		println("node-PriceRangeRAM = " + node \ "PriceRangeRAM")
 		val priceStorageTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeStorage")
 
 		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3._1),
