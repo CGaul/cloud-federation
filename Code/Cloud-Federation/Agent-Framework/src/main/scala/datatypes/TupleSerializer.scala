@@ -39,6 +39,51 @@ object TupleSerializer {
     return tupleVector
   }
 
+  def xmlToTuple3Vector(node: xml.NodeSeq): Vector[(String, String, String)] = {
+
+    var tupleVector: Vector[(String, String, String)] = Vector()
+
+    for (actNode <- node \ "t3") {
+      tupleVector = tupleVector :+ xmlToTuple3(actNode)
+    }
+
+    return tupleVector
+  }
+
+  def xmlToTuple4Vector(node: xml.NodeSeq): Vector[(String, String, String, String)] = {
+
+    var tupleVector: Vector[(String, String, String, String)] = Vector()
+
+    for (actNode <- node \ "t4") {
+      tupleVector = tupleVector :+ xmlToTuple4(actNode)
+    }
+
+    return tupleVector
+  }
+
+  def xmlToTuple4Vector(node: xml.NodeSeq): Vector[(String, String, String, String, String)] = {
+
+    var tupleVector: Vector[(String, String, String, String, String)] = Vector()
+
+    for (actNode <- node \ "t5") {
+      tupleVector = tupleVector :+ xmlToTuple5(actNode)
+    }
+
+    return tupleVector
+  }
+
+  def xmlToTuple4Vector(node: xml.NodeSeq): Vector[(String, String, String, String, String, String)] = {
+
+    var tupleVector: Vector[(String, String, String, String, String, String)] = Vector()
+
+    for (actNode <- node \ "t6") {
+      tupleVector = tupleVector :+ xmlToTuple6(actNode)
+    }
+
+    return tupleVector
+  }
+
+
   def xmlToTuple2(node: xml.NodeSeq): (String, String) = node match{
     case <t2>{val1},{val2}</t2> => (val1.toString(), val2.toString())
     case _                      => ("", "")

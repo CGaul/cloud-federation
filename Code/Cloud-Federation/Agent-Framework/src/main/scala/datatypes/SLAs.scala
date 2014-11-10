@@ -291,7 +291,7 @@ object CloudSLA {
 	def toXML(cloudSLA: CloudSLA): xml.Node =
 		<CloudSLA>
 			<PriceRangeCPU>
-				{cloudSLA.priceRangePerCPU.map(t3 => TupleSerializer.tupleToXML(t3) + " ")}
+				{cloudSLA.priceRangePerCPU.map(t3 => TupleSerializer.tupleToXML(t3))}
 			</PriceRangeCPU>
 			<PriceRangeRAM>
 				{TupleSerializer.tupleToXML(cloudSLA.priceRangePerRAM)}
@@ -309,32 +309,26 @@ object CloudSLA {
 	/* De-Serialization: */
 	/* ================= */
 
-	def fromXML(node: xml.Node) = {
+	def fromXML(node: xml.Node): HostSLA = {
 		//val cpuRangeVector = (node \ "PriceRangeCPU").text().split(" ")
 
-		val priceRangeCPUTuple = TupleSerializer.xmlToTuple3(node \ "PriceRangeCPU")
-		val priceRAMTuple = TupleSerializer.xmlToTuple2(node \ "PriceRangeRAM")
-		val priceStorageTuple = TupleSerializer.xmlToTuple2(node \ "PriceRangeStorage")
+		val priceRangeCPUTuple: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \ "PriceRangeCPU")
+		val priceRAMTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeRAM")
+		val priceStorageTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeStorage")
+
+		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3._1),
+																																																	Price.fromString(t3._2),Price.fromString(t3._3)))
+		val priceRangePerRAM: (ByteSize, Price, Price)	= (ByteSize.fromString(priceRAMTuple._1),
+																												Price.fromString(priceRAMTuple._2),
+																												Price.fromString(priceRAMTuple._3))
+		val priceRangePerStorage:  (ByteSize, Price, Price)	= (ByteSize.fromString(priceStorageTuple._1),
+																														Price.fromString(priceStorageTuple._2),
+																														Price.fromString(priceStorageTuple._3))
+		return HostSLA(priceRangePerCPU, priceRangePerRAM, priceRangePerStorage)
 	}
 
-//		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = (CPUUnit.fromString(priceRangeCPUTuple._1),
-//																																		 Price.fromString(priceRangeCPUTuple._2),
-//																																		 Price.fromString(priceRangeCPUTuple._3))
-//		val priceRangePerRAM: (ByteSize, Price, Price)	= (node \ "PriceRangeRAM").text.split(" ")
-//		val priceRangePerStorage:  (ByteSize, Price, Price)	= imgFormatStrArr.map(ImgFormat.fromString).toVector
-//	}
-//
-//
-//		val maxResStrArr													= (node \ "maxResPerCPU").text.split(" ")
-//		val maxResPerCPU: Vector[(CPUUnit, Int)] 	= maxResStrArr.map(strTuple =>
-//			(CPUUnit.fromString(strTuple.split(",")(0).replace("(", "")),
-//				strTuple.split(",")(1).replace(")", "").toInt)).toVector
-//
-//		return CloudSLA(relOnlineTime, imgFormats, maxResPerCPU)
-//	}
-//
-//	def loadFromXML(file: File): CloudSLA = {
-//		val xmlNode = xml.XML.loadFile(file)
-//		return fromXML(xmlNode)
-//	}
+	def loadFromXML(file: File): CloudSLA = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
 }

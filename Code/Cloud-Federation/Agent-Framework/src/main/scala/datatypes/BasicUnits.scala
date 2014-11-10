@@ -177,10 +177,14 @@ object ByteSize {
 	/* De-Serialization: */
 	/* ================= */
 
-	def fromXML(node: xml.Node): ByteSize = {
-		val strSplit = (node \ "ByteSize").text.split(" ")
+	def fromString(str: String): ByteSize = {
+		val strSplit = str.split(" ")
 		val (size, unit): (Double, ByteUnit) = (strSplit(0).toDouble, ByteUnit.fromString(strSplit(1)))
 		return ByteSize(size, unit)
+	}
+	def fromXML(node: xml.Node): ByteSize = {
+		val xmlString = (node \ "ByteSize").text
+		return fromString(xmlString)
 	}
 
 	def loadFromXML(file: File): ByteSize = {
