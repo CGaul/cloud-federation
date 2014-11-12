@@ -42,14 +42,18 @@ object TupleSerializer {
     return tupleVector
   }
 
-  def xmlToTuple3Vector(node: xml.NodeSeq): Vector[(String, String, String)] = {
+  def xmlToTuple3Vector(node: xml.NodeSeq): Vector[Option[(String, String, String)]] = {
 
-    var tupleVector: Vector[(String, String, String)] = Vector()
+    var tupleVector: Vector[Option[(String, String, String)]] = Vector()
 
     for (actNode <- node \ "t3") {
       actNode match{
-        case <t3>{val1},{val2},{val3}</t3> => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString())
-        case _                             => tupleVector = tupleVector :+ ("", "", "")
+        case <t>{val1},{val2},{val3}</t>    => tupleVector = tupleVector :+ Option((val1.toString(), val2.toString(), val3.toString()))
+        case <t3>{val1},{val2},{val3}</t3>  => tupleVector = tupleVector :+ Option((val1.toString(), val2.toString(), val3.toString()))
+        case _                              => tupleVector = tupleVector :+ {
+                                                val tupleExtract = tryDirectExtraction(actNode, 3)
+                                                if(tupleExtract.isDefined) {Option(tupleExtract.get(0), tupleExtract.get(1), tupleExtract.get(2))} else None
+                                               }
       }
     }
 
@@ -109,7 +113,7 @@ object TupleSerializer {
     return xmlTupleVector(0)
   }
 
-  def xmlToTuple3(node: xml.NodeSeq): (String, String, String) ={
+  def xmlToTuple3(node: xml.NodeSeq): Option[(String, String, String)] ={
     val xmlTupleVector = xmlToTuple3Vector(node)
     return xmlTupleVector(0)
   }
@@ -129,4 +133,18 @@ object TupleSerializer {
     return xmlTupleVector(0)
   }
 
+
+
+/* Private Methods: */
+/* ================ */
+
+  private def tryDirectExtraction(node: xml.NodeSeq, tupleLen: Int): Option[Vector[String]] ={
+    if(node.text != ""){
+      val tupleVals = node.text.trim.split(",").toVector
+      if(tupleVals.length == tupleLen)
+        return Option(tupleVals)
+      else return None
+    }
+    else return None
+  }
 }

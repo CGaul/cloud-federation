@@ -11,11 +11,12 @@ import datatypes.CPUUnit.CPUUnit
 object CPUUnit extends Enumeration
 {
 	type CPUUnit 	= Value
-	val SMALL, MEDIUM, LARGE, XLARGE = Value
+	val UNDEFINED, SMALL, MEDIUM, LARGE, XLARGE = Value
 
 	def fromString(str: String): CPUUnit = str.trim match{
+		case "UNDEFINED" 	=> UNDEFINED
 		case "SMALL" 	=> SMALL
-		case "MEDIUM" => MEDIUM
+		case "MEDIUM"	=> MEDIUM
 		case "LARGE"	=> LARGE
 		case "XLARGE"	=> XLARGE
 	}
@@ -52,9 +53,10 @@ object CPUUnitOrdering extends Ordering[CPUUnit]
 object ByteUnit extends Enumeration
 {
 	type ByteUnit = Value
-	val KB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
+	val UNDEFINED, KB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
 
 	def fromString(str: String): ByteUnit = str.trim match{
+		case "UNDEFINED" => UNDEFINED
 		case "KB" 	=> KB
 		case "KiB" 	=> KiB
 		case "MB" 	=> MB
@@ -202,9 +204,10 @@ object ByteSize {
  */
 object ImgFormat extends Enumeration {
 	type ImgFormat = Value
-	val BOCHS, CLOOP, COW, DMG, IMG, ISO, QCOW, QCOW2, QED, RAW, VMDK, VPC = Value
+	val UNDEFINED, BOCHS, CLOOP, COW, DMG, IMG, ISO, QCOW, QCOW2, QED, RAW, VMDK, VPC = Value
 
 	def fromString(str: String): ImgFormat = str.trim match{
+			case "UNDEFINED" => UNDEFINED
 			case "BOCHS" => BOCHS
 			case "CLOOP" => CLOOP
 			case "COW"	 => COW

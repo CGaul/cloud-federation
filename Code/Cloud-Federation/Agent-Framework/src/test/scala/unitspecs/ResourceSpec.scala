@@ -321,6 +321,10 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 	it should "be fully serializable to XML" in{
 
+		val host1 		= new Host(res2, Vector(), hostSLA1)
+		val host2 		= new Host(res3, Vector(resAlloc1), hostSLA2)
+		val host3 		= new Host(res4, Vector(resAlloc2, resAlloc3), hostSLA3)
+
 		val xmlSerialHost1 = Host.toXML(host1)
 		val xmlSerialHost2 = Host.toXML(host2)
 		val xmlSerialHost3 = Host.toXML(host3)

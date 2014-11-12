@@ -321,12 +321,15 @@ object Host {
 /* ================= */
 
 	def fromXML(node: Node): Host = {
-		val hardwareSpec: Resource 					= Resource.fromXML((node \\ "Hardware")(0))
+		val hardwareSpec: Resource 					= Resource.fromXML((node \ "Hardware")(0))
 		var allocRes: Vector[ResourceAlloc] = Vector()
 		for (actResAlloc <- node \\ "ResourceAllocs") {
-			allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
+			//Only parse, if the actual ResourceAlloc is existing.
+			if(actResAlloc.text != ""){
+				allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
+			}
 		}
-		val hostSLA: HostSLA 								= HostSLA.fromXML((node \\ "HostSLA")(0))
+		val hostSLA: HostSLA 								= HostSLA.fromXML((node \ "HostSLA")(0))
 
 		return Host(hardwareSpec, allocRes, hostSLA)
 	}

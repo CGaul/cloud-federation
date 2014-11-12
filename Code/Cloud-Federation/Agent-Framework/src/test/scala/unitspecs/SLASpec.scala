@@ -1,5 +1,7 @@
 package unitspecs
 
+import java.io.File
+
 import datatypes.ByteUnit.GB
 import datatypes.CPUUnit._
 import datatypes.ImgFormat._
@@ -31,7 +33,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 /* Test-Specs */
 /* ========== */
 
-	"A HostSLA" should "be equal to itself and another HostSLA with the same Vectors (in arbitrary element order)" in{
+	it should "be equal to itself and another HostSLA with the same Vectors (in arbitrary element order)" in{
 		val hostSLA1Rebuild = new HostSLA(0.99f, Vector(QCOW2, IMG, BOCHS,  CLOOP),
 													 Vector[(CPUUnit, Int)]((MEDIUM, 4), (SMALL, 2)))
 
@@ -100,6 +102,28 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		hostSLA1 == xmlDeserialHostSLA should be (true)
 	}
 
+	it should "be loadable and saveable to a XML file" in{
+		val xmlFile1 = new File("Agent-Framework/src/test/resources/HostSLA1.xml")
+		val xmlFile2 = new File("Agent-Framework/src/test/resources/HostSLA2.xml")
+		val xmlFile3 = new File("Agent-Framework/src/test/resources/HostSLA3.xml")
+		HostSLA.saveToXML(xmlFile1, hostSLA1)
+		HostSLA.saveToXML(xmlFile2, hostSLA2)
+		HostSLA.saveToXML(xmlFile3, hostSLA3)
+
+		val loadedHostSLA1 = HostSLA.loadFromXML(xmlFile1)
+		val loadedHostSLA2 = HostSLA.loadFromXML(xmlFile2)
+		val loadedHostSLA3 = HostSLA.loadFromXML(xmlFile3)
+
+		println("loadedHostSLA1 = " + loadedHostSLA1)
+		println("loadedHostSLA2 = " + loadedHostSLA2)
+		println("loadedHostSLA3 = " + loadedHostSLA3)
+
+		hostSLA1 shouldEqual loadedHostSLA1
+		hostSLA2 shouldEqual loadedHostSLA2
+		hostSLA3 shouldEqual loadedHostSLA3
+	}
+
+
 
 
 	behavior of "A CloudSLA"
@@ -123,7 +147,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 	/* Test-Specs */
 	/* ========== */
 
-	"A CloudSLA" should "be equal to itself and another CloudSLA with the same Vectors (in arbitrary element order)" in {
+	it should "be equal to itself and another CloudSLA with the same Vectors (in arbitrary element order)" in {
 
 		// Test equality via equals...
 		cloudSLA1 shouldEqual cloudSLA1
@@ -147,6 +171,27 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		val xmlDeserialCloudSLA1 = CloudSLA.fromXML(xmlSerialCloudSLA1)
 		println("deserialized cloudSLA1 = " + xmlDeserialCloudSLA1)
 
-		cloudSLA1 == xmlDeserialCloudSLA1 should be (true)
+		cloudSLA1 shouldEqual xmlDeserialCloudSLA1
+	}
+
+	it should "be loadable and saveable to a XML file" in{
+		val xmlFile1 = new File("Agent-Framework/src/test/resources/CloudSLA1.xml")
+		val xmlFile2 = new File("Agent-Framework/src/test/resources/CloudSLA2.xml")
+		val xmlFile3 = new File("Agent-Framework/src/test/resources/CloudSLA3.xml")
+		CloudSLA.saveToXML(xmlFile1, cloudSLA1)
+		CloudSLA.saveToXML(xmlFile2, cloudSLA2)
+		CloudSLA.saveToXML(xmlFile3, cloudSLA3)
+
+		val loadedCloudSLA1 = CloudSLA.loadFromXML(xmlFile1)
+		val loadedCloudSLA2 = CloudSLA.loadFromXML(xmlFile2)
+		val loadedCloudSLA3 = CloudSLA.loadFromXML(xmlFile3)
+
+		println("loadedCloudSLA1 = " + loadedCloudSLA1)
+		println("loadedCloudSLA2 = " + loadedCloudSLA2)
+		println("loadedCloudSLA3 = " + loadedCloudSLA3)
+
+		cloudSLA1 shouldEqual loadedCloudSLA1
+		cloudSLA2 shouldEqual loadedCloudSLA2
+		cloudSLA3 shouldEqual loadedCloudSLA3
 	}
 }

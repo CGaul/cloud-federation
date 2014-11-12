@@ -36,9 +36,9 @@ class TupleSerializerSpec  extends FlatSpec with Matchers with GivenWhenThen wit
     Then("The deserialization should be a Tuple3 with the correct values again")
     val deserialT3 = TupleSerializer.xmlToTuple3(serialT3)
     println("deserialT3 = " + deserialT3)
-    deserialT3._1.toInt shouldEqual originalT3._1
-    deserialT3._2.toInt shouldEqual originalT3._2
-    deserialT3._3.toInt shouldEqual originalT3._3
+    deserialT3.get._1.toInt shouldEqual originalT3._1
+    deserialT3.get._2.toInt shouldEqual originalT3._2
+    deserialT3.get._3.toInt shouldEqual originalT3._3
   }
 
   it should "be abtle to serialize tuples of all kinds of String-Tuple3" in{
@@ -52,8 +52,8 @@ class TupleSerializerSpec  extends FlatSpec with Matchers with GivenWhenThen wit
     Then("The deserialization should be a Tuple3 with the correct values again")
     val deserialT3 = TupleSerializer.xmlToTuple3(serialT3)
     println("deserialT3 = " + deserialT3)
-    deserialT3._1 shouldEqual originalT3._1
-    deserialT3._2 shouldEqual originalT3._2
-    deserialT3._3 shouldEqual originalT3._3
+    deserialT3.get._1 shouldEqual originalT3._1
+    deserialT3.get._2 shouldEqual originalT3._2
+    deserialT3.get._3 shouldEqual originalT3._3
   }
 }

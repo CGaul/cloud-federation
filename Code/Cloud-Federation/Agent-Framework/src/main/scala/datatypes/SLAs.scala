@@ -312,18 +312,22 @@ object CloudSLA {
 	def fromXML(node: xml.Node): CloudSLA = {
 		//val cpuRangeVector = (node \ "PriceRangeCPU").text().split(" ")
 
-		val priceRangeCPUTuple: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \\ "PriceRangeCPU")
-		val priceRAMTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \\ "PriceRangeRAM")
-		val priceStorageTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \\ "PriceRangeStorage")
+		val undefinedT3: (String, String, String) = ("UNDEFINED", "UNDEFINED", "UNDEFINED")
+		val priceRangeCPUTuple: Vector[Option[(String, String, String)]] = TupleSerializer.xmlToTuple3Vector(node \\ "PriceRangeCPU")
+		val priceRAMTuple: Option[(String, String, String)] = TupleSerializer.xmlToTuple3(node \\ "PriceRangeRAM")
+		val priceStorageTuple: Option[(String, String, String)] = TupleSerializer.xmlToTuple3(node \\ "PriceRangeStorage")
 
-		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3._1),
-																																																	Price.fromString(t3._2),Price.fromString(t3._3)))
-		val priceRangePerRAM: (ByteSize, Price, Price)	= (ByteSize.fromString(priceRAMTuple._1),
-																												Price.fromString(priceRAMTuple._2),
-																												Price.fromString(priceRAMTuple._3))
-		val priceRangePerStorage:  (ByteSize, Price, Price)	= (ByteSize.fromString(priceStorageTuple._1),
-																														Price.fromString(priceStorageTuple._2),
-																														Price.fromString(priceStorageTuple._3))
+		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3.getOrElse(undefinedT3)._1),
+																																																	Price.fromString(t3.getOrElse(undefinedT3)._2),
+																																																	Price.fromString(t3.getOrElse(undefinedT3)._3)))
+
+		val priceRangePerRAM: (ByteSize, Price, Price)	= (ByteSize.fromString(priceRAMTuple.getOrElse(undefinedT3)._1),
+																												Price.fromString(priceRAMTuple.getOrElse(undefinedT3)._2),
+																												Price.fromString(priceRAMTuple.getOrElse(undefinedT3)._3))
+		val priceRangePerStorage:  (ByteSize, Price, Price)	= (ByteSize.fromString(priceStorageTuple.getOrElse(undefinedT3)._1),
+			Price.fromString(priceStorageTuple.get._2),
+			Price.fromString(priceStorageTuple.get._3))
+
 		return CloudSLA(priceRangePerCPU, priceRangePerRAM, priceRangePerStorage)
 	}
 
