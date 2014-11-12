@@ -1,7 +1,8 @@
 package unitspecs
 
-import datatypes.CPUUnit
+import datatypes.ByteUnit.{MB, GiB}
 import datatypes.CPUUnit._
+import datatypes.ImgFormat._
 import datatypes._
 import org.scalatest.{Inspectors, Matchers, GivenWhenThen, FlatSpec}
 
@@ -16,24 +17,24 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	behavior of "A Resource"
 
 	//General Small Node
-	val res1 = new Resource(NodeID(1), CPUUnit.SMALL,
-									ByteSize(8, ByteUnit.GiB), ByteSize(50, ByteUnit.GiB),
-									ByteSize(10, ByteUnit.MB), 10, Vector())
+	val res1 = new Resource(NodeID(1), SMALL,
+									ByteSize(8, GiB), ByteSize(50, GiB),
+									ByteSize(10, MB), 10, Vector())
 
 	//General Medium Node
-	val res2= new Resource(NodeID(2), CPUUnit.MEDIUM,
-									ByteSize(16, ByteUnit.GiB), ByteSize(100, ByteUnit.GiB),
-									ByteSize(10, ByteUnit.MB), 10, Vector())
+	val res2= new Resource(NodeID(2), MEDIUM,
+									ByteSize(16, GiB), ByteSize(100, GiB),
+									ByteSize(10, MB), 10, Vector())
 
 	//Equals res2, but with lower latency
-	val res3 = new Resource(NodeID(3), CPUUnit.MEDIUM,
-									ByteSize(16, ByteUnit.GiB), ByteSize(100, ByteUnit.GiB),
-									ByteSize(10, ByteUnit.MB), 5, Vector())
+	val res3 = new Resource(NodeID(3), MEDIUM,
+									ByteSize(16, GiB), ByteSize(100, GiB),
+									ByteSize(10, MB), 5, Vector())
 
 	//General Large Node
-	val res4 = new Resource(NodeID(3), CPUUnit.LARGE,
-									ByteSize(24, ByteUnit.GiB), ByteSize(200, ByteUnit.GiB),
-									ByteSize(50, ByteUnit.MB), 10, Vector())
+	val res4 = new Resource(NodeID(3), LARGE,
+									ByteSize(24, GiB), ByteSize(200, GiB),
+									ByteSize(50, MB), 10, Vector())
 
 
 /* Test-Specs */
@@ -47,9 +48,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 
 		Given("A Resource with the res1 footprint, instantiated statically via apply()")
-		val staticRes1 = Resource(NodeID(1), CPUUnit.SMALL,
-			ByteSize(8, ByteUnit.GiB), ByteSize(50, ByteUnit.GiB),
-			ByteSize(10, ByteUnit.MB), 10, Vector())
+		val staticRes1 = Resource(NodeID(1), SMALL,
+			ByteSize(8, GiB), ByteSize(50, GiB),
+			ByteSize(10, MB), 10, Vector())
 
 		When("res1 is compared with the statically applied staticRes1 copy")
 		Then("res1.equals(staticRes1) should be true")
@@ -62,9 +63,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should  "be equal to another Resource with the same Resource footprint (even with different IDs and Neighbours)" in{
 
 		Given("A Respource with the res1 footprint, with additional link descriptions")
-		val equalRes1 		= Resource(NodeID(1), CPUUnit.SMALL,
-											ByteSize(8, ByteUnit.GiB), ByteSize(50, ByteUnit.GiB),
-											ByteSize(10, ByteUnit.MB), 10, Vector(NodeID(2), NodeID(3)))
+		val equalRes1 		= Resource(NodeID(1), SMALL,
+											ByteSize(8, GiB), ByteSize(50, GiB),
+											ByteSize(10, MB), 10, Vector(NodeID(2), NodeID(3)))
 
 
 		When("res1 is compared with the link-different equalRes1")
@@ -112,25 +113,25 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 	// All Hosts are starting with SLAs that allow 10 SMALL, 5 MEDIUM and 2 LARGE VMs at the beginning:
 
-	val hostSLA1 	= new HostSLA(0.91f, Vector(ImgFormat.IMG, ImgFormat.DMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
-									  	  			Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 5), (CPUUnit.LARGE, 2)))
+	val hostSLA1 	= new HostSLA(0.91f, Vector(IMG, DMG, CLOOP, QCOW2),
+									  	  			Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 5), (LARGE, 2)))
 
-	val hostSLA2 	= new HostSLA(0.91f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.BOCHS),
-															Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 5), (CPUUnit.LARGE, 2)))
+	val hostSLA2 	= new HostSLA(0.91f, Vector(IMG, CLOOP, BOCHS),
+															Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 5), (LARGE, 2)))
 
-	val hostSLA3 	= new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.DMG, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
-															Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 10), (CPUUnit.MEDIUM, 5), (CPUUnit.LARGE, 2)))
+	val hostSLA3 	= new HostSLA(0.99f, Vector(IMG, DMG, CLOOP, BOCHS, QCOW2),
+															Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 5), (LARGE, 2)))
 
 	// The required SLAs for the resource-allocation are mapped as follows:
 	// host1 can only allocate by the resourceAlloc with reqSLA1
 	// host2 can only allocate by the resourceAlloc with reqSLA2
 	// host3 is able to allocate all three resourceAllocs, however should fail due to VMs per CPU limitations
-	val reqSLA1		= new HostSLA(0.90f, Vector(ImgFormat.IMG, ImgFormat.DMG),
-															Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 3), (CPUUnit.MEDIUM, 2)))
-	val reqSLA2		= new HostSLA(0.91f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.BOCHS),
-															Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 1)))
-	val reqSLA3		= new HostSLA(0.99f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
-															Vector[(CPUUnit, Int)]((CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 1)))
+	val reqSLA1		= new HostSLA(0.90f, Vector(IMG, DMG),
+															Vector[(CPUUnit, Int)]((SMALL, 3), (MEDIUM, 2)))
+	val reqSLA2		= new HostSLA(0.91f, Vector(IMG, CLOOP, BOCHS),
+															Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 1)))
+	val reqSLA3		= new HostSLA(0.99f, Vector(IMG, CLOOP, QCOW2),
+															Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 1)))
 
 	val resAlloc1 = new ResourceAlloc(1, Vector(res1), reqSLA1)
 	val resAlloc2 = new ResourceAlloc(1, Vector(res2), reqSLA2)
