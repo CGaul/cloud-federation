@@ -46,7 +46,7 @@ object Price {
 	}
 
  	def fromXML(node: Node): Price = {
-		fromString((node \ "Price").text)
+		fromString((node \\ "Price").text)
  	}
 
  	def loadFromXML(file: File): Price = {
@@ -237,11 +237,11 @@ object HostSLA {
 /* ================= */
 
 	def fromXML(node: xml.Node): HostSLA = {
-		val relOnlineTime: Float 					= (node \ "RelOnlineTime").text.toFloat
-		val imgFormatStrArr								= (node \ "ImgFormats").text.split(" ")
+		val relOnlineTime: Float 					= (node \\ "RelOnlineTime").text.toFloat
+		val imgFormatStrArr								= (node \\ "ImgFormats").text.split(" ")
 		val imgFormats: Vector[ImgFormat] = imgFormatStrArr.map(ImgFormat.fromString).toVector
 
-		val maxResRaw: Vector[(String, String)] = TupleSerializer.xmlToTuple2Vector(node \ "maxResPerCPU")
+		val maxResRaw: Vector[(String, String)] = TupleSerializer.xmlToTuple2Vector(node \\ "maxResPerCPU")
 		val maxResPerCPU: Vector[(CPUUnit, Int)] = maxResRaw.map(t => (CPUUnit.fromString(t._1), t._2.toInt))
 
 		return HostSLA(relOnlineTime, imgFormats, maxResPerCPU)
@@ -312,11 +312,9 @@ object CloudSLA {
 	def fromXML(node: xml.Node): CloudSLA = {
 		//val cpuRangeVector = (node \ "PriceRangeCPU").text().split(" ")
 
-		val priceRangeCPUTuple: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \ "PriceRangeCPU")
-		val priceRAMTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeRAM")
-		val priceRAMTuple2: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \ "PriceRangeRAM")
-		println("node-PriceRangeRAM = " + node \ "PriceRangeRAM")
-		val priceStorageTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \ "PriceRangeStorage")
+		val priceRangeCPUTuple: Vector[(String, String, String)] = TupleSerializer.xmlToTuple3Vector(node \\ "PriceRangeCPU")
+		val priceRAMTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \\ "PriceRangeRAM")
+		val priceStorageTuple: (String, String, String) = TupleSerializer.xmlToTuple3(node \\ "PriceRangeStorage")
 
 		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3._1),
 																																																	Price.fromString(t3._2),Price.fromString(t3._3)))

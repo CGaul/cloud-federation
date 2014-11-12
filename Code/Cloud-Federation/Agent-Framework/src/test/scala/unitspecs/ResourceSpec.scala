@@ -103,6 +103,25 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		info("Comparison tests completed!")
 	}
 
+	it should "be fully serializable to XML" in{
+		val xmlSerialRes1 = Resource.toXML(res1)
+		val xmlSerialRes2 = Resource.toXML(res2)
+		val xmlSerialRes3 = Resource.toXML(res3)
+
+		println("serialized Res1 = " + xmlSerialRes1)
+		println("serialized Res2 = " + xmlSerialRes2)
+		println("serialized Res3 = " + xmlSerialRes3)
+
+		val xmlDeserialRes1 = Resource.fromXML(xmlSerialRes1)
+		val xmlDeserialRes2 = Resource.fromXML(xmlSerialRes2)
+		val xmlDeserialRes3 = Resource.fromXML(xmlSerialRes3)
+
+		res1 shouldEqual xmlDeserialRes1
+		res2 shouldEqual xmlDeserialRes2
+		res3 shouldEqual xmlDeserialRes3
+		res3 should not equal xmlDeserialRes1
+	}
+
 
 
 
@@ -298,6 +317,26 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 						"QoS, defined by the combined SLA" in {
 		pending
 		//TODO: check allocation split via host.allocate()
+	}
+
+	it should "be fully serializable to XML" in{
+
+		val xmlSerialHost1 = Host.toXML(host1)
+		val xmlSerialHost2 = Host.toXML(host2)
+		val xmlSerialHost3 = Host.toXML(host3)
+
+		println("serialized Host1 = " + xmlSerialHost1)
+		println("serialized Host2 = " + xmlSerialHost2)
+		println("serialized Host3 = " + xmlSerialHost3)
+
+		val xmlDeserialHost1 = Host.fromXML(xmlSerialHost1)
+		val xmlDeserialHost2 = Host.fromXML(xmlSerialHost2)
+		val xmlDeserialHost3 = Host.fromXML(xmlSerialHost3)
+
+		host1 shouldEqual xmlDeserialHost1
+		host2 shouldEqual xmlDeserialHost2
+		host3 shouldEqual xmlDeserialHost3
+		host3 should not equal xmlDeserialHost1
 	}
 
 }

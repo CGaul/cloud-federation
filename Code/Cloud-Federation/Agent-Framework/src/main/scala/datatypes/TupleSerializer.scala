@@ -48,8 +48,8 @@ object TupleSerializer {
 
     for (actNode <- node \ "t3") {
       actNode match{
-        case <t3>{val1},{val2}, {val3}</t3> => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString())
-        case _                              => tupleVector = tupleVector :+ ("", "", "")
+        case <t3>{val1},{val2},{val3}</t3> => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString())
+        case _                             => tupleVector = tupleVector :+ ("", "", "")
       }
     }
 
@@ -61,7 +61,10 @@ object TupleSerializer {
     var tupleVector: Vector[(String, String, String, String)] = Vector()
 
     for (actNode <- node \ "t4") {
-      tupleVector = tupleVector :+ xmlToTuple4(actNode)
+      actNode match{
+        case <t4>{val1},{val2},{val3},{val4}</t4> => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString(), val4.toString())
+        case _                                    => tupleVector = tupleVector :+ ("", "", "", "")
+      }
     }
 
     return tupleVector
@@ -72,7 +75,10 @@ object TupleSerializer {
     var tupleVector: Vector[(String, String, String, String, String)] = Vector()
 
     for (actNode <- node \ "t5") {
-      tupleVector = tupleVector :+ xmlToTuple5(actNode)
+      actNode match{
+        case <t5>{val1},{val2},{val3},{val4},{val5}</t5>  => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString(), val4.toString(), val5.toString())
+        case _                                            => tupleVector = tupleVector :+ ("", "", "", "", "")
+      }
     }
 
     return tupleVector
@@ -83,44 +89,44 @@ object TupleSerializer {
     var tupleVector: Vector[(String, String, String, String, String, String)] = Vector()
 
     for (actNode <- node \ "t6") {
-      tupleVector = tupleVector :+ xmlToTuple6(actNode)
+      actNode match{
+        case <t6>{val1},{val2},{val3},{val4},{val5},{val6}</t6> => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString(), val4.toString(), val5.toString(), val6.toString())
+        case _                                                  => tupleVector = tupleVector :+ ("", "", "", "", "", "")
+      }
     }
 
     return tupleVector
   }
 
 
-  def xmlToTuple2(node: xml.NodeSeq): (String, String) = {
-    val matchedNode = if((node \ "t2").length != 0) node \ "t2" else node
-    matchedNode match{
-      case <t2>{val1},{val2}</t2> => (val1.toString(), val2.toString())
-      case _                      => ("", "")
-    }
-  }
 
+/*  XML-Deserialization:  */
+/* (Convenience Methods)  */
+/* =====================  */
+
+  def xmlToTuple2(node: xml.NodeSeq): (String, String) = {
+    val xmlTupleVector = xmlToTuple2Vector(node)
+    return xmlTupleVector(0)
+  }
 
   def xmlToTuple3(node: xml.NodeSeq): (String, String, String) ={
-    val matchedNode = if((node \ "t3").length != 0) node \ "t3" else node
-    matchedNode match {
-      case <t3>{val1},{val2},{val3}</t3>  => (val1.toString(), val2.toString(), val3.toString())
-      case _                              => ("", "", "")
-    }
+    val xmlTupleVector = xmlToTuple3Vector(node)
+    return xmlTupleVector(0)
   }
 
-
-  def xmlToTuple4(node: xml.NodeSeq): (String, String, String, String) = node match{
-    case <t4>{val1},{val2},{val3},{val4}</t4> => (val1.toString(), val2.toString(), val3.toString(), val4.toString())
-    case _                                    => ("", "", "", "")
+  def xmlToTuple4(node: xml.NodeSeq): (String, String, String, String) ={
+    val xmlTupleVector = xmlToTuple4Vector(node)
+    return xmlTupleVector(0)
   }
 
-  def xmlToTuple5(node: xml.NodeSeq): (String, String, String, String, String) = node match{
-    case <t5>{val1},{val2},{val3},{val4},{val5}</t5>  => (val1.toString(), val2.toString(), val3.toString(), val4.toString(), val5.toString())
-    case _                                            => ("", "", "", "", "")
+  def xmlToTuple5(node: xml.NodeSeq): (String, String, String, String, String) ={
+    val xmlTupleVector = xmlToTuple5Vector(node)
+    return xmlTupleVector(0)
   }
 
-  def xmlToTuple6(node: xml.NodeSeq): (String, String, String, String, String, String) = node match{
-    case <t6>{val1},{val2},{val3},{val4},{val5},{val6}</t6> => (val1.toString(), val2.toString(), val3.toString(), val4.toString(), val5.toString(), val6.toString())
-    case _                                                  => ("", "", "", "", "", "")
+  def xmlToTuple6(node: xml.NodeSeq): (String, String, String, String, String, String) ={
+    val xmlTupleVector = xmlToTuple6Vector(node)
+    return xmlTupleVector(0)
   }
 
 }

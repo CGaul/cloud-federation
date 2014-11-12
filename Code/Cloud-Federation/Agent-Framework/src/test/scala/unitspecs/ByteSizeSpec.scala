@@ -120,4 +120,26 @@ class ByteSizeSpec extends FlatSpec with Matchers{
 		val convByteSize1 = byteSize1.convert(KB)
 		convByteSize1.equals(byteSize2) should be (true)
 	}
+
+	it should "be fully serializable to XML" in{
+		val byteSize1 = new ByteSize(1000, KiB)
+		val byteSize2 = new ByteSize(1024, KB)
+		val byteSize3 = new ByteSize(100, MiB)
+
+		val xmlSerialBS1 = ByteSize.toXML(byteSize1)
+		val xmlSerialBS2 = ByteSize.toXML(byteSize2)
+		val xmlSerialBS3 = ByteSize.toXML(byteSize3)
+		println("serialized ByteSize1 = " + xmlSerialBS1)
+		println("serialized ByteSize2 = " + xmlSerialBS2)
+		println("serialized ByteSize3 = " + xmlSerialBS3)
+
+		val xmlDeserialBS1 = ByteSize.fromXML(xmlSerialBS1)
+		val xmlDeserialBS2 = ByteSize.fromXML(xmlSerialBS2)
+		val xmlDeserialBS3 = ByteSize.fromXML(xmlSerialBS3)
+
+		byteSize1 shouldEqual xmlDeserialBS1
+		byteSize2 shouldEqual xmlDeserialBS2
+		byteSize3 shouldEqual xmlDeserialBS3
+		byteSize3 should not equal xmlDeserialBS1
+	}
 }

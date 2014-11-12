@@ -1,6 +1,10 @@
 package datatypes
 
+import java.io.File
+
 import datatypes.CPUUnit._
+
+import scala.xml.Node
 
 
 /* Data Containers (case classes): */
@@ -11,7 +15,18 @@ import datatypes.CPUUnit._
  * Used for syntactic Sugar in the Code.
  * @param id The ID of the Node/Host
  */
-case class NodeID(id: Integer)
+case class NodeID(id: Int){
+	override def toString: String = id.toString
+}
+/**
+ * Companion Object for NodeID
+ */
+object NodeID {
+
+ def fromString(str: String): NodeID = {
+	 return NodeID(str.trim.toInt)
+ }
+}
 
 /**
  *
@@ -45,6 +60,54 @@ case class Resource(nodeID: NodeID,
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Resource]
 }
+
+/**
+ * Companion Object for Resource
+ */
+object Resource {
+
+/* Serialization: */
+/* ============== */
+
+	def toXML(resource: Resource): Node =
+		<Resource>
+			<NodeID>{resource.nodeID.toString}</NodeID>
+			<CPU>{resource.cpu.toString}</CPU>
+			<RAM>{ByteSize.toXML(resource.ram)}</RAM>
+			<Storage>{ByteSize.toXML(resource.storage)}</Storage>
+			<Bandwidth>{ByteSize.toXML(resource.bandwidth)}</Bandwidth>
+			<Latency>{resource.latency}</Latency>
+			<Links>{if(resource.links.size == 0) {}
+							else {resource.links.map(nodeID => nodeID.toString) +" "}}</Links>
+		</Resource>
+
+	def saveToXML(file: File, resource: Resource) = {
+		val xmlNode = toXML(resource)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+/* De-Serialization: */
+/* ================= */
+
+	def fromXML(node: Node): Resource = {
+		val nodeID: NodeID 			= NodeID.fromString((node \\ "NodeID").text)
+		val cpu: CPUUnit 	 			= CPUUnit.fromString((node \\ "CPU").text)
+		val ram: ByteSize	 			= ByteSize.fromString((node \\ "RAM").text)
+		val storage: ByteSize		= ByteSize.fromString((node \\ "Storage").text)
+		val bandwidth: ByteSize	= ByteSize.fromString((node \\ "Bandwidth").text)
+		val latency: Float			= (node \\ "Latency").text.toFloat
+		val links: Vector[NodeID] = if((node \\ "Links").text == "") {Vector()}
+																else {(node \\ "Links").text.split(" ").map(str => NodeID.fromString(str)).toVector}
+
+		return Resource(nodeID, cpu, ram, storage, bandwidth, latency, links)
+	}
+
+	def loadFromXML(file: File): Resource = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
+}
+
 
 
 //TODO: use http://docs.scala-lang.org/style/scaladoc.html to go on with ScalaDocs in code.
@@ -123,7 +186,7 @@ case class Host(hardwareSpec: Resource,
 
 
 	/* Private Methods: */
-	/* --------------- */
+	/* ---------------- */
 
 	/**
 	 *  When [[datatypes.Host.allocate]] is called, the new allocation needs to be tested first (pre-allocation phase),
@@ -232,13 +295,46 @@ case class Host(hardwareSpec: Resource,
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
 
-//	def toXML =
-//		<Host>
-//			<Hardware>{hardwareSpec.toXML}</Hardware>
-//			<ResourceAlloc>{allocatedResources.foreach(r => r.toXML)}</ResourceAlloc>
-//			<HostSLA>{hostSLA.toXML}</HostSLA>
-//		</Host>
+}
 
+/**
+ * Companion Object for Host
+ */
+object Host {
+
+/* Serialization: */
+/* ============== */
+
+	def toXML(host: Host): Node =
+		<Host>
+			<Hardware>{Resource.toXML(host.hardwareSpec)}</Hardware>
+			<ResourceAllocs>{host.allocatedResources.map(resAlloc => ResourceAlloc.toXML(resAlloc))}</ResourceAllocs>
+			<HostSLA>{HostSLA.toXML(host.hostSLA)}</HostSLA>
+		</Host>
+
+	def saveToXML(file: File, host: Host) = {
+		val xmlNode = toXML(host)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+/* De-Serialization: */
+/* ================= */
+
+	def fromXML(node: Node): Host = {
+		val hardwareSpec: Resource 					= Resource.fromXML((node \\ "Hardware")(0))
+		var allocRes: Vector[ResourceAlloc] = Vector()
+		for (actResAlloc <- node \\ "ResourceAllocs") {
+			allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
+		}
+		val hostSLA: HostSLA 								= HostSLA.fromXML((node \\ "HostSLA")(0))
+
+		return Host(hardwareSpec, allocRes, hostSLA)
+	}
+
+	def loadFromXML(file: File): Host = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
 }
 
 
@@ -281,6 +377,46 @@ case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHo
 	}
 
 	override def canEqual(that: Any): Boolean = that.isInstanceOf[ResourceAlloc]
+}
+
+/** 
+ * Companion Object for ResourceAlloc
+ */
+object ResourceAlloc {
+	
+/* Serialization: */
+/* ============== */
+
+	def toXML(resourceAlloc: ResourceAlloc): Node =
+		<ResourceAlloc>
+			<TenantID>{resourceAlloc.tenantID}</TenantID>
+			<Resources>{resourceAlloc.resources.map(res => Resource.toXML(res))}</Resources>
+			<ReqHostSLA>{HostSLA.toXML(resourceAlloc.requestedHostSLA)}</ReqHostSLA>
+		</ResourceAlloc>
+
+	def saveToXML(file: File, resource_alloc: ResourceAlloc) = {
+		val xmlNode = toXML(resource_alloc)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+/* De-Serialization: */
+/* ================= */
+
+	def fromXML(node: Node): ResourceAlloc = {
+		val tenantID: Int 							= (node \\ "TenantID").text.toInt
+		var resources: Vector[Resource] = Vector()
+		for (actResNode <- node \\ "Resources") {
+			resources = resources :+ Resource.fromXML(actResNode)
+		}
+		val reqHostSLA: HostSLA 				= HostSLA.fromXML((node \\ "ReqHostSLA")(0))
+
+		return ResourceAlloc(tenantID, resources, reqHostSLA)
+	}
+
+	def loadFromXML(file: File): ResourceAlloc = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}	
 }
 
 

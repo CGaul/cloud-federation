@@ -13,7 +13,7 @@ object CPUUnit extends Enumeration
 	type CPUUnit 	= Value
 	val SMALL, MEDIUM, LARGE, XLARGE = Value
 
-	def fromString(str: String): CPUUnit = str match{
+	def fromString(str: String): CPUUnit = str.trim match{
 		case "SMALL" 	=> SMALL
 		case "MEDIUM" => MEDIUM
 		case "LARGE"	=> LARGE
@@ -54,7 +54,7 @@ object ByteUnit extends Enumeration
 	type ByteUnit = Value
 	val KB, KiB, MB, MiB, GB, GiB, TB, TiB, PB, PiB = Value
 
-	def fromString(str: String): ByteUnit = str match{
+	def fromString(str: String): ByteUnit = str.trim match{
 		case "KB" 	=> KB
 		case "KiB" 	=> KiB
 		case "MB" 	=> MB
@@ -178,12 +178,12 @@ object ByteSize {
 	/* ================= */
 
 	def fromString(str: String): ByteSize = {
-		val strSplit = str.split(" ")
+		val strSplit = str.trim.split(" ")
 		val (size, unit): (Double, ByteUnit) = (strSplit(0).toDouble, ByteUnit.fromString(strSplit(1)))
 		return ByteSize(size, unit)
 	}
 	def fromXML(node: xml.Node): ByteSize = {
-		val xmlString = (node \ "ByteSize").text
+		val xmlString = (node \\ "ByteSize").text
 		return fromString(xmlString)
 	}
 
@@ -204,7 +204,7 @@ object ImgFormat extends Enumeration {
 	type ImgFormat = Value
 	val BOCHS, CLOOP, COW, DMG, IMG, ISO, QCOW, QCOW2, QED, RAW, VMDK, VPC = Value
 
-	def fromString(str: String): ImgFormat = str match{
+	def fromString(str: String): ImgFormat = str.trim match{
 			case "BOCHS" => BOCHS
 			case "CLOOP" => CLOOP
 			case "COW"	 => COW
@@ -227,7 +227,7 @@ object CloudCurrency extends Enumeration {
 	//val Currency.getAvailableCurrencies
 	val CLOUD_CREDIT = Value
 
-	def fromString(str: String) = str match {
+	def fromString(str: String) = str.trim match {
 		case "CLOUD_CREDIT" => CLOUD_CREDIT
 	}
 }
