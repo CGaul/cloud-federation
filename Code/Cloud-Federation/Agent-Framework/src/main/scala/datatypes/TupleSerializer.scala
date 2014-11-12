@@ -33,7 +33,10 @@ object TupleSerializer {
     var tupleVector: Vector[(String, String)] = Vector()
 
     for (actNode <- node \ "t2") {
-      tupleVector = tupleVector :+ xmlToTuple2(actNode)
+      actNode match{
+        case <t2>{val1},{val2}</t2> => tupleVector = tupleVector :+ (val1.toString(), val2.toString())
+        case _                      => tupleVector = tupleVector :+ ("", "")
+      }
     }
 
     return tupleVector
@@ -44,7 +47,10 @@ object TupleSerializer {
     var tupleVector: Vector[(String, String, String)] = Vector()
 
     for (actNode <- node \ "t3") {
-      tupleVector = tupleVector :+ xmlToTuple3(actNode)
+      actNode match{
+        case <t3>{val1},{val2}, {val3}</t3> => tupleVector = tupleVector :+ (val1.toString(), val2.toString(), val3.toString())
+        case _                              => tupleVector = tupleVector :+ ("", "", "")
+      }
     }
 
     return tupleVector
