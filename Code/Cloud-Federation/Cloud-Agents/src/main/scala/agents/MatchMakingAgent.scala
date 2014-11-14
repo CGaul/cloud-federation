@@ -71,6 +71,6 @@ object MatchMakingAgent
 	 * @return An Akka Properties-Object
 	 */
 	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
-	Props = Props(new MatchMakingAgent(initialHostAlloc, ovxIP, matchMakingAgent))
+		Props = Props(new MatchMakingAgent(initialHostAlloc, ovxIP, matchMakingAgent))
 }
 

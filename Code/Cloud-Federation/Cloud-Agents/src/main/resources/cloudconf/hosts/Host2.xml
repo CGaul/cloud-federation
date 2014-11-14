@@ -1,0 +1,33 @@
+<Host>
+	<Hardware>
+		<Resource>
+			<NodeID>2</NodeID>
+			<CPU>MEDIUM</CPU>
+			<RAM>
+				<ByteSize>16.0 GiB</ByteSize>
+			</RAM>
+			<Storage>
+				<ByteSize>100.0 GiB</ByteSize>
+			</Storage>
+			<Bandwidth>
+				<ByteSize>100.0 MB</ByteSize>
+			</Bandwidth>
+			<Latency>10.0</Latency>
+			<Links>1 3</Links>
+		</Resource>
+	</Hardware>
+
+	<ResourceAllocs>
+
+	</ResourceAllocs>
+
+	<HostSLA>
+		<HostSLA>
+			<RelOnlineTime>0.95</RelOnlineTime>
+			<ImgFormats>DMG IMG QCOW QCOW2 RAW</ImgFormats>
+			<maxResPerCPU>
+				<t2>SMALL,10</t2><t2>MEDIUM,5</t2><t2>LARGE,2</t2>
+			</maxResPerCPU>
+		</HostSLA>
+	</HostSLA>
+</Host>

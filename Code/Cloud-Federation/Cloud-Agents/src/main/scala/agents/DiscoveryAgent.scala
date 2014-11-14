@@ -96,5 +96,6 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
  */
 object DiscoveryAgent
 {
-	def props(pubSubServerAddr: ActorSelection, cert: Certificate): Props = Props(new DiscoveryAgent(pubSubServerAddr, cert))
+	def props(pubSubServerAddr: ActorSelection, cert: Certificate):
+		Props = Props(new DiscoveryAgent(pubSubServerAddr, cert))
 }

@@ -1,12 +1,10 @@
 package agents
 
-import java.io.{FileInputStream, File}
+import java.io.{File}
 import java.net.InetAddress
 import java.security.cert.{CertificateFactory, Certificate}
 
 import akka.actor._
-import datatypes.CPUUnit.CPUUnit
-import datatypes.ImgFormat.ImgFormat
 import datatypes._
 import messages._
 
@@ -19,49 +17,27 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	//TODO: replace by a XML File
 	object CCFMConfig
 	{
+		def certFile 		= _certFile
+		def ovxIP 			= _ovxIP
+		def cloudHosts 	= _cloudHosts
+		def cloudSLA 		= _cloudSLA
+
+
 		//TODO: build security interfaces for a Certificate-Store
-		val certFile: File			= new File("filename")
+		val _certFile: File			= new File("cloudconf/cloud1.key")
 
-		val ovxIP: InetAddress 	= InetAddress.getLocalHost
+		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
 
-		val hostSLA: HostSLA		= new HostSLA(
-														relOnlineTime 		= 0.8f,
-													 	_supportedImgFormats = Vector[ImgFormat](ImgFormat.QCOW2),
-													 	_maxResPerCPU 			= Vector[(CPUUnit, Int)](
-																						(CPUUnit.SMALL, 2), (CPUUnit.MEDIUM, 2),
-																						(CPUUnit.LARGE, 3), (CPUUnit.XLARGE, 4)))
 
-		val host1 : Host = Host(Resource(NodeID(1), CPUUnit.MEDIUM, ByteSize(16.0, ByteUnit.GiB),
-			ByteSize(320.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
-			10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
-		val host2 : Host = Host(Resource(NodeID(2), CPUUnit.LARGE, ByteSize(32.0, ByteUnit.GiB),
-			ByteSize(500.0, ByteUnit.GiB), ByteSize(50.0, ByteUnit.MiB),
-			10.0f, Vector[NodeID]()), _hostSLA = hostSLA)
+		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
+		var _cloudHosts: Vector[Host] = Vector()
+		val _cloudHostDir: File = new File("cloudconf/hosts")
+		for (actHostFile <- _cloudHostDir.listFiles) {
+			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
+		}
 
-		val cloudHosts = Vector(host1, host2)
-
-		val softSLAs: CloudSLA	= new CloudSLA(
-														priceRangePerCPU 	= Vector[(CPUUnit, Price, Price)](
-															 										(CPUUnit.SMALL,
-														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
-														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPUUnit.MEDIUM,
-																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT),
-																		  								Price(0.10f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPUUnit.LARGE,
-																									  	Price(0.10f, CloudCurrency.CLOUD_CREDIT),
-																		  								Price(0.15f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPUUnit.XLARGE,
-																									  	Price(0.20f, CloudCurrency.CLOUD_CREDIT),
-																		  								Price(0.50f, CloudCurrency.CLOUD_CREDIT))),
-														priceRangePerRAM		= (new ByteSize(1, ByteUnit.GB),
-														  												Price(0.02f, CloudCurrency.CLOUD_CREDIT),
-														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-														priceRangePerStorage= (new ByteSize(1, ByteUnit.GB),
-																									  	Price(0.02f, CloudCurrency.CLOUD_CREDIT),
-																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT))
-														)
-
+		// Define the Cloud-SLA from the CloudSLA.xml file in the resources/cloudconf/ directory
+		val _cloudSLA  = CloudSLA.loadFromXML(new File ("cloudconf/CloudSLA.xml"))
 	}
 
 
@@ -74,7 +50,7 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, 				name="discoveryAgent")
 
 	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],
-																								CCFMConfig.softSLAs)
+																								CCFMConfig.cloudSLA)
 	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, 			name="matchMakinAgent")
 
 	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],

@@ -352,15 +352,12 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		val loadedHost1 = Host.loadFromXML(xmlFile1)
 		val loadedHost2 = Host.loadFromXML(xmlFile2)
 		val loadedHost3 = Host.loadFromXML(xmlFile3)
-		val loadedHost1Rewritten = Host.loadFromXML(new File("Agent-Framework/src/test/resources/resconfig/Host1.xml"))
 
 		println("host1 = " + loadedHost1)
-		println("host1 = " + loadedHost1Rewritten)
 		println("host2 = " + loadedHost2)
 		println("host3 = " + loadedHost3)
 
 		host1 should equal (loadedHost1)
-		host1 should equal (loadedHost1Rewritten)
 		host2 should equal (loadedHost2)
 		host3 should equal (loadedHost3)
 	}
