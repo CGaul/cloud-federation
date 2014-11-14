@@ -12,7 +12,7 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/27/14.
  */
-class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Actor with ActorLogging
+class CCFM(pubSubActorSelection: ActorSelection) extends Actor with ActorLogging
 {
 	//TODO: replace by a XML File
 	object CCFMConfig
@@ -31,13 +31,15 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 
 		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
-		val _cloudHostDir: File = new File("cloudconf/hosts")
+		val _cloudHostDir: File = new File("Cloud-Agents/src/main/resources/cloudconf/hosts")
+		if(_cloudHostDir.listFiles() == null)
+			log.error("Hosts need a defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
 		for (actHostFile <- _cloudHostDir.listFiles) {
 			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
 		}
 
 		// Define the Cloud-SLA from the CloudSLA.xml file in the resources/cloudconf/ directory
-		val _cloudSLA  = CloudSLA.loadFromXML(new File ("cloudconf/CloudSLA.xml"))
+		val _cloudSLA  = CloudSLA.loadFromXML(new File ("Cloud-Agents/src/main/resources/cloudconf/CloudSLA.xml"))
 	}
 
 
@@ -45,17 +47,20 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 /* ======= */
 
 	// Akka Child-Actor spawning:
+	val mMASelection: ActorSelection			= context.actorSelection("/user/"+"matchMakingAgent")
 	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
-																								pubSubServerAddr, cloudCert)
-	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, 				name="discoveryAgent")
+																								pubSubActorSelection, mMASelection, CCFMConfig.certFile)
+	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, name="discoveryAgent")
 
+	
 	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],
 																								CCFMConfig.cloudSLA)
-	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, 			name="matchMakinAgent")
+	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, name="matchMakingAgent")
 
+	
 	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
 																								CCFMConfig.cloudHosts, CCFMConfig.ovxIP, matchMakingAgent)
-	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, 	name="networkResourceAgent")
+	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 
 
 
@@ -75,8 +80,8 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
 
-	//TODO: DiscoveryInit really needed? Yes -> for every update of SLA, send a new one and forward to PubSubFederator.
-	discoveryAgent ! FederationSLAs(Vector[HostSLA](CCFMConfig.hostSLA))
+	//TODO: Maybe possible HostSLAs should differ from initial CloudHostSLAs:
+	discoveryAgent ! FederationSLAs(CCFMConfig.cloudSLA, CCFMConfig.cloudHosts.map(_.hostSLA))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 
@@ -132,6 +137,6 @@ object CCFM
 	 * @param pubSubServerAddr The akka.tcp connection, where the PubSub-Federator-Agents is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(pubSubServerAddr: ActorSelection, cloudCert: Certificate):
-		Props = Props(new CCFM(pubSubServerAddr, cloudCert))
+	def props(pubSubServerAddr: ActorSelection):
+		Props = Props(new CCFM(pubSubServerAddr))
 }

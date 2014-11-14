@@ -1,8 +1,9 @@
 package messages
 
+import java.io.File
 import java.security.cert.Certificate
 
-import akka.actor.ActorPath
+import akka.actor.{ActorRef}
 import datatypes.{CloudSLA, HostSLA}
 
 sealed trait DiscoveryMessage
@@ -39,7 +40,8 @@ case class DiscoveryError(error: String)
  * @param possibleHostSLAs
  * @param cert
  */
-case class DiscoverySubscription(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: Certificate)
+//TODO: change cert type to "Certificate"
+case class DiscoverySubscription(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: File)
 	extends DiscoveryMessage with PubSubFederatorDestination
 
 case class AuthenticationInquiry(hashedKey: Long)
@@ -55,8 +57,8 @@ case class AuthenticationAnswer(solvedKey: Long)
  *    This message will be send from the PubSubFederator to the pre-subscribed Discovery-Agent
  *    so that this Agent is able to get into contact with all Discovery-Agents in that list.
  * </p>
- * @param discoveries A list of akka.tcp connections, each belonging to another Discovery-Agent from
- *                         possible matches of a Cloud-Federation
+ * @param discoveredActor Describes a newly subscribed actor to all other, current subscribers.
  */
-case class DiscoveryPublication(discoveries: Vector[(ActorPath, CloudSLA, Vector[HostSLA])])
+//TODO: change cert type to "Certificate"
+case class DiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File))
 	extends DiscoveryMessage with DiscoveryAgentDestination

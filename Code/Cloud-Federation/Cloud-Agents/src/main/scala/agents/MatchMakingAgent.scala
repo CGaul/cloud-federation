@@ -3,13 +3,13 @@ package agents
 import java.net.InetAddress
 
 import akka.actor.{Props, ActorRef, Actor, ActorLogging}
-import datatypes.{Host, ResourceAlloc}
+import datatypes.{CloudSLA, Host, ResourceAlloc}
 import messages.{ResourceReply, ResourceFederationReply, ResourceRequest, NetworkResourceMessage}
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class MatchMakingAgent extends Actor with ActorLogging
+class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 {
 
 /* Methods: */
@@ -67,10 +67,10 @@ object MatchMakingAgent
 	 * In this case, to generate a new NetworkResource Agent, call
 	 * 	val ccfmProps = Props(classOf[NetworkResourceAgent], args = ovxIP)
 	 * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkResourceAgent-x")
-	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
+	 * @param cloudSLA The CloudSLA that is managed by the Cloud's CCFM.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
-		Props = Props(new MatchMakingAgent(initialHostAlloc, ovxIP, matchMakingAgent))
+	def props(cloudSLA: CloudSLA):
+		Props = Props(new MatchMakingAgent(cloudSLA))
 }
 

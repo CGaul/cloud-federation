@@ -1,5 +1,6 @@
 package agents
 
+import java.io.File
 import java.security.cert.Certificate
 
 import agents.cloudfederation.RemoteDependencyAgent
@@ -13,8 +14,10 @@ import messages._
  * and establishes a communication with the CCFM as its Supervisor.
  * @author Constantin Gaul created on 5/27/14.
  */
-class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
-									extends RemoteDependencyAgent(Vector(pubSubServer)) with ActorLogging
+class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelection: ActorSelection,
+										 cert: File) //TODO: change cert type to "Certificate"
+									extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
+									with ActorLogging
 {
 
 /* Values: */
@@ -42,7 +45,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
 
 	  	case message: DiscoveryAgentDestination	=> message match {
 			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> recvDiscoveryInit(cloudSLA, possibleHostSLAs)
-			case DiscoveryPublication(discoveries)					=> recvDiscoveryPublication(discoveries)
+			case DiscoveryPublication(discoveredActor)					=> recvDiscoveryPublication(discoveredActor)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
@@ -52,7 +55,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
 		log.info("Received Discovery-Init Call from CCFM.")
 		log.info("Sending subscription request to PubSub-Federator...")
 
-		pubSubServer ! DiscoverySubscription(cloudSLA, possibleHostSLAs, cert)
+		pubSubActorSelection ! DiscoverySubscription(cloudSLA, possibleHostSLAs, cert)
 
 //		try{
 //			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
@@ -78,7 +81,8 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
 
 	}
 
-	def recvDiscoveryPublication(discoveryActors: Vector[(ActorPath, CloudSLA, Vector[HostSLA])]) = {
+	//TODO: change cert type to "Certificate"
+	def recvDiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File)) = {
 		log.info("Received Publication Call from PubSubFederator.")
 //	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
 	}
@@ -96,6 +100,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate)
  */
 object DiscoveryAgent
 {
-	def props(pubSubServerAddr: ActorSelection, cert: Certificate):
-		Props = Props(new DiscoveryAgent(pubSubServerAddr, cert))
+	//TODO: change cert type to "Certificate"
+	def props(pubSubActorSelection: ActorSelection, matchMakingAgentSelection: ActorSelection, cert: File):
+		Props = Props(new DiscoveryAgent(pubSubActorSelection, matchMakingAgentSelection, cert))
 }
