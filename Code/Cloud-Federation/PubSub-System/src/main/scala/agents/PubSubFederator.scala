@@ -5,7 +5,7 @@ import java.security.cert.Certificate
 
 import akka.actor._
 import datatypes.{CloudSLA, HostSLA}
-import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorDestination}
+import messages.{AuthenticationInquiry, DiscoveryPublication, DiscoverySubscription, PubSubFederatorDestination}
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
@@ -50,6 +50,8 @@ class PubSubFederator extends Actor with ActorLogging
 	 	log.debug("Current subscriptions: "+ subscriptions)
 	 	log.debug("Current subscribers: "+ subscribers)
 
+		val authSubscriberQuestion = AuthenticationInquiry(Math.random().toLong)
+		subscriber ! authSubscriberQuestion
 		// Send new publication to all current subscribers:
 		for (actSubscriber <- subscribers) {
 			actSubscriber ! DiscoveryPublication(newSubscription)

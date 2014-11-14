@@ -15,9 +15,10 @@ import messages._
  * @author Constantin Gaul created on 5/27/14.
  */
 class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelection: ActorSelection,
-										 cert: File) //TODO: change cert type to "Certificate"
-									extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
-									with ActorLogging
+										 cert: File) extends Actor with ActorLogging
+									//TODO: change cert type to "Certificate"
+									//extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
+									//with ActorLogging
 {
 
 /* Values: */
@@ -40,11 +41,12 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def receivedOnline(): Receive = {
-	  	case KillNotifier()						=> super.recv_offlineNotifier()
+	override def receive(): Receive = {
+	  	//case KillNotifier()						=> super.recv_offlineNotifier()
 
 	  	case message: DiscoveryAgentDestination	=> message match {
 			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> recvDiscoveryInit(cloudSLA, possibleHostSLAs)
+			case AuthenticationInquiry(hashKey)							=> log.debug("Received Authentication Inquiry from PubSubFederator!")
 			case DiscoveryPublication(discoveredActor)					=> recvDiscoveryPublication(discoveredActor)
 		}
 		case Kill									=> recvCCFMShutdown()
