@@ -96,8 +96,8 @@ object Resource {
 		val storage: ByteSize		= ByteSize.fromString((node \\ "Storage").text)
 		val bandwidth: ByteSize	= ByteSize.fromString((node \\ "Bandwidth").text)
 		val latency: Float			= (node \\ "Latency").text.toFloat
-		val links: Vector[NodeID] = if((node \\ "Links").text == "") {Vector()}
-																else {(node \\ "Links").text.split(" ").map(str => NodeID.fromString(str)).toVector}
+		val links: Vector[NodeID] = if((node \\ "Links").text.trim == "") {Vector()}
+																else {(node \\ "Links").text.trim.split(" ").map(str => NodeID.fromString(str)).toVector}
 
 		return Resource(nodeID, cpu, ram, storage, bandwidth, latency, links)
 	}
@@ -325,7 +325,7 @@ object Host {
 		var allocRes: Vector[ResourceAlloc] = Vector()
 		for (actResAlloc <- node \\ "ResourceAllocs") {
 			//Only parse, if the actual ResourceAlloc is existing.
-			if(actResAlloc.text != ""){
+			if(actResAlloc.text.trim != ""){
 				allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
 			}
 		}

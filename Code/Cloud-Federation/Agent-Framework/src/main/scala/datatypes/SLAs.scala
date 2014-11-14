@@ -40,7 +40,7 @@ object Price {
  /* ================= */
 
 	def fromString(str: String): Price = {
-		val strSplit = str.split(" ")
+		val strSplit = str.trim.split(" ")
 		val (value, currency) = (strSplit(0).toFloat, CloudCurrency.fromString(strSplit(1)))
 		return Price(value, currency)
 	}
@@ -239,10 +239,10 @@ object HostSLA {
 	def fromXML(node: xml.Node): HostSLA = {
 		val relOnlineTime: Float 					= (node \\ "RelOnlineTime").text.toFloat
 		val imgFormatStrArr								= (node \\ "ImgFormats").text.split(" ")
-		val imgFormats: Vector[ImgFormat] = imgFormatStrArr.map(ImgFormat.fromString).toVector
+		val imgFormats: Vector[ImgFormat] = imgFormatStrArr.filter(_ !="").map(ImgFormat.fromString).toVector
 
-		val maxResRaw: Vector[(String, String)] = TupleSerializer.xmlToTuple2Vector(node \\ "maxResPerCPU")
-		val maxResPerCPU: Vector[(CPUUnit, Int)] = maxResRaw.map(t => (CPUUnit.fromString(t._1), t._2.toInt))
+		val maxResRaw: Vector[Option[(String, String)]] = TupleSerializer.xmlToTuple2Vector(node \\ "maxResPerCPU")
+		val maxResPerCPU: Vector[(CPUUnit, Int)] = maxResRaw.filter(_.isDefined).map(t => (CPUUnit.fromString(t.get._1), t.get._2.toInt))
 
 		return HostSLA(relOnlineTime, imgFormats, maxResPerCPU)
 	}
@@ -317,9 +317,10 @@ object CloudSLA {
 		val priceRAMTuple: Option[(String, String, String)] = TupleSerializer.xmlToTuple3(node \\ "PriceRangeRAM")
 		val priceStorageTuple: Option[(String, String, String)] = TupleSerializer.xmlToTuple3(node \\ "PriceRangeStorage")
 
-		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.map(t3 => (CPUUnit.fromString(t3.getOrElse(undefinedT3)._1),
-																																																	Price.fromString(t3.getOrElse(undefinedT3)._2),
-																																																	Price.fromString(t3.getOrElse(undefinedT3)._3)))
+		val priceRangePerCPU: Vector[(CPUUnit.CPUUnit, Price, Price)] = priceRangeCPUTuple.filter(_.isDefined).map(t3 =>
+																																																 (CPUUnit.fromString(t3.get._1),
+																																																	Price.fromString(t3.get._2),
+																																																	Price.fromString(t3.get._3)))
 
 		val priceRangePerRAM: (ByteSize, Price, Price)	= (ByteSize.fromString(priceRAMTuple.getOrElse(undefinedT3)._1),
 																												Price.fromString(priceRAMTuple.getOrElse(undefinedT3)._2),

@@ -1,5 +1,7 @@
 package unitspecs
 
+import java.io.File
+
 import datatypes.ByteUnit.{MB, GiB}
 import datatypes.CPUUnit._
 import datatypes.ImgFormat._
@@ -103,7 +105,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		info("Comparison tests completed!")
 	}
 
-	it should "be fully serializable to XML" in{
+	it should "be fully serializable to and deserializable from XML" in{
 		val xmlSerialRes1 = Resource.toXML(res1)
 		val xmlSerialRes2 = Resource.toXML(res2)
 		val xmlSerialRes3 = Resource.toXML(res3)
@@ -319,7 +321,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		//TODO: check allocation split via host.allocate()
 	}
 
-	it should "be fully serializable to XML" in{
+	it should "be fully serializable to and deserializable from XML" in{
 
 		val host1 		= new Host(res2, Vector(), hostSLA1)
 		val host2 		= new Host(res3, Vector(resAlloc1), hostSLA2)
@@ -329,10 +331,6 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		val xmlSerialHost2 = Host.toXML(host2)
 		val xmlSerialHost3 = Host.toXML(host3)
 
-		println("serialized Host1 = " + xmlSerialHost1)
-		println("serialized Host2 = " + xmlSerialHost2)
-		println("serialized Host3 = " + xmlSerialHost3)
-
 		val xmlDeserialHost1 = Host.fromXML(xmlSerialHost1)
 		val xmlDeserialHost2 = Host.fromXML(xmlSerialHost2)
 		val xmlDeserialHost3 = Host.fromXML(xmlSerialHost3)
@@ -341,6 +339,30 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		host2 shouldEqual xmlDeserialHost2
 		host3 shouldEqual xmlDeserialHost3
 		host3 should not equal xmlDeserialHost1
+	}
+
+	it should "be loadable from and saveable to a XML file" in{
+		val xmlFile1 = new File("Agent-Framework/src/test/resources/Host1.xml")
+		val xmlFile2 = new File("Agent-Framework/src/test/resources/Host2.xml")
+		val xmlFile3 = new File("Agent-Framework/src/test/resources/Host3.xml")
+		Host.saveToXML(xmlFile1, host1)
+		Host.saveToXML(xmlFile2, host2)
+		Host.saveToXML(xmlFile3, host3)
+
+		val loadedHost1 = Host.loadFromXML(xmlFile1)
+		val loadedHost2 = Host.loadFromXML(xmlFile2)
+		val loadedHost3 = Host.loadFromXML(xmlFile3)
+		val loadedHost1Rewritten = Host.loadFromXML(new File("Agent-Framework/src/test/resources/resconfig/Host1.xml"))
+
+		println("host1 = " + loadedHost1)
+		println("host1 = " + loadedHost1Rewritten)
+		println("host2 = " + loadedHost2)
+		println("host3 = " + loadedHost3)
+
+		host1 should equal (loadedHost1)
+		host1 should equal (loadedHost1Rewritten)
+		host2 should equal (loadedHost2)
+		host3 should equal (loadedHost3)
 	}
 
 }

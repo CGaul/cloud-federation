@@ -21,8 +21,8 @@ class TupleSerializerSpec  extends FlatSpec with Matchers with GivenWhenThen wit
     Then("The deserialization should be a Tuple2 with the correct values again")
     val deserialT2 = TupleSerializer.xmlToTuple2(serialT2)
     println("deserialT2 = " + deserialT2)
-    deserialT2._1.toInt shouldEqual originalT2._1
-    deserialT2._2.toInt shouldEqual originalT2._2
+    deserialT2.get._1.toInt shouldEqual originalT2._1
+    deserialT2.get._2.toInt shouldEqual originalT2._2
   }
 
   it should "be able to serialize tuples of all kinds of Int-Tuple3" in {

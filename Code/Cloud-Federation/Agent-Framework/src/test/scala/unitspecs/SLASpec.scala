@@ -92,7 +92,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 	}
 
 
-	it should "be fully serializable to XML" in{
+	it should "be fully serializable to and deserializable from XML" in{
 		val xmlSerialHostSLA = HostSLA.toXML(hostSLA1)
 		println("serialized hostSLA1 = " + xmlSerialHostSLA)
 
@@ -102,7 +102,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		hostSLA1 == xmlDeserialHostSLA should be (true)
 	}
 
-	it should "be loadable and saveable to a XML file" in{
+	it should "be loadable from and saveable to a XML file" in{
 		val xmlFile1 = new File("Agent-Framework/src/test/resources/HostSLA1.xml")
 		val xmlFile2 = new File("Agent-Framework/src/test/resources/HostSLA2.xml")
 		val xmlFile3 = new File("Agent-Framework/src/test/resources/HostSLA3.xml")
@@ -164,7 +164,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 	}
 
 
-	it should "be fully serializable to XML" in{
+	it should "be fully serializable to and deserializable from XML" in{
 		val xmlSerialCloudSLA1 = CloudSLA.toXML(cloudSLA1)
 		println("serialized cloudSLA1 = " + xmlSerialCloudSLA1)
 
@@ -174,7 +174,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		cloudSLA1 shouldEqual xmlDeserialCloudSLA1
 	}
 
-	it should "be loadable and saveable to a XML file" in{
+	it should "be loadable from and saveable to a XML file" in{
 		val xmlFile1 = new File("Agent-Framework/src/test/resources/CloudSLA1.xml")
 		val xmlFile2 = new File("Agent-Framework/src/test/resources/CloudSLA2.xml")
 		val xmlFile3 = new File("Agent-Framework/src/test/resources/CloudSLA3.xml")
