@@ -46,8 +46,8 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 
 	  	case message: DiscoveryAgentDestination	=> message match {
 			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> recvDiscoveryInit(cloudSLA, possibleHostSLAs)
-			case AuthenticationInquiry(hashKey)							=> log.debug("Received Authentication Inquiry from PubSubFederator!")
-			case DiscoveryPublication(discoveredActor)					=> recvDiscoveryPublication(discoveredActor)
+			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
+			case DiscoveryPublication(discoveredActor)			=> recvDiscoveryPublication(discoveredActor)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
@@ -81,6 +81,15 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 //		}
 
 
+	}
+
+	def recvAuthenticationInquiry(hashKey: Long) = {
+		//TODO: decrypt hashKey with own private key:
+		val solvedKey = 0
+
+		// send decrypted inquiry back to PubSubFederator as
+		val authAnswer: AuthenticationAnswer = AuthenticationAnswer(solvedKey)
+		pubSubActorSelection ! authAnswer
 	}
 
 	//TODO: change cert type to "Certificate"
