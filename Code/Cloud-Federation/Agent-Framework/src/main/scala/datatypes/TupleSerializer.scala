@@ -1,7 +1,7 @@
 package datatypes
 
 /**
- * Created by costa on 11/10/14.
+ * @author Constantin Gaul, created on 11/10/14.
  */
 object TupleSerializer {
 

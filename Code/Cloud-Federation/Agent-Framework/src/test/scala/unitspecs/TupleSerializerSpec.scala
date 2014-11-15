@@ -4,7 +4,7 @@ import datatypes.TupleSerializer
 import org.scalatest.{Inspectors, GivenWhenThen, FlatSpec, Matchers}
 
 /**
- * Created by costa on 11/10/14.
+ * @author Constantin Gaul, created on 11/10/14.
  */
 class TupleSerializerSpec  extends FlatSpec with Matchers with GivenWhenThen with Inspectors {
 
