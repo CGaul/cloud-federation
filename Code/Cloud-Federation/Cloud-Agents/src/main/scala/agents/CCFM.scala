@@ -12,7 +12,7 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/27/14.
  */
-class CCFM(pubSubActorSelection: ActorSelection) extends Actor with ActorLogging
+class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Actor with ActorLogging
 {
 	//TODO: replace by a XML File
 	object CCFMConfig
@@ -31,7 +31,8 @@ class CCFM(pubSubActorSelection: ActorSelection) extends Actor with ActorLogging
 
 		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
-		val _cloudHostDir: File = new File("Cloud-Agents/src/main/resources/cloudconf/hosts")
+//		val _cloudHostDir: File = new File("Cloud-Agents/src/main/resources/cloudconf/hosts")
+		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
 		if(_cloudHostDir.listFiles() == null)
 			log.error("Hosts need a defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
 		for (actHostFile <- _cloudHostDir.listFiles) {
@@ -39,7 +40,8 @@ class CCFM(pubSubActorSelection: ActorSelection) extends Actor with ActorLogging
 		}
 
 		// Define the Cloud-SLA from the CloudSLA.xml file in the resources/cloudconf/ directory
-		val _cloudSLA  = CloudSLA.loadFromXML(new File ("Cloud-Agents/src/main/resources/cloudconf/CloudSLA.xml"))
+//		val _cloudSLA  = CloudSLA.loadFromXML(new File ("Cloud-Agents/src/main/resources/cloudconf/CloudSLA.xml"))
+		val _cloudSLA  = CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
 	}
 
 
@@ -137,6 +139,6 @@ object CCFM
 	 * @param pubSubServerAddr The akka.tcp connection, where the PubSub-Federator-Agents is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(pubSubServerAddr: ActorSelection):
-		Props = Props(new CCFM(pubSubServerAddr))
+	def props(pubSubServerAddr: ActorSelection, cloudConfDir: File):
+		Props = Props(new CCFM(pubSubServerAddr, cloudConfDir))
 }

@@ -1,6 +1,17 @@
+import AssemblyKeys._
+
+assemblySettings
+
+jarName in assembly := "cloud-agents_0.2-SNAPSHOT.fat.jar"
+
+mainClass in assembly := Some("CloudAgentManagement")
+
+test in assembly := {}
+
+
 name := "cloudAgents"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
 scalaVersion := "2.11.2"
 

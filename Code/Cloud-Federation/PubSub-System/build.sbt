@@ -1,6 +1,17 @@
+import AssemblyKeys._
+
+assemblySettings
+
+jarName in assembly := "pubsub-system_0.2-SNAPSHOT.fat.jar"
+
+mainClass in assembly := Some("PubSubManagement")
+
+test in assembly := {}
+
+
 name := "pubSubSystem"
 
-version := "0.1-SNAPSHOT"
+version := "0.2-SNAPSHOT"
 
 scalaVersion := "2.11.2"
 
