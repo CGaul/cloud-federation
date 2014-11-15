@@ -1,4 +1,4 @@
-package unitspecs.agents
+package akkaspecs
 
 import java.net.InetAddress
 
@@ -9,7 +9,7 @@ import com.typesafe.config.ConfigFactory
 import datatypes.CPUUnit._
 import datatypes._
 import messages.ResourceRequest
-import org.scalatest.{Matchers, FlatSpec}
+import org.scalatest.{FlatSpec, Matchers}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.
