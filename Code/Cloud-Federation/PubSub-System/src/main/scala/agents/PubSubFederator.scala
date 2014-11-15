@@ -70,11 +70,11 @@ class PubSubFederator extends Actor with ActorLogging
 		if(registeredSubscriber.isDefined){
 			//TODO: check if inquiry key is correct:
 			if(registeredSubscriber.get._2){
-				log.warning("Subscriber %s is already authenticated. No further authentication check needed.", registeredSubscriber.get)
+				log.warning("Subscriber {} is already authenticated. No further authentication check needed.", registeredSubscriber.get._1)
 				return
 			}
 			if(solvedKey == 0){
-				log.info("Authentication for new Subscriber %s was successful! Subscriber Registration completed.", registeredSubscriber.get)
+				log.info("Authentication for new Subscriber {} was successful! Subscriber Registration completed.", registeredSubscriber.get._1)
 				// replace subscriber in subscriber list with authenticated = true:
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				subscribers = subscribers.updated(index, (registeredSubscriber.get._1, true))
@@ -83,14 +83,14 @@ class PubSubFederator extends Actor with ActorLogging
 				publishSubscritions(registeredSubscriber.get._1)
 			}
 			else{
-				log.warning("Authentication for new Subscriber %s was unsuccessful. " +
-					"Dropping temporary Subscriber from registered Subscribers.", registeredSubscriber.get)
+				log.warning("Authentication for new Subscriber {} was unsuccessful. " +
+					"Dropping temporary Subscriber from registered Subscribers.", registeredSubscriber.get._1)
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				subscribers = subscribers.drop(index)
 			}
 		}
 		else{
-			log.warning("Received a AuthenticationAnswer of %s, which is not actually registered as a potential subscriber!",
+			log.warning("Received a AuthenticationAnswer of {}, which is not actually registered as a potential subscriber!",
 			subscriberToAuth)
 		}
 	}

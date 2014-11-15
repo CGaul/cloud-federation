@@ -45,7 +45,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	  	//case KillNotifier()						=> super.recv_offlineNotifier()
 
 	  	case message: DiscoveryAgentDestination	=> message match {
-			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> recvDiscoveryInit(cloudSLA, possibleHostSLAs)
+			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> revcFederationSLAs(cloudSLA, possibleHostSLAs)
 			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
 			case DiscoveryPublication(discoveredActor)			=> recvDiscoveryPublication(discoveredActor)
 		}
@@ -53,8 +53,8 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 		case _										=> log.error("Unknown message received!")
 	}
 
-	private def recvDiscoveryInit(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
-		log.info("Received Discovery-Init Call from CCFM.")
+	private def revcFederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
+		log.info("Received FederationSLAs from CCFM.")
 		log.info("Sending subscription request to PubSub-Federator...")
 
 		pubSubActorSelection ! DiscoverySubscription(cloudSLA, possibleHostSLAs, cert)
@@ -94,7 +94,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 
 	//TODO: change cert type to "Certificate"
 	def recvDiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File)) = {
-		log.info("Received Publication Call from PubSubFederator.")
+		log.info("Received DiscoveryPublication from PubSubFederator.")
 //	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
 	}
 
