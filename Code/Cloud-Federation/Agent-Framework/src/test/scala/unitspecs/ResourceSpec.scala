@@ -13,6 +13,16 @@ import org.scalatest.{Inspectors, Matchers, GivenWhenThen, FlatSpec}
  */
 class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspectors
 {
+
+	// Create the resources-dir in Agent-Framework Module,
+	// if not already existent:
+	val resDir = new File("Agent-Framework/src/test/resources/")
+	if(! resDir.exists()){
+		resDir.mkdirs()
+	}
+	
+	
+	
 /* Resource-Class Unit-Spec */
 /* ======================== */
 
@@ -122,6 +132,27 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		res2 shouldEqual xmlDeserialRes2
 		res3 shouldEqual xmlDeserialRes3
 		res3 should not equal xmlDeserialRes1
+	}
+
+	it should "be loadable from and saveable to a XML file" in{
+		val xmlFile1 = new File(resDir.getAbsolutePath +"/Resource1.xml")
+		val xmlFile2 = new File(resDir.getAbsolutePath +"/Resource2.xml")
+		val xmlFile3 = new File(resDir.getAbsolutePath +"/Resource3.xml")
+		Resource.saveToXML(xmlFile1, res1)
+		Resource.saveToXML(xmlFile2, res2)
+		Resource.saveToXML(xmlFile3, res3)
+
+		val loadedResource1 = Resource.loadFromXML(xmlFile1)
+		val loadedResource2 = Resource.loadFromXML(xmlFile2)
+		val loadedResource3 = Resource.loadFromXML(xmlFile3)
+
+		println("res1 = " + loadedResource1)
+		println("res2 = " + loadedResource2)
+		println("res3 = " + loadedResource3)
+
+		res1 should equal (loadedResource1)
+		res2 should equal (loadedResource2)
+		res3 should equal (loadedResource3)
 	}
 
 
@@ -342,9 +373,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	}
 
 	it should "be loadable from and saveable to a XML file" in{
-		val xmlFile1 = new File("Agent-Framework/src/test/resources/Host1.xml")
-		val xmlFile2 = new File("Agent-Framework/src/test/resources/Host2.xml")
-		val xmlFile3 = new File("Agent-Framework/src/test/resources/Host3.xml")
+		val xmlFile1 = new File(resDir.getAbsolutePath +"/Host1.xml")
+		val xmlFile2 = new File(resDir.getAbsolutePath +"/Host2.xml")
+		val xmlFile3 = new File(resDir.getAbsolutePath +"/Host3.xml")
 		Host.saveToXML(xmlFile1, host1)
 		Host.saveToXML(xmlFile2, host2)
 		Host.saveToXML(xmlFile3, host3)

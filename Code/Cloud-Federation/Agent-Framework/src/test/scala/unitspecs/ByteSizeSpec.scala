@@ -9,7 +9,21 @@ import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
 /**
  * @author Constantin Gaul, created on 10/20/14.
  */
-class ByteSizeSpec extends FlatSpec with Matchers with GivenWhenThen{
+class ByteSizeSpec extends FlatSpec with Matchers with GivenWhenThen
+{
+
+	// Create the resources-dir in Agent-Framework Module,
+	// if not already existent:
+	val resDir = new File("Agent-Framework/src/test/resources/")
+	if(! resDir.exists()){
+		resDir.mkdirs()
+	}
+
+
+
+/* ByteSize-Class Unit-Spec */
+/* ======================== */
+
 	behavior of "A ByteSize Value"
 
 	//ByteSize 1 & 2 are equal, but with different Metrics:
@@ -171,9 +185,9 @@ class ByteSizeSpec extends FlatSpec with Matchers with GivenWhenThen{
 	}
 
 	it should "be loadable from and saveable to a XML file" in{
-		val xmlFile1 = new File("Agent-Framework/src/test/resources/ByteSize1.xml")
-		val xmlFile2 = new File("Agent-Framework/src/test/resources/ByteSize2.xml")
-		val xmlFile3 = new File("Agent-Framework/src/test/resources/ByteSize3.xml")
+		val xmlFile1 = new File(resDir.getAbsolutePath +"/ByteSize1.xml")
+		val xmlFile2 = new File(resDir.getAbsolutePath +"/ByteSize2.xml")
+		val xmlFile3 = new File(resDir.getAbsolutePath +"/ByteSize3.xml")
 		ByteSize.saveToXML(xmlFile1, byteSize1)
 		ByteSize.saveToXML(xmlFile2, byteSize2)
 		ByteSize.saveToXML(xmlFile3, byteSize3)

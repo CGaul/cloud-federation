@@ -14,7 +14,21 @@ import org.scalatest.{FlatSpec, ShouldMatchers}
  */
 class SLASpec extends FlatSpec with ShouldMatchers
 {
+
+	// Create the resources-dir in Agent-Framework Module,
+	// if not already existent:
+	val resDir = new File("Agent-Framework/src/test/resources/")
+	if(! resDir.exists()){
+		resDir.mkdirs()
+	}
+
+
+
+/* HostSLA-Class Unit-Spec */
+/* ======================= */
+
 	behavior of "A HostSLA"
+
 
 /* Definition of three HostSLAs */
 /* ============================ */
@@ -103,9 +117,9 @@ class SLASpec extends FlatSpec with ShouldMatchers
 	}
 
 	it should "be loadable from and saveable to a XML file" in{
-		val xmlFile1 = new File("Agent-Framework/src/test/resources/HostSLA1.xml")
-		val xmlFile2 = new File("Agent-Framework/src/test/resources/HostSLA2.xml")
-		val xmlFile3 = new File("Agent-Framework/src/test/resources/HostSLA3.xml")
+		val xmlFile1 = new File(resDir.getAbsolutePath +"/HostSLA1.xml")
+		val xmlFile2 = new File(resDir.getAbsolutePath +"/HostSLA2.xml")
+		val xmlFile3 = new File(resDir.getAbsolutePath +"/HostSLA3.xml")
 		HostSLA.saveToXML(xmlFile1, hostSLA1)
 		HostSLA.saveToXML(xmlFile2, hostSLA2)
 		HostSLA.saveToXML(xmlFile3, hostSLA3)
@@ -126,7 +140,11 @@ class SLASpec extends FlatSpec with ShouldMatchers
 
 
 
+/* CloudSLA-Class Unit-Spec */
+/* ======================== */
+
 	behavior of "A CloudSLA"
+
 
 	/* Definition of three CloudSLAs */
 	/* ============================= */
@@ -175,9 +193,9 @@ class SLASpec extends FlatSpec with ShouldMatchers
 	}
 
 	it should "be loadable from and saveable to a XML file" in{
-		val xmlFile1 = new File("Agent-Framework/src/test/resources/CloudSLA1.xml")
-		val xmlFile2 = new File("Agent-Framework/src/test/resources/CloudSLA2.xml")
-		val xmlFile3 = new File("Agent-Framework/src/test/resources/CloudSLA3.xml")
+		val xmlFile1 = new File(resDir.getAbsolutePath +"/CloudSLA1.xml")
+		val xmlFile2 = new File(resDir.getAbsolutePath +"/CloudSLA2.xml")
+		val xmlFile3 = new File(resDir.getAbsolutePath +"/CloudSLA3.xml")
 		CloudSLA.saveToXML(xmlFile1, cloudSLA1)
 		CloudSLA.saveToXML(xmlFile2, cloudSLA2)
 		CloudSLA.saveToXML(xmlFile3, cloudSLA3)
