@@ -99,7 +99,6 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case message: CCFMResourceDest	=> message match {
 			case ResourceReply(allocResources)						=> recvResourceReply(allocResources)
-			case ResourceFederationReply(allocResources) 	=> recvResourceReply(allocResources)
 		}
 		case _								=> log.error("Unknown message received!")
 	}
@@ -118,8 +117,6 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
 
 	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
-
-	def recvResourceReply(resources: Vector[(ActorRef, ResourceAlloc)]): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
 }
 
 
