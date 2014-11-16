@@ -45,11 +45,11 @@ object CloudAgentManagement extends App
 		if(args.length < 4) exitOnParamError()
 
 		for (i <- 0 to (args.size - 1)) args(i) match{
-			case "--appcfg" 	=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
-			case "-a" 				=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
-			case "--clouddir" => if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
-			case "-c" 				=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
-			case _						=>
+			case "--appconf" 		=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+			case "-a" 					=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+			case "--cloudconf" 	=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+			case "-c" 					=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+			case _							=>
 		}
 
 		// Check whether appcfg and clouddir are existing Files:

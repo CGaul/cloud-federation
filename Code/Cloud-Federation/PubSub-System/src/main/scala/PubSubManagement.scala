@@ -39,7 +39,7 @@ object PubSubManagement extends App
     if(args.length < 2) exitOnParamError()
 
     for (i <- 0 to (args.size - 1)) args(i) match{
-      case "--appcfg" 	=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+      case "--appconf" 	=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
       case "-a" 				=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
       case _						=>
     }
