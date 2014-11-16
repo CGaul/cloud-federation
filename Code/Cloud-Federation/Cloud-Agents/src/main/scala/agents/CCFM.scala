@@ -31,7 +31,6 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
-//		val _cloudHostDir: File = new File("Cloud-Agents/src/main/resources/cloudconf/hosts")
 		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
 		if(_cloudHostDir.listFiles() == null)
 			log.error("Hosts need a defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
@@ -40,7 +39,6 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		}
 
 		// Define the Cloud-SLA from the CloudSLA.xml file in the resources/cloudconf/ directory
-//		val _cloudSLA  = CloudSLA.loadFromXML(new File ("Cloud-Agents/src/main/resources/cloudconf/CloudSLA.xml"))
 		val _cloudSLA  = CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
 	}
 

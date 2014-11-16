@@ -9,7 +9,6 @@ object CloudAgentManagement extends App
 {
 	val (appcfg, clouddir) = loadConfigs(args)
 
-	//val config = ConfigFactory.load("localApplication.conf") //TODO: delete
 	val config = ConfigFactory.parseFileAnySyntax(appcfg)
 	val system = ActorSystem("CloudAgents", config.getConfig("cloudAgents").withFallback(config))
 

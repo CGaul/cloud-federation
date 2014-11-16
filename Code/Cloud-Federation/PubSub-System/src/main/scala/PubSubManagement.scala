@@ -11,7 +11,6 @@ object PubSubManagement extends App
 {
   val appcfg = loadConfigs(args)
 
-//  val config = ConfigFactory.load("localApplication.conf") TODO: delete.
   val config = ConfigFactory.parseFileAnySyntax(appcfg)
   val system = ActorSystem("PubSubSystem", config.getConfig("pubSubSystem").withFallback(config))
 
