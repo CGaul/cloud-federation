@@ -10,7 +10,7 @@ object CloudAgentManagement extends App
 	val (appcfg, clouddir) = loadConfigs(args)
 
 	val config = ConfigFactory.parseFileAnySyntax(appcfg)
-	val system = ActorSystem("CloudAgents", config.getConfig("cloudAgents").withFallback(config))
+	val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudAgentSystem").withFallback(config))
 
 	//	Applied on the remote side of the PubSubSystem:
 	val pubSubActorName = "remoteFederator"
