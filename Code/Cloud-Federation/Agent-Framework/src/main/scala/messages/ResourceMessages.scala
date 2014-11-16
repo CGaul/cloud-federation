@@ -25,5 +25,10 @@ case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress)
 case class ResourceReply(allocatedResources: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest with MMAResourceDest
 
+
+case class ResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress)
+  extends ResourceMessage with MMAResourceDest
+
+
 case class ResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)])
-  extends ResourceMessage with CCFMResourceDest with NRAResourceDest
+  extends ResourceMessage with NRAResourceDest with MMAResourceDest

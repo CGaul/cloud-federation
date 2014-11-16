@@ -57,8 +57,8 @@ case class AuthenticationAnswer(solvedKey: Long)
  *    This message will be send from the PubSubFederator to the pre-subscribed Discovery-Agent
  *    so that this Agent is able to get into contact with all Discovery-Agents in that list.
  * </p>
- * @param discoveredActor Describes a newly subscribed actor to all other, current subscribers.
+ * @param discoveredCloud Describes a newly subscribed actor to all other, current subscribers.
  */
 //TODO: change cert type to "Certificate"
-case class DiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File))
+case class DiscoveryPublication(discoveredCloud: (ActorRef, CloudSLA, Vector[HostSLA], File))
 	extends DiscoveryMessage with DDADiscoveryDest with MMADiscoveryDest
