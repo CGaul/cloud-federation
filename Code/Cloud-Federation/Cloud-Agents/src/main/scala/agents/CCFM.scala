@@ -97,9 +97,9 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		case DiscoveryError(status)	=> recvDiscoveryError(status)
 		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
-		case message: NetworkResourceMessage	=> message match {
-			case ResourceReply(allocResources)				=> recvResourceReply(allocResources)
-			case ResourceFederationReply(allocResources) => recvResourceReply(allocResources)
+		case message: CCFMResourceDest	=> message match {
+			case ResourceReply(allocResources)						=> recvResourceReply(allocResources)
+			case ResourceFederationReply(allocResources) 	=> recvResourceReply(allocResources)
 		}
 		case _								=> log.error("Unknown message received!")
 	}

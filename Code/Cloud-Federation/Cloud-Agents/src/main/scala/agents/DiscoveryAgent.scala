@@ -44,7 +44,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	override def receive(): Receive = {
 	  	//case KillNotifier()						=> super.recv_offlineNotifier()
 
-	  	case message: DiscoveryAgentDestination	=> message match {
+		case message: DDADiscoveryDest	=> message match {
 			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> revcFederationSLAs(cloudSLA, possibleHostSLAs)
 			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
 			case DiscoveryPublication(discoveredActor)			=> recvDiscoveryPublication(discoveredActor)
@@ -94,7 +94,10 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 
 	//TODO: change cert type to "Certificate"
 	def recvDiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File)) = {
-		log.info("Received DiscoveryPublication from PubSubFederator.")
+		log.info("Received DiscoveryPublication {} from PubSubFederator.", discoveredActor)
+		// Forward this Publication to the MMA:
+		matchMakingActorSelection ! DiscoveryPublication(discoveredActor)
+
 //	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
 	}
 

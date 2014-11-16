@@ -5,7 +5,7 @@ import java.net.InetAddress
 import akka.actor._
 import util.control.Breaks._
 import datatypes._
-import messages.{ResourceRequest, ResourceFederationReply, NetworkResourceMessage}
+import messages._
 
 /**
  * @author Constantin Gaul, created on 10/15/14.
@@ -144,7 +144,7 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 //	}
 
 	def receive(): Receive = {
-		case message: NetworkResourceMessage	=> message match {
+		case message: NRAResourceDest	=> message match {
 			case ResourceRequest(resourcesToAlloc, ofcIP)		=> recvResourceRequest(resourcesToAlloc, ofcIP)
 			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceReply(resourcesAllocated)
 		}

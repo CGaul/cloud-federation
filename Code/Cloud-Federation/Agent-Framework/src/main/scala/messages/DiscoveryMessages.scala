@@ -8,9 +8,9 @@ import datatypes.{CloudSLA, HostSLA}
 
 sealed trait DiscoveryMessage
 
-sealed trait DiscoveryAgentDestination
-
-sealed trait PubSubFederatorDestination
+sealed trait DDADiscoveryDest extends DDADest
+sealed trait MMADiscoveryDest extends PubSubDest
+sealed trait PubSubDiscoveryDest extends PubSubDest
 
 
 /**
@@ -19,7 +19,7 @@ sealed trait PubSubFederatorDestination
  * @param possibleHostSLAs
  */
 case class FederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA])
-	extends DiscoveryMessage with DiscoveryAgentDestination
+	extends DiscoveryMessage with DDADiscoveryDest
 
 case class DiscoveryAck(status: String)
 	extends DiscoveryMessage
@@ -42,13 +42,13 @@ case class DiscoveryError(error: String)
  */
 //TODO: change cert type to "Certificate"
 case class DiscoverySubscription(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: File)
-	extends DiscoveryMessage with PubSubFederatorDestination
+	extends DiscoveryMessage with PubSubDiscoveryDest
 
 case class AuthenticationInquiry(hashedKey: Long)
-	extends DiscoveryMessage with DiscoveryAgentDestination
+	extends DiscoveryMessage with DDADiscoveryDest
 
 case class AuthenticationAnswer(solvedKey: Long)
-	extends DiscoveryMessage with PubSubFederatorDestination
+	extends DiscoveryMessage with PubSubDiscoveryDest
 /**
  * <p>
  *    A DiscoveryPublication contains a List of all akka.tcp connections to Discovery-Agents
@@ -61,4 +61,4 @@ case class AuthenticationAnswer(solvedKey: Long)
  */
 //TODO: change cert type to "Certificate"
 case class DiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File))
-	extends DiscoveryMessage with DiscoveryAgentDestination
+	extends DiscoveryMessage with DDADiscoveryDest with MMADiscoveryDest

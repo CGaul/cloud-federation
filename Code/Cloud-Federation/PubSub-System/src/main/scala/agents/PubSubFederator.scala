@@ -33,7 +33,7 @@ class PubSubFederator extends Actor with ActorLogging
   }
 
   override def receive(): Receive = {
-	 case message: PubSubFederatorDestination	=> message match {
+	 case message: PubSubDest	=> message match {
      case DiscoverySubscription
 			 (cloudSLA, possibleHostSLAs, cert)	=> recvDiscoverySubscription(cloudSLA, possibleHostSLAs, cert)
 		 case AuthenticationAnswer(solvedKey) => recvAuthenticationAnswer(solvedKey)

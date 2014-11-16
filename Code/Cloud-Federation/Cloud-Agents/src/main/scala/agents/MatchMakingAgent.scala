@@ -1,10 +1,11 @@
 package agents
 
+import java.io.File
 import java.net.InetAddress
 
 import akka.actor.{Props, ActorRef, Actor, ActorLogging}
-import datatypes.{CloudSLA, Host, ResourceAlloc}
-import messages.{ResourceReply, ResourceFederationReply, ResourceRequest, NetworkResourceMessage}
+import datatypes.{HostSLA, CloudSLA, Host, ResourceAlloc}
+import messages._
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
@@ -14,6 +15,8 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 
 /* Methods: */
 /* ======== */
+
+	def recvDiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File)): Unit = ???
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	/**
@@ -48,8 +51,11 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 
 
 	override def receive(): Receive = {
-		case message: NetworkResourceMessage	=> message match {
-			case ResourceRequest(resources, ofcIP)		=> recvResourceRequest(resources, ofcIP)
+		case message: MMADiscoveryDest => message match {
+			case DiscoveryPublication(discoveredActor) => recvDiscoveryPublication(discoveredActor)
+		}
+		case message: MMAResourceDest	=> message match {
+			case ResourceRequest(resources, ofcIP)	=> recvResourceRequest(resources, ofcIP)
 			case ResourceReply(allocResources) 			=> recvResourceReply(allocResources)
 		}
 		case _										=> log.error("Unknown message received!")

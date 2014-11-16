@@ -1,6 +1,7 @@
 package datatypes
 
 import java.io.File
+import java.net.{UnknownHostException, InetAddress}
 
 import datatypes.CPUUnit._
 
@@ -122,7 +123,7 @@ object Resource {
  * @param allocatedResources
  * @param _hostSLA bla
  */
-case class Host(hardwareSpec: Resource,
+case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 					 var allocatedResources: Vector[ResourceAlloc] = Vector(),
 					 private var _hostSLA: HostSLA){
 
@@ -289,7 +290,8 @@ case class Host(hardwareSpec: Resource,
 	/* ---------------- */
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA
+		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA &&
+												 this.hostIP == that.hostIP && this.hostMAC == that.hostMAC
 		case _ 						=> false
 	}
 
@@ -308,6 +310,8 @@ object Host {
 	def toXML(host: Host): Node =
 		<Host>
 			<Hardware>{Resource.toXML(host.hardwareSpec)}</Hardware>
+			<IP>{host.hostIP.getHostAddress}</IP>
+			<MAC>{host.hostMAC}</MAC>
 			<ResourceAllocs>{host.allocatedResources.map(resAlloc => ResourceAlloc.toXML(resAlloc))}</ResourceAllocs>
 			<HostSLA>{HostSLA.toXML(host.hostSLA)}</HostSLA>
 		</Host>
@@ -321,7 +325,16 @@ object Host {
 /* ================= */
 
 	def fromXML(node: Node): Host = {
-		val hardwareSpec: Resource 					= Resource.fromXML((node \ "Hardware")(0))
+		val hardwareSpec: Resource = Resource.fromXML((node \ "Hardware")(0))
+		var hostIP: InetAddress = InetAddress.getLoopbackAddress
+		try{
+			hostIP = InetAddress.getByName((node \\ "IP").text.trim)
+		}
+		catch{
+			case e: UnknownHostException =>
+				System.err.println(s"Address: ${(node \\ "IP").text.trim} could not have been solved. Using Loopback Address")
+		}
+		val hostMAC: String 								= (node \\ "MAC").text
 		var allocRes: Vector[ResourceAlloc] = Vector()
 		for (actResAlloc <- node \\ "ResourceAllocs") {
 			//Only parse, if the actual ResourceAlloc is existing.
@@ -331,7 +344,7 @@ object Host {
 		}
 		val hostSLA: HostSLA 								= HostSLA.fromXML((node \ "HostSLA")(0))
 
-		return Host(hardwareSpec, allocRes, hostSLA)
+		return Host(hardwareSpec, hostIP, hostMAC, allocRes, hostSLA)
 	}
 
 	def loadFromXML(file: File): Host = {
