@@ -4,7 +4,7 @@ import java.io.File
 import java.net.InetAddress
 
 import akka.actor.{Props, ActorRef, Actor, ActorLogging}
-import datatypes.{HostSLA, CloudSLA, Host, ResourceAlloc}
+import datatypes._
 import messages._
 
 /**
@@ -13,15 +13,15 @@ import messages._
 class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 {
 	// TODO: Shortcut - Better handle in DB:
-	var discoveredClouds: Vector[(ActorRef, CloudSLA, Vector[HostSLA], File)] = Vector()
+	var cloudDiscoveries: Vector[Subscription] = Vector()
 
 /* Methods: */
 /* ======== */
 
-	def recvDiscoveryPublication(discoveredCloud: (ActorRef, CloudSLA, Vector[HostSLA], File)): Unit = {
+	def recvDiscoveryPublication(cloudDiscovery: Subscription): Unit = {
 		log.info("MatchMakingAgent received DiscoveryPublication. " +
 			"Subscribing on FederationInfo about that Cloud soon.")
-		discoveredClouds = discoveredClouds :+ discoveredCloud
+		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -47,9 +47,9 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 						 resourceAlloc.tenantID, resourceAlloc.resources.size, address)
 		// TODO: Shortcut - Implement more specific:
 		// Shortcut: Forward ResourceRequest to previously published Cloud:
-		if(discoveredClouds.size > 0){
+		if(cloudDiscoveries.size > 0){
 			// Send a ResourceFederationRequest to the other Cloud's MMA immediately:
-			discoveredClouds(0)._1 ! ResourceFederationRequest(resourceAlloc, address)
+			cloudDiscoveries(0).cloudMMA ! ResourceFederationRequest(resourceAlloc, address)
 		}
 	}
 
@@ -74,7 +74,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 
 	override def receive(): Receive = {
 		case message: MMADiscoveryDest => message match {
-			case DiscoveryPublication(discoveredCloud) => recvDiscoveryPublication(discoveredCloud)
+			case DiscoveryPublication(cloudDiscovery) => recvDiscoveryPublication(cloudDiscovery)
 		}
 		case message: MMAResourceDest	=> message match {
 			case ResourceRequest(resources, ofcIP)	=> recvResourceRequest(resources, ofcIP)

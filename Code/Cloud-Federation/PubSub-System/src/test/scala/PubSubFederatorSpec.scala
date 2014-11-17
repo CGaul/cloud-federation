@@ -2,7 +2,7 @@ import java.io.File
 import java.net.InetAddress
 
 import agents.PubSubFederator
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.TestActorRef
 import com.typesafe.config.ConfigFactory
 import datatypes.ByteUnit._
@@ -52,6 +52,8 @@ class PubSubFederatorSpec extends FlatSpec with Matchers{
 
 	val testActor_PubSub = TestActorRef[PubSubFederator](Props[PubSubFederator], name="remoteFederator")
 
-	testActor_PubSub.receive(DiscoverySubscription(cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate")))
+	val testMMAActor1: ActorSelection = system.actorSelection("/user/testMMA1")
+	val subscription = Subscription(testMMAActor1, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate"))
+	testActor_PubSub.receive(DiscoverySubscription(subscription))
 
 }
