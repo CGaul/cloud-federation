@@ -22,14 +22,6 @@ import org.scalatest.junit.AssertionsForJUnit
 class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 	with WordSpecLike with Matchers with BeforeAndAfterAll {
 
-	val config = ConfigFactory.load("testApplication.conf")
-	def this() = this(ActorSystem("pubSubSystem"))
-
-	override def afterAll() {
-		TestKit.shutdownActorSystem(system)
-	}
-
-
 /* Global Values: */
 /* ============== */
 
@@ -58,6 +50,18 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 	val ovxIP = InetAddress.getLocalHost
 
 
+
+/* AKKA Testing Environment: */
+/* ========================= */
+
+	val config = ConfigFactory.load("testApplication.conf")
+	def this() = this(ActorSystem("pubSubSystem"))
+
+	override def afterAll() {
+		TestKit.shutdownActorSystem(system)
+	}
+
+
 	val testMMAActorSel0: ActorSelection = system.actorSelection("/user/testMMA0")
 	val testMMAActorSel1: ActorSelection = system.actorSelection("/user/testMMA1")
 	val testMMAActorSel2: ActorSelection = system.actorSelection("/user/testMMA2")
@@ -75,6 +79,11 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 	val subscription0 = Subscription(testMMAActorSel0, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate0"))
 	val subscription1 = Subscription(testMMAActorSel1, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate1"))
 	val subscription2 = Subscription(testMMAActorSel2, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate2"))
+
+
+
+/* Test Specifications: */
+/* ==================== */
 
 	"A PubSubFederator" should {
 		"send an AuthenticationInquiry back, when a DiscoverySubscription drops in" in{
