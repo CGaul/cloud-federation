@@ -33,7 +33,7 @@ class PubSubFederator extends Actor with ActorLogging
   }
 
   override def receive(): Receive = {
-	 case message: PubSubDest	=> message match {
+	 case message: PubSubDiscoveryDest	=> message match {
      case DiscoverySubscription
 			 (cloudSLA, possibleHostSLAs, cert)	=> recvDiscoverySubscription(cloudSLA, possibleHostSLAs, cert)
 		 case AuthenticationAnswer(solvedKey) => recvAuthenticationAnswer(solvedKey)
@@ -45,10 +45,10 @@ class PubSubFederator extends Actor with ActorLogging
   def recvDiscoverySubscription(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: File): Unit = {
 
 	 	//When a new DiscoverySubscription drops in, save that sender as a subscriber:
-	 	val subscriber: ActorRef = sender()
+	 	val subscriber: ActorRef = sender() //TODO: replace with MMA-ActorRef
 		val newSubscription = (subscriber, cloudSLA, possibleHostSLAs, cert)
 	 	subscriptions = subscriptions :+ newSubscription
-	 	log.info("Received Cloud Subscription. Subscribed Sender.")
+	 	log.info("Received DiscoverySubscription. Pre-Registered Subscriber: {}.", subscriber)
 	 	log.debug("Current subscriptions: "+ subscriptions)
 	 	log.debug("Current subscribers: "+ subscribers)
 
@@ -97,7 +97,11 @@ class PubSubFederator extends Actor with ActorLogging
 
 
 	def publishSubscritions(subscriber: ActorRef) = {
-		val authSubscribers: Vector[ActorRef] = subscribers.filter(_._2).map(_._1)
+		// Filter all authorized Subscribers and return all ActorRefs except the selected subscriber:
+		val authSubscribers: Vector[ActorRef] = subscribers.filter(_._2).map(_._1).filter(_ != subscriber)
+
+		// Get all Subscriptions that are containing the authSubscribers:
+		// TODO: This will cause problems, if MMA is used as _1 ActorRef instead DA...
 		val authSubscriptions = subscriptions.filter(subscr => authSubscribers.contains(subscr._1))
 
 		for (actSubscription <- authSubscriptions) {

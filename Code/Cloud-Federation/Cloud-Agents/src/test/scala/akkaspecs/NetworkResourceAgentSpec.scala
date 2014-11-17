@@ -2,12 +2,14 @@ package akkaspecs
 
 import java.net.InetAddress
 
-import agents.NetworkResourceAgent
+import agents.{MatchMakingAgent, NetworkResourceAgent}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.TestActorRef
 import com.typesafe.config.ConfigFactory
 import datatypes.ByteUnit._
 import datatypes.CPUUnit._
+import datatypes.CloudCurrency._
+import datatypes.ImgFormat._
 import datatypes._
 import messages.ResourceRequest
 import org.scalatest.{FlatSpec, Matchers}
@@ -17,7 +19,11 @@ import org.scalatest.{FlatSpec, Matchers}
  */
 class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 
-	val hostSLA = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.COW, ImgFormat.CLOOP, ImgFormat.BOCHS, ImgFormat.QCOW2),
+	val cloudSLA = new CloudSLA(Vector((SMALL, Price(1, CLOUD_CREDIT), Price(3, CLOUD_CREDIT))),
+		(ByteSize(1, GB), Price(0.3f, CLOUD_CREDIT), Price(0.8f, CLOUD_CREDIT)),
+		(ByteSize(1, GB), Price(0.3f, CLOUD_CREDIT), Price(0.8f, CLOUD_CREDIT)))
+	
+	val hostSLA = new HostSLA(0.95f, Vector(IMG, COW, CLOOP, BOCHS, QCOW2),
 									Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 10)))
 
 	//General Medium Node
@@ -49,15 +55,15 @@ class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
 														20.0f, Vector[NodeID]())
 
-	val reqHostSLA1 = new HostSLA(0.90f, Vector(ImgFormat.IMG, ImgFormat.COW),
+	val reqHostSLA1 = new HostSLA(0.90f, Vector(IMG, COW),
 											Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 3)))
-	val reqHostSLA2 = new HostSLA(0.91f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.BOCHS),
+	val reqHostSLA2 = new HostSLA(0.91f, Vector(IMG, CLOOP, BOCHS),
 											Vector[(CPUUnit, Int)]((SMALL, 1), (MEDIUM, 4)))
-	val reqHostSLA3 = new HostSLA(0.95f, Vector(ImgFormat.IMG, ImgFormat.CLOOP, ImgFormat.QCOW2),
+	val reqHostSLA3 = new HostSLA(0.95f, Vector(IMG, CLOOP, QCOW2),
 											Vector[(CPUUnit, Int)]((SMALL, 1), (MEDIUM, 2)))
 
 	val resAlloc1 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
-	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc3), 							reqHostSLA2)
+	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc3), 						 reqHostSLA2)
 	val resAlloc3 : ResourceAlloc = ResourceAlloc(2, Vector[Resource](resToAlloc4, resToAlloc5), reqHostSLA3)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
@@ -70,13 +76,17 @@ class NetworkResourceAgentSpec extends FlatSpec with Matchers{
 //	val (nraRef, nraActor) = testAgentSystem.prepareAgentTestSystem(networkResourceAgentProps)
 
 	val config = ConfigFactory.load("testApplication.conf")
-	implicit val system = ActorSystem("CloudAgents", config.getConfig("cloudAgents").withFallback(config))
-	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent], cloudHosts, ovxIP)
-	val nraRef : TestActorRef[NetworkResourceAgent] = TestActorRef[NetworkResourceAgent](networkResourceAgentProps)
+	implicit val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudAgentSystem").withFallback(config))
+
+	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudSLA)
+	val testActor_MMA 	= TestActorRef[MatchMakingAgent](mmaProps)
+
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudHosts, ovxIP, testActor_MMA)
+	val testActor_NRA 	= TestActorRef[NetworkResourceAgent](nraProps)
 	//val nraActor = nraRef.underlyingActor
 
-	nraRef.receive(ResourceRequest(resAlloc1, ovxIP))
-	nraRef.receive(ResourceRequest(resAlloc2, ovxIP))
-	nraRef.receive(ResourceRequest(resAlloc3, ovxIP))
+	testActor_NRA.receive(ResourceRequest(resAlloc1, ovxIP))
+	testActor_NRA.receive(ResourceRequest(resAlloc2, ovxIP))
+	testActor_NRA.receive(ResourceRequest(resAlloc3, ovxIP))
 
 }

@@ -94,7 +94,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 
 	//TODO: change cert type to "Certificate"
 	def recvDiscoveryPublication(discoveredActor: (ActorRef, CloudSLA, Vector[HostSLA], File)) = {
-		log.info("Received DiscoveryPublication {} from PubSubFederator.", discoveredActor)
+		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", discoveredActor._1)
 		// Forward this Publication to the MMA:
 		matchMakingActorSelection ! DiscoveryPublication(discoveredActor)
 
