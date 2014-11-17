@@ -49,7 +49,7 @@ class PubSubFederator extends Actor with ActorLogging
 		subscribers = subscribers :+ newSubscriber
 		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
 
-		log.info("Received DiscoverySubscription. Pre-Registered Subscriber: {}.", newSubscriber)
+		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
 		log.debug("Current subscriptions: "+ subscriptions)
 		log.debug("Current subscribers: "+ subscribers)
 
@@ -71,17 +71,16 @@ class PubSubFederator extends Actor with ActorLogging
 			}
 			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
+				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
 				val authSubscriber = Subscriber(subscribers(index).actorRef, authenticated = true)
 				subscribers = subscribers.updated(index, authSubscriber)
-				log.info("Authentication for new Subscriber {} was successful! Subscriber Registration completed.", registeredSubscriber.get)
-				// replace subscriber in subscriber list with authenticated = true:
-
+				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
 
 				// After successful authentication, publish new Subscription to all subscribers:
-				publishSubscrition(authSubscriber, subscriptions(authSubscriber.actorRef))
+				publishSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
 			}
 			else{
-				log.warning("Authentication for new Subscriber {} was unsuccessful. " +
+				log.warning("Authentication for new {} was unsuccessful. " +
 					"Dropping temporary Subscriber from registered Subscribers.", registeredSubscriber.get.actorRef)
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				subscribers = subscribers.drop(index)
@@ -98,7 +97,7 @@ class PubSubFederator extends Actor with ActorLogging
 	 * Publishes a subscription to each authenticated Subscriber in the subscribers Vector.
 	 * Does not publish a Subscription back to the originating Subscriber.
 	 */
-	def publishSubscrition(originator: Subscriber, subscription: Subscription) = {
+	def publishSubscription(originator: Subscriber, subscription: Subscription) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
