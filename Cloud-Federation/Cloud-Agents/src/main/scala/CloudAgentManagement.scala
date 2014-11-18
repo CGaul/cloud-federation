@@ -8,15 +8,17 @@ import com.typesafe.config.ConfigFactory
 object CloudAgentManagement extends App
 {
 	val (appcfg, clouddir) = loadConfigs(args)
-
 	val config = ConfigFactory.parseFileAnySyntax(appcfg)
-	val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudAgentSystem").withFallback(config))
 
-	//	Applied on the remote side of the PubSubSystem:
+	val system 				= ActorSystem("cloudAgentSystem", config.getConfig("cloudagentsystem").withFallback(config))
+	val remoteSystem 	= ActorSystem("remotePubSubSystem", config.getConfig("remotepubsubsystem").withFallback(config))
+
+	// Contacting the PubSubFederator via the remoteSystem:
 	val pubSubActorName = "remoteFederator"
-	val pubSubActor = system.actorOf(Props[PubSubFederator], name=pubSubActorName)
+	val pubSubActor = remoteSystem.actorOf(Props[PubSubFederator], name=pubSubActorName)
 	val pubSubActorSelection: ActorSelection = system.actorSelection("/user/"+pubSubActorName)
 
+	// Building up the CCFM via the local System:
 	val ccfmProps = Props(classOf[CCFM], pubSubActorSelection, clouddir)
 	val ccfmActor = system.actorOf(ccfmProps, name="CCFM")
 

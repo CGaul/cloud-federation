@@ -12,7 +12,7 @@ object PubSubManagement extends App
   val appcfg = loadConfigs(args)
 
   val config = ConfigFactory.parseFileAnySyntax(appcfg)
-  val system = ActorSystem("pubSubSystem", config.getConfig("pubSubSystem").withFallback(config))
+  val system = ActorSystem("pubSubSystem", config.getConfig("pubsubsystem").withFallback(config))
 
   val pubSubActor = system.actorOf(Props[PubSubFederator], name="remoteFederator")
 
