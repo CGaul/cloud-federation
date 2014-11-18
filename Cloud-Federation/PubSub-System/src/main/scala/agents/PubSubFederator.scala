@@ -48,13 +48,14 @@ class PubSubFederator extends Actor with ActorLogging
 			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRef)
 			return
 		}
+		log.info("Subscribers before update: "+ subscribers)
 		// Add the new, unauthenticated subscriber to the vector of all subscribers and the subscription Map:
 		subscribers = subscribers :+ newSubscriber
 		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
 
 		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
-		log.info("Subscriptions: "+ subscriptions)
-		log.info("Subscribers: "+ subscribers)
+		//log.info("Subscriptions: "+ subscriptions)
+		log.info("Subscribers after update: "+ subscribers)
 
 		val encrSecCheck = Math.random().toLong //TODO: Write out Shortcut implementation.
 		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
@@ -68,7 +69,7 @@ class PubSubFederator extends Actor with ActorLogging
 		val subscriberToAuth: ActorRef = sender()
 		val registeredSubscriber = subscribers.find(subscriber => subscriber.actorRef == subscriberToAuth)
 		log.info("Found Pre-Reg. Subscriber: {}", registeredSubscriber)
-		log.info("Subscriptions: "+ subscriptions)
+		log.info("Subscribers: "+ subscribers)
 		if(registeredSubscriber.isDefined){
 			//TODO: check if inquiry key is correct:
 			if(registeredSubscriber.get.authenticated){
@@ -82,7 +83,7 @@ class PubSubFederator extends Actor with ActorLogging
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
 				log.info("Position of Subscriber update: {}", index)
-				log.info("Subscriptions: "+ subscriptions)
+				log.info("Subscribers: "+ subscribers)
 
 				log.info("Broadcast and Publish Subscriptions for authSubscriber: {}", authSubscriber.actorRef)
 				// After successful authentication, publish new Subscription to all subscribers:
