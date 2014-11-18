@@ -42,7 +42,7 @@ lazy val pubSubSystem: Project = project.in(file("PubSub-System")).
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
-  ).dependsOn(agentFramework)//.dependsOn(cloudAgents % "test->compile")
+  ).dependsOn(agentFramework)
 
 
 
@@ -65,3 +65,27 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
   ).dependsOn(agentFramework).dependsOn(pubSubSystem)
+
+
+
+// "Testing"-Module:
+// =================
+
+lazy val agentTesting: Project = project.in(file("Agent-Tests")).
+  settings(
+    name := "Agent-Tests",
+    version := Common.prjVersion,
+    scalaVersion := Common.scalaVersion,
+    //Resolver Link for Akka Libraries:
+    resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    //Akka Libraries:
+    libraryDependencies ++= Common.Imports.akkaDependencies,
+    //Logging (SLF4J):
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Scala XML Support:
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //Testing Scope:
+    libraryDependencies ++= Common.Imports.testDependencies
+  ).dependsOn(agentFramework % "test->compile")
+  .dependsOn(pubSubSystem % "test->compile")
+  .dependsOn(cloudAgents % "test->compile")
