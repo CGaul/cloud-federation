@@ -77,7 +77,11 @@ class PubSubFederator extends Actor with ActorLogging
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
 
 				// After successful authentication, publish new Subscription to all subscribers:
-				publishSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
+				broadcastOneSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
+				
+				//Publish all Subscriptions from every authenticated Subscriber to the 
+				// new initialized (and authenticated) Subscriber:
+				publishAllSubscriptions(authSubscriber)
 			}
 			else{
 				log.warning("Authentication for new {} was unsuccessful. " +
@@ -97,12 +101,21 @@ class PubSubFederator extends Actor with ActorLogging
 	 * Publishes a subscription to each authenticated Subscriber in the subscribers Vector.
 	 * Does not publish a Subscription back to the originating Subscriber.
 	 */
-	def publishSubscription(originator: Subscriber, subscription: Subscription) = {
+	def broadcastOneSubscription(originator: Subscriber, subscription: Subscription) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
 		for (actSubscriber <- authSubscribers) {
 			actSubscriber.actorRef ! DiscoveryPublication(subscription)
+		}
+	}
+	
+	def publishAllSubscriptions(receiver: Subscriber) = {
+		// Filter all authenticated Subscribers without the originated subscriber:
+		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
+		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRef).contains).map(_._2)
+		for (actSubscription <-  authSubscriptions) {
+			receiver.actorRef ! DiscoveryPublication(actSubscription)
 		}
 	}
 }

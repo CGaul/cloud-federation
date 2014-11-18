@@ -14,13 +14,13 @@ import datatypes.ImgFormat._
 import datatypes._
 import extcls.DiscoveryAgent //TODO: solve this workaround via sbt build-in tools.
 import messages.{DiscoveryPublication, AuthenticationInquiry, AuthenticationAnswer, DiscoverySubscription}
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.{GivenWhenThen, BeforeAndAfterAll, Matchers, WordSpecLike}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.
  */
 class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
-	with WordSpecLike with Matchers with BeforeAndAfterAll {
+	with WordSpecLike with Matchers with BeforeAndAfterAll with GivenWhenThen {
 
 /* Global Values: */
 /* ============== */
@@ -87,14 +87,30 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 
 	"A PubSubFederator" should {
 		"send an AuthenticationInquiry back, when a DiscoverySubscription drops in" in{
+			Given("First Subscriber: TestActor")
+			Thread.sleep(100)
+			When("Subscriber 1 subscribed at PubSubFederator")
 			testActor_PubSub.tell(DiscoverySubscription(subscription0), testActor)
 			expectMsgClass(classOf[AuthenticationInquiry])
 			testActor_PubSub.tell(AuthenticationAnswer(0), testActor)
+			Then("Nothing should happen")
 		}
-		"receive a DiscoveryPublication, if another DiscoverySubscription drops in and is Authenticated" in {
+		"receive a DiscoveryPublication on a second DiscoverySubscription, from another Agent" in {
+			Given("Second Subscriber: DiscoveryAgent 1")
+			Thread.sleep(100)
+			When("Subscriber 2 subscribed at PubSubFederator")
 			testActor_PubSub.tell(DiscoverySubscription(subscription1), testActor_DA1)
-			testActor_PubSub.tell(AuthenticationAnswer(0), testActor_DA1)
+			//testActor_PubSub.tell(AuthenticationAnswer(0), testActor_DA1)
+			Then("Subscription1 should be received as DiscoveryPublication on first Subscriber: TestActor")
 			expectMsg(DiscoveryPublication(subscription1))
+		}
+		"on receive a DiscoveryPublication on both previously subscribed Senders, " +
+			"on a third DiscoverySubscription, from another Agent" in {
+			Given("Third Subscriber: DiscoveryAgent 2")
+			Thread.sleep(100)
+			testActor_PubSub.tell(DiscoverySubscription(subscription2), testActor_DA2)
+			//testActor_PubSub.tell(AuthenticationAnswer(0), testActor_DA2)
+			expectMsg(DiscoveryPublication(subscription2))
 		}
 
 	}
