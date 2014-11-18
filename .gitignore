@@ -56,7 +56,10 @@ __pycache__
 ###################################
 
 Cloud-Federation/.idea
+Cloud-Federation/.idea_modules
 Cloud-Federation/target/
+Cloud-Federation/*/target/
+Cloud-Federation/*/project/
 Cloud-Federation/out/
 Cloud-Federation/atlassian-ide-plugin.xml
 
