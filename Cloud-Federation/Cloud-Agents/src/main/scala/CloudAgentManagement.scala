@@ -32,6 +32,7 @@ object CloudAgentManagement extends App
 			System.err.println("At least two arguments " +
 				"(namely --appcfg application.conf and --clouddir cloudconfdir) " +
 				"have to be passed into this cloud-agent.jar!")
+			System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
 			System.exit(1)
 		}
 		def exitOnFileError(file: File) = {

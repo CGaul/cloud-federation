@@ -26,6 +26,7 @@ object PubSubManagement extends App
       System.err.println("At least one argument " +
         "(namely --appcfg application.conf) " +
         "has to be passed into this pubsub-system.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
       System.exit(1)
     }
     def exitOnFileError(file: File) = {
@@ -43,7 +44,7 @@ object PubSubManagement extends App
       case _						=>
     }
 
-    // Check whether appcfg and clouddir are existing Files:
+    // Check whether appcfg is an existing File:
     appcfg match {
       case Some(file) => if (!file.exists()) exitOnFileError(file)
       case None => exitOnParamError()

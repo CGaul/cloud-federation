@@ -16,7 +16,7 @@ class PubSubFederator extends Actor with ActorLogging
 /* Variables: */
 /* ========== */
 
-	//TODO: change cert type to "Certificate"
+	log.info("Initialized Class.")
   private var subscriptions : Map[ActorRef, Subscription] = Map()
   private var subscribers : Vector[Subscriber] = Vector()
 
@@ -39,7 +39,6 @@ class PubSubFederator extends Actor with ActorLogging
 	 case _																	=> log.error("Unknown message received!")
   }
 
-	//TODO: change cert type to "Certificate"
   def recvDiscoverySubscription(newSubscription: Subscription): Unit = {
 		log.info("Received DiscoverySubscription from {}", sender())
 	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
@@ -48,14 +47,14 @@ class PubSubFederator extends Actor with ActorLogging
 			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRef)
 			return
 		}
-		log.info("Subscribers before update: "+ subscribers)
+		log.info("Subscribers before discovery update: "+ subscribers)
 		// Add the new, unauthenticated subscriber to the vector of all subscribers and the subscription Map:
 		subscribers = subscribers :+ newSubscriber
 		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
 
 		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
 		//log.info("Subscriptions: "+ subscriptions)
-		log.info("Subscribers after update: "+ subscribers)
+		log.info("Subscribers after discovery update: "+ subscribers)
 
 		val encrSecCheck = Math.random().toLong //TODO: Write out Shortcut implementation.
 		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
@@ -80,10 +79,11 @@ class PubSubFederator extends Actor with ActorLogging
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
 				val authSubscriber = Subscriber(subscribers(index).actorRef, authenticated = true)
+				log.info("Subscribers before auth-update: "+ subscribers)
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
 				log.info("Position of Subscriber update: {}", index)
-				log.info("Subscribers: "+ subscribers)
+				log.info("Subscribers after auth-update: "+ subscribers)
 
 				log.info("Broadcast and Publish Subscriptions for authSubscriber: {}", authSubscriber.actorRef)
 				// After successful authentication, publish new Subscription to all subscribers:
