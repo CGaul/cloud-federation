@@ -16,6 +16,8 @@ object PubSubManagement extends App
 
   val pubSubActor = system.actorOf(Props[PubSubFederator], name="remoteFederator")
 
+  println("Starting PubSub-System. PubSub-Federator successful! PubSubFederator: "+ pubSubActor)
+
 
 
 /* Private Methods: */
