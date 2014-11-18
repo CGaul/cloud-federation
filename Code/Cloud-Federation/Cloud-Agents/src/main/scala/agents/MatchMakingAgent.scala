@@ -71,6 +71,8 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 		// TODO: implement.
 	}
 
+	def recvResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]): Unit = ???
+
 
 	override def receive(): Receive = {
 		case message: MMADiscoveryDest => message match {
@@ -80,6 +82,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 			case ResourceRequest(resources, ofcIP)	=> recvResourceRequest(resources, ofcIP)
 			case ResourceReply(allocResources) 			=> recvResourceReply(allocResources)
 			case ResourceFederationRequest(resources, ofcIP)	=> recvResourceFederationRequest(resources, ofcIP)
+			case ResourceFederationReply(allocatedResources)	=> recvResourceFederationReply(allocatedResources)
 
 		}
 		case _										=> log.error("Unknown message received!")
