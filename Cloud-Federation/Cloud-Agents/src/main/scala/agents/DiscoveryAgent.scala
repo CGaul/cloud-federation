@@ -61,6 +61,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	}
 
 	def recvAuthenticationInquiry(hashKey: Long) = {
+		log.info("Received AuthenticationInquiry from PubSub-Federator.")
 		//TODO: decrypt hashKey with own private key:
 		val solvedKey = 0
 

@@ -106,6 +106,7 @@ class PubSubFederator extends Actor with ActorLogging
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
 		for (actSubscriber <- authSubscribers) {
+			log.debug("Broadcasting Subscription of {} to {}", originator.actorRef, actSubscriber.actorRef)
 			actSubscriber.actorRef ! DiscoveryPublication(subscription)
 		}
 	}
@@ -114,6 +115,7 @@ class PubSubFederator extends Actor with ActorLogging
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
 		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRef).contains).map(_._2)
+		log.debug("Initial Publication to {}", receiver.actorRef)
 		for (actSubscription <-  authSubscriptions) {
 			receiver.actorRef ! DiscoveryPublication(actSubscription)
 		}
