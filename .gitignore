@@ -51,13 +51,20 @@ __pycache__
 /bin
 /.idea
 
-# LaTex #
-#########
-*.pdf		#
-*.aux		# 
-*.tcp 		# TeXnicCenter
-*.tps 		# TeXnicCenter
-*.texclipse # texclipse
-*.bbl		# BibTex
-*.blg		# BibTex
-*.bcf		# biber
+
+## Ignore IntelliJ Project Files ##
+###################################
+
+Cloud-Federation/.idea
+Cloud-Federation/.idea_modules
+Cloud-Federation/target/
+Cloud-Federation/*/target/
+Cloud-Federation/*/project/
+Cloud-Federation/out/
+Cloud-Federation/atlassian-ide-plugin.xml
+
+Network-Federation/.idea
+Network-Federation/project/
+Network-Federation/target/
+Network-Federation/out/
+Network-Federation/atlassian-ide-plugin.xml

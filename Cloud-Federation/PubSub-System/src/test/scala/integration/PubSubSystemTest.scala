@@ -3,7 +3,7 @@ package integration
 import java.io.File
 import java.net.InetAddress
 
-import agents.{DiscoveryAgent, PubSubFederator}
+import agents.{PubSubFederator}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActors, ImplicitSender, TestKit, TestActorRef}
 import com.typesafe.config.ConfigFactory
@@ -12,9 +12,9 @@ import datatypes.CPUUnit._
 import datatypes.CloudCurrency._
 import datatypes.ImgFormat._
 import datatypes._
+import extcls.DiscoveryAgent //TODO: solve this workaround via sbt build-in tools.
 import messages.{DiscoveryPublication, AuthenticationInquiry, AuthenticationAnswer, DiscoverySubscription}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
-import org.scalatest.junit.AssertionsForJUnit
 
 /**
  * @author Constantin Gaul, created on 10/29/14.
