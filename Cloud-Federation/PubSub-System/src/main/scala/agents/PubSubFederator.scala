@@ -41,7 +41,7 @@ class PubSubFederator extends Actor with ActorLogging
 
 	//TODO: change cert type to "Certificate"
   def recvDiscoverySubscription(newSubscription: Subscription): Unit = {
-
+		log.info("Received DiscoverySubscription from {}", sender())
 	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
 		val newSubscriber = Subscriber(sender(), authenticated = false)
 		if(subscribers.contains(newSubscriber)){
@@ -53,8 +53,8 @@ class PubSubFederator extends Actor with ActorLogging
 		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
 
 		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
-		log.debug("Current subscriptions: "+ subscriptions)
-		log.debug("Current subscribers: "+ subscribers)
+		log.info("Subscriptions: "+ subscriptions)
+		log.info("Subscribers: "+ subscribers)
 
 		val encrSecCheck = Math.random().toLong //TODO: Write out Shortcut implementation.
 		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
@@ -64,8 +64,11 @@ class PubSubFederator extends Actor with ActorLogging
 	}
 
 	def recvAuthenticationAnswer(solvedKey: Long): Unit = {
+		log.info("Received AuthenticationAnswer from {}", sender())
 		val subscriberToAuth: ActorRef = sender()
 		val registeredSubscriber = subscribers.find(subscriber => subscriber.actorRef == subscriberToAuth)
+		log.info("Found Pre-Reg. Subscriber: {}", registeredSubscriber)
+		log.info("Subscriptions: "+ subscriptions)
 		if(registeredSubscriber.isDefined){
 			//TODO: check if inquiry key is correct:
 			if(registeredSubscriber.get.authenticated){
@@ -78,7 +81,10 @@ class PubSubFederator extends Actor with ActorLogging
 				val authSubscriber = Subscriber(subscribers(index).actorRef, authenticated = true)
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
+				log.info("Position of Subscriber update: {}", index)
+				log.info("Subscriptions: "+ subscriptions)
 
+				log.info("Broadcast and Publish Subscriptions for authSubscriber: {}", authSubscriber.actorRef)
 				// After successful authentication, publish new Subscription to all subscribers:
 				broadcastOneSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
 				
