@@ -1,14 +1,14 @@
 package agents.cloudfederation
 
-import akka.actor.{ActorIdentity, Identify, Stash, _}
+import akka.actor._
 
 import scala.collection.mutable.ArrayBuffer
 
 /**
- * Created by costa on 6/3/14.
  * A simple Actor which has two states: offline and online.
  * If all remote dependencies {Vector[ActorSelection]} are answering to a identityRequest, the Actor will go online,
  * otherwise the state defaults to offline.
+ * @author Constantin Gaul, created on 6/3/14.
  */
 abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection]) extends Actor with ActorLogging with Stash
 {
@@ -58,7 +58,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 	* comes into the mailbox, or there were stashed messages while the Actor was in its offline state.
 	* @return
 	*/
-	def online(): Receive
+	def receivedOnline(): Receive
 
 
   def stashMessage() = {
@@ -83,7 +83,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: Vector[ActorSelection])
 		//If no unresolved ActorRefs are left, become online:
 		if(unresolved == None){
 		 	unstashAll()
-			context.become(online)
+			context.become(receivedOnline())
 			log.debug("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {

@@ -1,13 +1,14 @@
 package agents
 
+import java.io.File
 import java.security.cert.Certificate
 
 import akka.actor._
-import datatypes.SLA
-import messages.{DiscoveryPublication, DiscoverySubscription, PubSubFederatorReply}
+import datatypes.{Subscription, Subscriber, CloudSLA, HostSLA}
+import messages._
 
 /**
- * Created by costa on 5/31/14.
+ * @author Constantin Gaul, created on 5/31/14.
  */
 class PubSubFederator extends Actor with ActorLogging
 {
@@ -15,9 +16,9 @@ class PubSubFederator extends Actor with ActorLogging
 /* Variables: */
 /* ========== */
 
-  private var subscriberRefs : Vector[(ActorRef, Vector[SLA])] = Vector()
-  private var subscriberPaths : Vector[ActorPath] = Vector()
-  private var subscriberCerts : Vector[(ActorRef, Certificate)] = Vector()
+	//TODO: change cert type to "Certificate"
+  private var subscriptions : Map[ActorRef, Subscription] = Map()
+  private var subscribers : Vector[Subscriber] = Vector()
 
 
 /* Methods: */
@@ -25,32 +26,83 @@ class PubSubFederator extends Actor with ActorLogging
 
 	//TODO: use?!
   def publish(message: Unit) = {
-	 for (subscriber <- subscriberRefs){
+	 for (subscriber <- subscriptions){
 		subscriber._1 ! message
 	 }
   }
 
   override def receive(): Receive = {
-	 case message: PubSubFederatorReply	=> message match {
-     case DiscoverySubscription(slaList, cert)	=> recvDiscoverySubscription(slaList, cert)
+	 case message: PubSubDiscoveryDest	=> message match {
+     case DiscoverySubscription(subscription)	=> recvDiscoverySubscription(subscription)
+		 case AuthenticationAnswer(solvedKey) 		=> recvAuthenticationAnswer(solvedKey)
 	 }
-	 case _										=> log.error("Unknown message received!")
+	 case _																	=> log.error("Unknown message received!")
   }
 
-  def recvDiscoverySubscription(slaList: Vector[SLA], cert: Certificate): Unit = {
+	//TODO: change cert type to "Certificate"
+  def recvDiscoverySubscription(newSubscription: Subscription): Unit = {
 
-	 //When a new DiscoverySubscription drops in, save that sender as a subscriber:
-	 val subscriber: ActorRef = sender()
-	 subscriberRefs = subscriberRefs :+ (subscriber, slaList)
-	 subscriberPaths = subscriberPaths :+ subscriber.path
-	 subscriberCerts = subscriberCerts :+ (subscriber, cert)
-	 log.info("Received Cloud Subscription. Subscribed Sender.")
-	 log.debug("Current subscriberRefs: "+ subscriberRefs)
-	 log.debug("Current subscriberPaths: "+ subscriberPaths)
+	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
+		val newSubscriber = Subscriber(sender(), authenticated = false)
 
-	 //and answer this discovery-Request with a DiscoveryPublication:
-	 subscriber ! DiscoveryPublication(subscriberPaths)
-  }
+		// Add the new, unauthenticated subscriber to the vector of all subscribers and the subscription Map:
+		subscribers = subscribers :+ newSubscriber
+		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
+
+		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
+		log.debug("Current subscriptions: "+ subscriptions)
+		log.debug("Current subscribers: "+ subscribers)
+
+		val encrSecCheck = Math.random().toLong //TODO: Write out Shortcut implementation.
+		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
+		// Begin with the authentication of the new subscriber:
+		val authSubscriberQuestion = AuthenticationInquiry(encrSecCheck)
+		newSubscriber.actorRef ! authSubscriberQuestion
+	}
+
+	def recvAuthenticationAnswer(solvedKey: Long): Unit = {
+		val subscriberToAuth: ActorRef = sender()
+		val registeredSubscriber = subscribers.find(subscriber => subscriber.actorRef == subscriberToAuth)
+		if(registeredSubscriber.isDefined){
+			//TODO: check if inquiry key is correct:
+			if(registeredSubscriber.get.authenticated){
+				log.warning("Subscriber {} is already authenticated. No further authentication check needed.", registeredSubscriber.get)
+				return
+			}
+			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
+				val index: Int = subscribers.indexOf(registeredSubscriber.get)
+				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
+				val authSubscriber = Subscriber(subscribers(index).actorRef, authenticated = true)
+				subscribers = subscribers.updated(index, authSubscriber)
+				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
+
+				// After successful authentication, publish new Subscription to all subscribers:
+				publishSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
+			}
+			else{
+				log.warning("Authentication for new {} was unsuccessful. " +
+					"Dropping temporary Subscriber from registered Subscribers.", registeredSubscriber.get.actorRef)
+				val index: Int = subscribers.indexOf(registeredSubscriber.get)
+				subscribers = subscribers.drop(index)
+			}
+		}
+		else{
+			log.warning("Received a AuthenticationAnswer of {}, which is not actually registered as a potential subscriber!",
+			subscriberToAuth)
+		}
+	}
 
 
+	/**
+	 * Publishes a subscription to each authenticated Subscriber in the subscribers Vector.
+	 * Does not publish a Subscription back to the originating Subscriber.
+	 */
+	def publishSubscription(originator: Subscriber, subscription: Subscription) = {
+		// Filter all authenticated Subscribers without the originated subscriber:
+		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
+
+		for (actSubscriber <- authSubscribers) {
+			actSubscriber.actorRef ! DiscoveryPublication(subscription)
+		}
+	}
 }

@@ -1,72 +1,74 @@
 package agents
 
-import java.io.{FileInputStream, File}
+import java.io.{File}
+import java.net.InetAddress
 import java.security.cert.{CertificateFactory, Certificate}
 
 import akka.actor._
-import datatypes.CPU_Unit.CPU_Unit
-import datatypes.Img_Format.Img_Format
 import datatypes._
-import messages.{DiscoveryAck, DiscoveryError, DiscoveryInit}
+import messages._
 
 
 /**
- * Created by costa on 5/27/14.
+ * @author Constantin Gaul, created on 5/27/14.
  */
-class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Actor with ActorLogging
+class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Actor with ActorLogging
 {
 	//TODO: replace by a XML File
 	object CCFMConfig
 	{
+		def certFile 		= _certFile
+		def ovxIP 			= _ovxIP
+		def cloudHosts 	= _cloudHosts
+		def cloudSLA 		= _cloudSLA
+
+
 		//TODO: build security interfaces for a Certificate-Store
-		val certFile: File			= new File("filename")
+		val _certFile: File			= new File("cloudconf/cloud1.key")
 
-		val lowProfileSLA: SLA		= new SLA(relOnlineTime 		= 0.8f,
-														 supportedImgFormats = Vector[Img_Format](Img_Format.QCOW2),
-														 maxVMsPerCPU 			= Vector[(CPU_Unit, Integer)]
-														 											(	(CPU_Unit.SMALL, 2), (CPU_Unit.MEDIUM, 2),
-																										(CPU_Unit.LARGE, 3), (CPU_Unit.XLARGE, 4)),
-														 priceRangePerCPU 	= Vector[(CPU_Unit, Price, Price)]
-														 											((CPU_Unit.SMALL,
-														  												Price(0.01f, CloudCurrency.CLOUD_CREDIT),
-														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPU_Unit.MEDIUM,
-																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT),
-																		  								Price(0.10f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPU_Unit.LARGE,
-																									  	Price(0.10f, CloudCurrency.CLOUD_CREDIT),
-																		  								Price(0.15f, CloudCurrency.CLOUD_CREDIT)),
-																									(CPU_Unit.XLARGE,
-																									  	Price(0.20f, CloudCurrency.CLOUD_CREDIT),
-																		  								Price(0.50f, CloudCurrency.CLOUD_CREDIT))),
-														 priceRangePerRAM		= (new ByteSize(1, Byte_Unit.GB),
-														  												Price(0.02f, CloudCurrency.CLOUD_CREDIT),
-														  												Price(0.05f, CloudCurrency.CLOUD_CREDIT)),
-														 priceRangePerStorage= (new ByteSize(1, Byte_Unit.GB),
-																									  	Price(0.02f, CloudCurrency.CLOUD_CREDIT),
-																									  	Price(0.05f, CloudCurrency.CLOUD_CREDIT))
-														)
+		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
 
+
+		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
+		var _cloudHosts: Vector[Host] = Vector()
+		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
+		if(_cloudHostDir.listFiles() == null)
+			log.error("Hosts need a defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
+		for (actHostFile <- _cloudHostDir.listFiles) {
+			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
+		}
+
+		// Define the Cloud-SLA from the CloudSLA.xml file in the resources/cloudconf/ directory
+		val _cloudSLA  = CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
 	}
 
 
 /* Values: */
 /* ======= */
 
-  // Akka Child-Actor spawning:
-	val discoveryAgentProps:			Props = Props(classOf[DiscoveryAgent], pubSubServerAddr, cloudCert)
-	val matchMakingAgentProps:			Props = Props(classOf[MatchMakingAgent])
-	val networkResourceAgentProps:	Props = Props(classOf[NetworkResourceAgent])
+	// Akka Child-Actor spawning:
+	val mMASelection: ActorSelection			= context.actorSelection("/user/"+"matchMakingAgent")
+	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
+																								pubSubActorSelection, mMASelection, CCFMConfig.certFile)
+	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, name="discoveryAgent")
 
-	val discoveryAgent: ActorRef 		= context.actorOf(discoveryAgentProps, name="discoveryAgent")
-	log.info("Discovery-Agent established!")
+	
+	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],
+																								CCFMConfig.cloudSLA)
+	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, name="matchMakingAgent")
+
+	
+	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
+																								CCFMConfig.cloudHosts, CCFMConfig.ovxIP, matchMakingAgent)
+	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
+
 
 
 /* Variables: */
 /* ========== */
 
 	var foreignDiscoveryActors: Vector[ActorPath] = Vector()
-	var cloudFederationMatches: Vector[(ActorPath, Resources)] = Vector()
+	var cloudFederationMatches: Vector[(ActorPath, ResourceAlloc)] = Vector()
 
 
 /* Execution: */
@@ -78,7 +80,8 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
 
-	discoveryAgent ! DiscoveryInit(Vector[SLA](CCFMConfig.lowProfileSLA))
+	//TODO: Maybe possible HostSLAs should differ from initial CloudHostSLAs:
+	discoveryAgent ! FederationSLAs(CCFMConfig.cloudSLA, CCFMConfig.cloudHosts.map(_.hostSLA))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 
@@ -88,11 +91,15 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
+
 	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=> recvDiscoveryError(status)
-		case "matchmakingMsg" 			=> recvMatchMakingMsg()
-		case "authenticationMsg"		=> recvAuthenticationMsg()
+		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
+		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
+		case message: CCFMResourceDest	=> message match {
+			case ResourceReply(allocResources)						=> recvResourceReply(allocResources)
+		}
 		case _								=> log.error("Unknown message received!")
 	}
 
@@ -105,9 +112,11 @@ class CCFM(pubSubServerAddr: ActorSelection, cloudCert: Certificate) extends Act
 	}
 
 
-	def recvMatchMakingMsg() = ???
+	def recvMatchMakingMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
 
-	def recvAuthenticationMsg() = ???
+	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
+
+	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
 }
 
 
@@ -125,6 +134,6 @@ object CCFM
 	 * @param pubSubServerAddr The akka.tcp connection, where the PubSub-Federator-Agents is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(pubSubServerAddr: ActorSelection, cloudCert: Certificate):
-		Props = Props(new CCFM(pubSubServerAddr, cloudCert))
+	def props(pubSubServerAddr: ActorSelection, cloudConfDir: File):
+		Props = Props(new CCFM(pubSubServerAddr, cloudConfDir))
 }

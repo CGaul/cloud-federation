@@ -1,21 +1,24 @@
 package agents
 
+import java.io.File
 import java.security.cert.Certificate
 
 import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
-import datatypes.SLA
+import datatypes.{Subscription, CloudSLA, HostSLA}
 import messages._
 
 
 /**
- * Created by costa on 5/27/14.
- *
  * This agent is able to connect to the Discovery-Subscription-Service
  * and establishes a communication with the CCFM as its Supervisor.
+ * @author Constantin Gaul created on 5/27/14.
  */
-class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends RemoteDependencyAgent(Vector(pubSubServer))
-																							 with ActorLogging
+class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelection: ActorSelection,
+										 cert: File) extends Actor with ActorLogging
+									//TODO: change cert type to "Certificate"
+									//extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
+									//with ActorLogging
 {
 
 /* Values: */
@@ -38,50 +41,41 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends Re
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def online(): Receive = {
-	  	case KillNotifier()						=> super.recv_offlineNotifier()
+	override def receive(): Receive = {
+	  	//case KillNotifier()						=> super.recv_offlineNotifier()
 
-	  	case message: DiscoveryAgentReply	=> message match {
-			case DiscoveryInit(slaList)					=> recvDiscoveryInit(slaList)
-			case DiscoveryPublication(discoveries)		=> recvDiscoveryPublication(discoveries)
+		case message: DDADiscoveryDest	=> message match {
+			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> revcFederationSLAs(cloudSLA, possibleHostSLAs)
+			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
+			case DiscoveryPublication(cloudDiscovery)				=> recvDiscoveryPublication(cloudDiscovery)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
+}
+
+	private def revcFederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
+		log.info("Received FederationSLAs from CCFM.")
+
+		pubSubActorSelection ! DiscoverySubscription(Subscription(matchMakingActorSelection, cloudSLA, possibleHostSLAs, cert))
+		log.info("Sended subscription request to PubSub-Federator.")
 	}
 
-	private def recvDiscoveryInit(slaList: Vector[SLA] ) = {
-		log.info("Received Discovery-Init Call from CCFM.")
-		log.info("Sending subscription request to PubSub-Federator...")
+	def recvAuthenticationInquiry(hashKey: Long) = {
+		//TODO: decrypt hashKey with own private key:
+		val solvedKey = 0
 
-		pubSubServer ! DiscoverySubscription(slaList, cert)
-
-//		try{
-//			implicit val timeout = Timeout(5 seconds) //will be implicitely used in "ask" below
-//			val pubSubReply: Future[DiscoveryAck] = (pubSubServerAddr.ask(DiscoverySubscription("this is my cert!"))(timeout)).mapTo[DiscoveryAck]
-//			//val ident: ActorIdentity = Await.result(pubSubReply, Duration.apply(5 seconds))
-//
-//		  //TODO: go on here.
-//			if(pubSubReply.) {
-//				sender() ! DiscoveryAck("Subscribed at PubSubServer")
-//			}
-//			else{
-//				sender() ! DiscoveryError("PubSubServer is not available!")
-//
-//				//TODO: close Agent.
-//			}
-//		}
-//		catch{
-//			case timeoutError: AskTimeoutException =>
-//				sender() ! DiscoveryError("PubSubServer timeout!")
-//				throw timeoutError
-//		}
-
-
+		// send decrypted inquiry back to PubSubFederator as
+		val authAnswer: AuthenticationAnswer = AuthenticationAnswer(solvedKey)
+		pubSubActorSelection ! authAnswer
 	}
 
-	def recvDiscoveryPublication(discoveryActors: Vector[ActorPath]) = {
-		log.info("Received Publication Call from PubSubFederator.")
-	  	this.discoveryActors = discoveryActors
+	//TODO: change cert type to "Certificate"
+	def recvDiscoveryPublication(cloudDiscovery: Subscription) = {
+		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.cloudMMA)
+		// Forward this Publication to the MMA:
+		matchMakingActorSelection ! DiscoveryPublication(cloudDiscovery)
+
+//	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
 	}
 
 	private def recvCCFMShutdown() = {
@@ -97,5 +91,7 @@ class DiscoveryAgent(pubSubServer: ActorSelection, cert: Certificate) extends Re
  */
 object DiscoveryAgent
 {
-	def props(pubSubServerAddr: ActorSelection, cert: Certificate): Props = Props(new DiscoveryAgent(pubSubServerAddr, cert))
+	//TODO: change cert type to "Certificate"
+	def props(pubSubActorSelection: ActorSelection, matchMakingAgentSelection: ActorSelection, cert: File):
+		Props = Props(new DiscoveryAgent(pubSubActorSelection, matchMakingAgentSelection, cert))
 }

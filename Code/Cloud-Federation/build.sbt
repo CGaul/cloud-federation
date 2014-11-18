@@ -1,35 +1,67 @@
-name := "Cloud-Federation"
-
-version := "0.1-SNAPSHOT"
-
-scalaVersion := "2.11.2"
+import sbt.Keys._
+import AssemblyKeys._
 
 
-// Library Dependencies (MAIN)
-// ===========================
+// "Agent-Framework"-Module:
+// =========================
 
-//Resolver Link for Akka Libraries:
-resolvers += "Typesafe Repository" at "http://repo.typesafe.com/typesafe/releases/"
+lazy val agentFramework: Project = project.in(file("Agent-Framework")).
+  settings(
+    name := "Agent-Framework",
+    version := Common.prjVersion,
+    scalaVersion := Common.scalaVersion,
+    //Resolver Link for Akka Libraries:
+    resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    //Akka Libraries:
+    libraryDependencies ++= Common.Imports.akkaDependencies,
+    //Logging (SLF4J):
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Scala XML Support:
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //Testing Scope:
+    libraryDependencies ++= Common.Imports.testDependencies
+  )
 
-//Akka Libraries:
-libraryDependencies ++= Seq(
-	"com.typesafe.akka" %% "akka-actor" % "2.3.3",
-	"com.typesafe.akka" %% "akka-remote" % "2.3.3",
-  	"com.typesafe.akka" %% "akka-slf4j" % "2.3.3",
-	"com.typesafe.akka" %% "akka-testkit" % "2.3.3"
-)
-
-//Logging (SLF4J):
-libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4"
 
 
+// "PubSub-System"-Module:
+// =======================
 
-// Library Dependencies (TEST)
-// ===========================
+lazy val pubSubSystem: Project = project.in(file("PubSub-System")).
+  settings(
+    name := "PubSub-System",
+    version := Common.prjVersion,
+    scalaVersion := Common.scalaVersion,
+    //Resolver Link for Akka Libraries:
+    resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    //Akka Libraries:
+    libraryDependencies ++= Common.Imports.akkaDependencies,
+    //Logging (SLF4J):
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Scala XML Support:
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //Testing Scope:
+    libraryDependencies ++= Common.Imports.testDependencies
+  ).dependsOn(agentFramework)//.dependsOn(cloudAgents % "test->compile")
 
-libraryDependencies ++= Seq(
-	"org.scalatest" %% "scalatest" % "2.1.6" % "test",
-	"junit" % "junit" % "4.11" % "test",
-	"com.novocode" % "junit-interface" % "0.11" % "test",
-	"org.mockito" % "mockito-core" % "1.9.5" % "test"
-)
+
+
+// "Cloud-Agents"-Module:
+// ======================
+
+lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
+  settings(
+    name := "Cloud-Agents",
+    version := Common.prjVersion,
+    scalaVersion := Common.scalaVersion,
+    //Resolver Link for Akka Libraries:
+    resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    //Akka Libraries:
+    libraryDependencies ++= Common.Imports.akkaDependencies,
+    //Logging (SLF4J):
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Scala XML Support:
+    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //Testing Scope:
+    libraryDependencies ++= Common.Imports.testDependencies
+  ).dependsOn(agentFramework).dependsOn(pubSubSystem)
