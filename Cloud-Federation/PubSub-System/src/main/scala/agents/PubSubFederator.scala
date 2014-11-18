@@ -44,7 +44,10 @@ class PubSubFederator extends Actor with ActorLogging
 
 	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
 		val newSubscriber = Subscriber(sender(), authenticated = false)
-
+		if(subscribers.contains(newSubscriber)){
+			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRef)
+			return
+		}
 		// Add the new, unauthenticated subscriber to the vector of all subscribers and the subscription Map:
 		subscribers = subscribers :+ newSubscriber
 		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
@@ -106,7 +109,7 @@ class PubSubFederator extends Actor with ActorLogging
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
 		for (actSubscriber <- authSubscribers) {
-			log.debug("Broadcasting Subscription of {} to {}", originator.actorRef, actSubscriber.actorRef)
+			log.info("Broadcasting Subscription of {} to {}", originator.actorRef, actSubscriber.actorRef)
 			actSubscriber.actorRef ! DiscoveryPublication(subscription)
 		}
 	}
@@ -115,7 +118,9 @@ class PubSubFederator extends Actor with ActorLogging
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
 		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRef).contains).map(_._2)
-		log.debug("Initial Publication to {}", receiver.actorRef)
+		if(authSubscriptions.size > 0)
+			log.info("Initial Publication to {}", receiver.actorRef)
+
 		for (actSubscription <-  authSubscriptions) {
 			receiver.actorRef ! DiscoveryPublication(actSubscription)
 		}
