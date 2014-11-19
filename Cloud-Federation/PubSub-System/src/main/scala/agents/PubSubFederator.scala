@@ -16,7 +16,6 @@ class PubSubFederator extends Actor with ActorLogging
 /* Variables: */
 /* ========== */
 
-	log.info("Initialized Class.")
   private var subscriptions : Map[ActorRef, Subscription] = Map()
   private var subscribers : Vector[Subscriber] = Vector()
 
@@ -47,14 +46,14 @@ class PubSubFederator extends Actor with ActorLogging
 			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRef)
 			return
 		}
-		log.info("Subscribers before discovery update: "+ subscribers)
+		log.debug("Subscribers before discovery update: "+ subscribers)
 		// Add the new, unauthenticated subscriber to the vector of all subscribers and the subscription Map:
 		subscribers = subscribers :+ newSubscriber
 		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
 
 		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
 		//log.info("Subscriptions: "+ subscriptions)
-		log.info("Subscribers after discovery update: "+ subscribers)
+		log.debug("Subscribers after discovery update: "+ subscribers)
 
 		val encrSecCheck = Math.random().toLong //TODO: Write out Shortcut implementation.
 		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
@@ -68,7 +67,6 @@ class PubSubFederator extends Actor with ActorLogging
 		val subscriberToAuth: ActorRef = sender()
 		val registeredSubscriber = subscribers.find(subscriber => subscriber.actorRef == subscriberToAuth)
 		log.info("Found Pre-Reg. Subscriber: {}", registeredSubscriber)
-		log.info("Subscribers: "+ subscribers)
 		if(registeredSubscriber.isDefined){
 			//TODO: check if inquiry key is correct:
 			if(registeredSubscriber.get.authenticated){
@@ -79,13 +77,11 @@ class PubSubFederator extends Actor with ActorLogging
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
 				val authSubscriber = Subscriber(subscribers(index).actorRef, authenticated = true)
-				log.info("Subscribers before auth-update: "+ subscribers)
+				log.debug("Subscribers before auth-update: "+ subscribers)
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
-				log.info("Position of Subscriber update: {}", index)
-				log.info("Subscribers after auth-update: "+ subscribers)
+				log.debug("Subscribers after auth-update: "+ subscribers)
 
-				log.info("Broadcast and Publish Subscriptions for authSubscriber: {}", authSubscriber.actorRef)
 				// After successful authentication, publish new Subscription to all subscribers:
 				broadcastOneSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
 				
@@ -115,9 +111,11 @@ class PubSubFederator extends Actor with ActorLogging
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
-		for (actSubscriber <- authSubscribers) {
-			log.info("Broadcasting Subscription of {} to {}", originator.actorRef, actSubscriber.actorRef)
-			actSubscriber.actorRef ! DiscoveryPublication(subscription)
+		if(authSubscribers.size > 0) {
+			log.info("Broadcasting Subscription of {} to {} authenticated Subscribers", originator.actorRef, authSubscribers.size)
+			for (actSubscriber <- authSubscribers) {
+				actSubscriber.actorRef ! DiscoveryPublication(subscription)
+			}
 		}
 	}
 	
@@ -125,11 +123,13 @@ class PubSubFederator extends Actor with ActorLogging
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
 		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRef).contains).map(_._2)
-		if(authSubscriptions.size > 0)
-			log.info("Initial Publication to {}", receiver.actorRef)
 
-		for (actSubscription <-  authSubscriptions) {
-			receiver.actorRef ! DiscoveryPublication(actSubscription)
+		if(authSubscriptions.size > 0){
+			log.info("Initial Publication to {}", receiver.actorRef)
+			for (actSubscription <-  authSubscriptions) {
+				receiver.actorRef ! DiscoveryPublication(actSubscription)
+			}
 		}
+
 	}
 }
