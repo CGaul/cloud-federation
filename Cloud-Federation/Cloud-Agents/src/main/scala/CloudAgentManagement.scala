@@ -10,16 +10,15 @@ object CloudAgentManagement extends App
 	val (appcfg, clouddir) = loadConfigs(args)
 	val config = ConfigFactory.parseFileAnySyntax(appcfg)
 
-	val system 				= ActorSystem("cloudAgentSystem", config.getConfig("cloudagentsystem").withFallback(config))
-	val remoteSystem 	= ActorSystem("remotePubSubSystem", config.getConfig("remotepubsubsystem").withFallback(config))
+	val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudagentsystem").withFallback(config))
 
-	// Contacting the PubSubFederator via the remoteSystem:
+	// Contacting the PubSubFederator via a static ActorSelection:
 	val pubSubActorName = "remoteFederator"
-	val pubSubActor = remoteSystem.actorOf(Props[PubSubFederator], name=pubSubActorName)
-	val pubSubActorSelection: ActorSelection = system.actorSelection("/user/"+pubSubActorName)
+	val pubSubActorSel  = system.actorSelection("akka.tcp://pubSubSystem@192.168.1.41:2550/user/remoteFederator")//(Props[PubSubFederator], name=pubSubActorName)
+//val pubSubActorSel  = system.actorSelection("/user/"+pubSubActorName)
 
 	// Building up the CCFM via the local System:
-	val ccfmProps = Props(classOf[CCFM], pubSubActorSelection, clouddir)
+	val ccfmProps = Props(classOf[CCFM], pubSubActorSel, clouddir)
 	val ccfmActor = system.actorOf(ccfmProps, name="CCFM")
 
   println("Starting AgentFederation. Initialized CCFM-Agent successful! CCFM Address: "+ ccfmActor)
