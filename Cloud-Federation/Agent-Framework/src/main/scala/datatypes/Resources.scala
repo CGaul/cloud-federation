@@ -110,6 +110,47 @@ object Resource {
 }
 
 
+case class Switch(switchID: NodeID, switchLinks: Vector[NodeID], hostLinks: Vector[NodeID])
+
+/**
+ * Companion Object for Switch
+ */
+object Switch {
+
+	/* Serialization: */
+	/* ============== */
+
+	def toXML(switch: Switch): Node =
+		<Switch>
+			<ID>{switch.switchID.toString}</ID>
+			<SwitchLinks>{switch.switchLinks.mkString(" ")}</SwitchLinks>
+			<HostLinks>{switch.hostLinks.mkString(" ")}</HostLinks>
+		</Switch>
+
+	def saveToXML(file: File, switch: Switch) = {
+		val xmlNode = toXML(switch)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+	/* De-Serialization: */
+	/* ================= */
+
+	def fromXML(node: Node): Switch = {
+		val switchID: NodeID = NodeID.fromString((node \ "ID").text)
+		val switchLinks: Vector[NodeID] = (node \ "SwitchLinks").text.trim.split(" ").map(NodeID.fromString).toVector
+		val hostLinks: Vector[NodeID] = (node \ "HostLinks").text.trim.split(" ").map(NodeID.fromString).toVector
+
+
+		return Switch(switchID, switchLinks, hostLinks)
+	}
+
+	def loadFromXML(file: File): Switch = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
+}
+
+
 
 //TODO: use http://docs.scala-lang.org/style/scaladoc.html to go on with ScalaDocs in code.
 /**

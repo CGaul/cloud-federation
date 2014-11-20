@@ -10,7 +10,7 @@ import messages._
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
-class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
+class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[Host],
 													 _ovxIP: InetAddress, matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
@@ -21,7 +21,8 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 /* Variables: */
 /* ========== */
 
-	var _cloudHosts: Vector[Host] = _initialHostAlloc
+//	val _cloudSwitches: Vector[Switch]
+//	val _cloudHosts: Vector[Host] = _initialHostAlloc
 
 
 /* Public Methods: */
@@ -131,7 +132,7 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
 	 * @param tuples
 	 */
-	def recvResourceReply(tuples: Vector[(ActorRef, ResourceAlloc)]): Unit = {
+	def recvResourceFederationReply(tuples: Vector[(ActorRef, ResourceAlloc)]): Unit = {
 	}
 
 
@@ -146,7 +147,7 @@ class NetworkResourceAgent(_initialHostAlloc: Vector[Host],
 	def receive(): Receive = {
 		case message: NRAResourceDest	=> message match {
 			case ResourceRequest(resourcesToAlloc, ofcIP)		=> recvResourceRequest(resourcesToAlloc, ofcIP)
-			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceReply(resourcesAllocated)
+			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceFederationReply(resourcesAllocated)
 		}
 		case _														=> log.error("Unknown message received!")
 	}
@@ -183,6 +184,6 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(initialHostAlloc: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
-	Props = Props(new NetworkResourceAgent(initialHostAlloc, ovxIP, matchMakingAgent))
+	def props(cloudSwitches: Vector[Switch], cloudHosts: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
+	Props = Props(new NetworkResourceAgent(cloudSwitches, cloudHosts, ovxIP, matchMakingAgent))
 }

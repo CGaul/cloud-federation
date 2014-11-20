@@ -29,11 +29,20 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
 
 
+		// Define the Cloud-Switches from all files in the resources/cloudconf/switches/ directory
+		var _cloudSwitches: Vector[Host] = Vector()
+		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
+		if(_cloudSwitchesDir.listFiles() == null)
+			log.error("Switches need at least one defined .xml file in $PROJECT$/resources/cloudconf/switches/ !")
+		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
+			_cloudSwitches = _cloudSwitches :+ Switch.loadFromXML(actSwitchFile)
+		}
+
 		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
 		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
 		if(_cloudHostDir.listFiles() == null)
-			log.error("Hosts need a defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
+			log.error("Hosts need at least one defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
 		for (actHostFile <- _cloudHostDir.listFiles) {
 			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
 		}
