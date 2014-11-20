@@ -130,7 +130,7 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 
 				// If an allocation took place, save this in the allocationPerHost-Map:
 				if(allocatedSome && allocation.isDefined){
-					allocationPerHost += (actHost -> allocation)
+					allocationPerHost += (actHost -> allocation.get)
 				}
 				// If the actual ResourceAlloc could be allocated completely to the actHost,
 				// set the remaining ResourceAlloc to None and break out of the loop.
