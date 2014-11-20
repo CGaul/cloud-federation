@@ -20,8 +20,9 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 
 	def recvDiscoveryPublication(cloudDiscovery: Subscription): Unit = {
 		log.info("MatchMakingAgent received DiscoveryPublication. " +
-			"Subscribing on FederationInfo about that Cloud soon.")
+			"Subscribing on FederationInfo about that Cloud via other MMA...")
 		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
+		cloudDiscovery.cloudMMA ! FederationInfoSubscription(cloudSLA)
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -74,9 +75,21 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 	def recvResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]): Unit = ???
 
 
+	def recvFederationInfoSubscription(otherCloudSLA: CloudSLA): Unit = {
+		log.info("Received FederationInfoSubscription from {}", sender())
+	}
+
+	def recvFederationInfoPublication(possibleFederatedAllocs: Vector[(Host, Vector[ResourceAlloc])]): Unit = {
+		log.info("Received FederationInfoPublication from {}", sender())
+	}
+
 	override def receive(): Receive = {
 		case message: MMADiscoveryDest => message match {
 			case DiscoveryPublication(cloudDiscovery) => recvDiscoveryPublication(cloudDiscovery)
+		}
+		case message: MMAFederationDest => message match{
+			case FederationInfoSubscription(cloudSLA) 			=> recvFederationInfoSubscription(cloudSLA)
+			case FederationInfoPublication(possibleAllocs) 	=> recvFederationInfoPublication(possibleAllocs)
 		}
 		case message: MMAResourceDest	=> message match {
 			case ResourceRequest(resources, ofcIP)	=> recvResourceRequest(resources, ofcIP)
