@@ -1,7 +1,7 @@
 <Host>
 	<Hardware>
 		<Resource>
-			<NodeID>1</NodeID>
+			<NodeID>11</NodeID>
 			<CPU>SMALL</CPU>
 			<RAM>
 				<ByteSize>8.0 GiB</ByteSize>
@@ -16,7 +16,8 @@
 			<Links>2 3</Links>
 		</Resource>
 	</Hardware>
-
+	<IP>192.168.1.1</IP>
+	<MAC>00:00:00:01</MAC>
 	<ResourceAllocs>
 
 	</ResourceAllocs>

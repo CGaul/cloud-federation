@@ -1,0 +1,6 @@
+<Switch>
+	<ID>2</ID>
+	<DPID>00:00:00:00:00:00:02:00</DPID>
+	<SwitchLinks>1</SwitchLinks>
+	<HostLinks>13</HostLinks>
+</Switch>

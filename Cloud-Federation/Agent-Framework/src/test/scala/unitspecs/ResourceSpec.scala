@@ -56,8 +56,8 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should "be equal to itself, independent from the object creation (applied or instantiated)" in {
 		When("res1 is directly compared to itself")
 		Then("res1.equals(res1) should be true")
-		res1.equals(res1) should be(true)
-		res1 == res1 should be(true)
+		res1 should equal(res1)
+		res1 == res1 should be(right = true)
 
 
 		Given("A Resource with the res1 footprint, instantiated statically via apply()")
@@ -159,6 +159,68 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 
 
+/* Switch-Class Unit-Spec */
+/* ====================== */
+
+	behavior of "A Switch"
+
+	// All Hosts are starting with SLAs that allow 10 SMALL, 5 MEDIUM and 2 LARGE VMs at the beginning:
+
+	val switch1 	= new Switch(NodeID(1), "00:00:00:00:00:00:01:00", Vector(NodeID(2), NodeID(3)), Vector(NodeID(10), NodeID(20)))
+	val switch2 	= new Switch(NodeID(2), "00:00:00:00:00:00:02:00", Vector(NodeID(1), NodeID(3)), Vector(NodeID(11), NodeID(21)))
+	val switch3 	= new Switch(NodeID(3), "00:00:00:00:00:00:03:00", Vector(NodeID(1), NodeID(2)), Vector(NodeID(12), NodeID(22)))
+
+	it should "be equal equal to itself" in{
+		switch1 should equal(switch1)
+	}
+	
+	it should "be equal to another Switch with the same values" in{
+		val switch1Comp = new Switch(NodeID(1), "00:00:00:00:00:00:01:00", Vector(NodeID(1), NodeID(2)), Vector(NodeID(10), NodeID(20)))
+		switch1 should equal(switch1Comp)
+	}
+	
+	it should "be fully serializable to and deserializable from XML" in{
+		val xmlSerialSwitch1 = Switch.toXML(switch1)
+		val xmlSerialSwitch2 = Switch.toXML(switch2)
+		val xmlSerialSwitch3 = Switch.toXML(switch3)
+
+		println("serialized Switch1 = " + xmlSerialSwitch1)
+		println("serialized Switch2 = " + xmlSerialSwitch2)
+		println("serialized Switch3 = " + xmlSerialSwitch3)
+
+		val xmlDeserialRes1 = Switch.fromXML(xmlSerialSwitch1)
+		val xmlDeserialRes2 = Switch.fromXML(xmlSerialSwitch2)
+		val xmlDeserialRes3 = Switch.fromXML(xmlSerialSwitch3)
+
+		switch1 shouldEqual xmlDeserialRes1
+		switch2 shouldEqual xmlDeserialRes2
+		switch3 shouldEqual xmlDeserialRes3
+		switch3 should not equal xmlDeserialRes1
+	}
+
+	it should "be loadable from and saveable to a XML file" in{
+		val xmlFile1 = new File(resDir.getAbsolutePath +"/Switch1.xml")
+		val xmlFile2 = new File(resDir.getAbsolutePath +"/Switch2.xml")
+		val xmlFile3 = new File(resDir.getAbsolutePath +"/Switch3.xml")
+		Switch.saveToXML(xmlFile1, switch1)
+		Switch.saveToXML(xmlFile2, switch2)
+		Switch.saveToXML(xmlFile3, switch3)
+
+		val loadedSwitch1 = Switch.loadFromXML(xmlFile1)
+		val loadedSwitch2 = Switch.loadFromXML(xmlFile2)
+		val loadedSwitch3 = Switch.loadFromXML(xmlFile3)
+
+		println("switch1 = " + loadedSwitch1)
+		println("switch2 = " + loadedSwitch2)
+		println("switch3 = " + loadedSwitch3)
+
+		switch1 should equal (loadedSwitch1)
+		switch2 should equal (loadedSwitch2)
+		switch3 should equal (loadedSwitch3)
+	}
+
+
+
 /* Host-Class Unit-Spec */
 /* ==================== */
 
@@ -178,7 +240,8 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	// The required SLAs for the resource-allocation are mapped as follows:
 	// host1 can only allocate by the resourceAlloc with reqSLA1
 	// host2 can only allocate by the resourceAlloc with reqSLA2
-	// host3 is able to allocate all three resourceAllocs, however should fail due to VMs per CPU limitations
+	// host3 isres2
+
 	val reqSLA1		= new HostSLA(0.90f, Vector(IMG, DMG),
 															Vector[(CPUUnit, Int)]((SMALL, 3), (MEDIUM, 2)))
 	val reqSLA2		= new HostSLA(0.91f, Vector(IMG, CLOOP, BOCHS),

@@ -78,8 +78,7 @@ object Resource {
 			<Storage>{ByteSize.toXML(resource.storage)}</Storage>
 			<Bandwidth>{ByteSize.toXML(resource.bandwidth)}</Bandwidth>
 			<Latency>{resource.latency}</Latency>
-			<Links>{if(resource.links.size == 0) {}
-							else {resource.links.map(nodeID => nodeID.toString) +" "}}</Links>
+			<Links>{resource.links.mkString(" ")}</Links>
 		</Resource>
 
 	def saveToXML(file: File, resource: Resource) = {
@@ -110,7 +109,19 @@ object Resource {
 }
 
 
-case class Switch(switchID: NodeID, switchLinks: Vector[NodeID], hostLinks: Vector[NodeID])
+case class Switch(switchID: NodeID, switchDPID: String, switchLinks: Vector[NodeID], hostLinks: Vector[NodeID]){
+
+	/* Basic Overrides: */
+	/* ---------------- */
+
+	override def equals(obj: scala.Any): Boolean = obj match{
+		case that: Switch => this.switchID == that.switchID && this.switchDPID == that.switchDPID
+		case _ 						=> false
+	}
+
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
+
+}
 
 /**
  * Companion Object for Switch
@@ -123,9 +134,11 @@ object Switch {
 	def toXML(switch: Switch): Node =
 		<Switch>
 			<ID>{switch.switchID.toString}</ID>
+			<DPID>{switch.switchDPID}</DPID>
 			<SwitchLinks>{switch.switchLinks.mkString(" ")}</SwitchLinks>
 			<HostLinks>{switch.hostLinks.mkString(" ")}</HostLinks>
 		</Switch>
+
 
 	def saveToXML(file: File, switch: Switch) = {
 		val xmlNode = toXML(switch)
@@ -137,11 +150,12 @@ object Switch {
 
 	def fromXML(node: Node): Switch = {
 		val switchID: NodeID = NodeID.fromString((node \ "ID").text)
+		val switchDPID: String = (node \ "DPID").text
 		val switchLinks: Vector[NodeID] = (node \ "SwitchLinks").text.trim.split(" ").map(NodeID.fromString).toVector
 		val hostLinks: Vector[NodeID] = (node \ "HostLinks").text.trim.split(" ").map(NodeID.fromString).toVector
 
 
-		return Switch(switchID, switchLinks, hostLinks)
+		return Switch(switchID, switchDPID, switchLinks, hostLinks)
 	}
 
 	def loadFromXML(file: File): Switch = {
@@ -375,7 +389,7 @@ object Host {
 			case e: UnknownHostException =>
 				System.err.println(s"Address: ${(node \\ "IP").text.trim} could not have been solved. Using Loopback Address")
 		}
-		val hostMAC: String 								= (node \\ "MAC").text
+		val hostMAC: String = (node \\ "MAC").text
 		var allocRes: Vector[ResourceAlloc] = Vector()
 		for (actResAlloc <- node \\ "ResourceAllocs") {
 			//Only parse, if the actual ResourceAlloc is existing.
@@ -383,7 +397,7 @@ object Host {
 				allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
 			}
 		}
-		val hostSLA: HostSLA 								= HostSLA.fromXML((node \ "HostSLA")(0))
+		val hostSLA: HostSLA = HostSLA.fromXML((node \ "HostSLA")(0))
 
 		return Host(hardwareSpec, hostIP, hostMAC, allocRes, hostSLA)
 	}

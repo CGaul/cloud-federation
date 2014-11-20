@@ -224,7 +224,7 @@ object HostSLA {
 	def toXML(hostSLA: HostSLA): xml.Node =
 		<HostSLA>
 			<RelOnlineTime>{hostSLA.relOnlineTime}</RelOnlineTime>
-			<ImgFormats>{hostSLA.supportedImgFormats.map(_.toString +" ")}</ImgFormats>
+			<ImgFormats>{hostSLA.supportedImgFormats.mkString(" ")}</ImgFormats>
 			<maxResPerCPU>{hostSLA.maxResPerCPU.map(TupleSerializer.tupleToXML)}</maxResPerCPU>
 		</HostSLA>
 
