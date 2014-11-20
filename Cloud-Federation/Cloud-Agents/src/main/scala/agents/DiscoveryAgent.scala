@@ -74,6 +74,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	def recvDiscoveryPublication(cloudDiscovery: Subscription) = {
 		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.cloudMMA)
 		// Forward this Publication to the MMA:
+		log.info("Trying to contact MMA at {}", matchMakingActorSelection)
 		matchMakingActorSelection ! DiscoveryPublication(cloudDiscovery)
 
 //	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.

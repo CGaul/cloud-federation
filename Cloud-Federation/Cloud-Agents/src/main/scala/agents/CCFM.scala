@@ -47,7 +47,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 /* ======= */
 
 	// Akka Child-Actor spawning:
-	val mMASelection: ActorSelection			= context.actorSelection("akka.tcp://cloudAgentSystem@192.168.1.41:2550/user/remoteFederator")
+	val mMASelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")
 	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
 																								pubSubActorSelection, mMASelection, CCFMConfig.certFile)
 	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, name="discoveryAgent")
