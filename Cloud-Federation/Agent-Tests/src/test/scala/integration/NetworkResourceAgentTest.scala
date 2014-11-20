@@ -26,20 +26,20 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val cloudSLA = new CloudSLA(Vector((SMALL, Price(1, CLOUD_CREDIT), Price(3, CLOUD_CREDIT))),
 		(ByteSize(1, GB), Price(0.3f, CLOUD_CREDIT), Price(0.8f, CLOUD_CREDIT)),
 		(ByteSize(1, GB), Price(0.3f, CLOUD_CREDIT), Price(0.8f, CLOUD_CREDIT)))
-	
+
 	val hostSLA = new HostSLA(0.95f, Vector(IMG, COW, CLOOP, BOCHS, QCOW2),
 									Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 10)))
 
 	//General Medium Node
-	val res1 = Resource(NodeID(1), MEDIUM,
+	val res1 = Resource(NodeID(11), MEDIUM,
 							ByteSize(16, GiB), ByteSize(320, GiB),
 							ByteSize(50, MB), 10, Vector())
 
 	//General Large Node
-	val res2= Resource(NodeID(2), LARGE,
+	val res2= Resource(NodeID(12), LARGE,
 							ByteSize(32, GiB), ByteSize(500, GiB),
 							ByteSize(50, MB), 10, Vector())
-	
+
 	val host1 : Host = Host(res1, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
 	val host2 : Host = Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
 
@@ -72,8 +72,9 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 
-	val ovxIP = InetAddress.getLocalHost
+	val cloudSwitches: Vector[Switch] = Vector(Switch(NodeID(1), "00:00:10:00", Vector(), Vector(NodeID(11), NodeID(12))))
 
+	val ovxIP = InetAddress.getLocalHost
 
 
 /* AKKA Testing Environment: */
@@ -90,7 +91,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudSLA)
 	val testActor_MMA 	= TestActorRef[MatchMakingAgent](mmaProps)
 
-	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudHosts, ovxIP, testActor_MMA)
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudSwitches, cloudHosts, ovxIP, testActor_MMA)
 	val testActor_NRA 	= TestActorRef[NetworkResourceAgent](nraProps)
 
 
