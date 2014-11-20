@@ -17,10 +17,11 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	//TODO: replace by a XML File
 	object CCFMConfig
 	{
-		def certFile 		= _certFile
-		def ovxIP 			= _ovxIP
-		def cloudHosts 	= _cloudHosts
-		def cloudSLA 		= _cloudSLA
+		def certFile 			= _certFile
+		def ovxIP 				= _ovxIP
+		def cloudSwitches = _cloudSwitches
+		def cloudHosts 		= _cloudHosts
+		def cloudSLA 			= _cloudSLA
 
 
 		//TODO: build security interfaces for a Certificate-Store
@@ -30,8 +31,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 
 		// Define the Cloud-Switches from all files in the resources/cloudconf/switches/ directory
-		var _cloudSwitches: Vector[Host] = Vector()
-		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
+		var _cloudSwitches: Vector[Switch] = Vector()
+		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
 		if(_cloudSwitchesDir.listFiles() == null)
 			log.error("Switches need at least one defined .xml file in $PROJECT$/resources/cloudconf/switches/ !")
 		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
@@ -70,7 +71,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 
 	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
-																								CCFMConfig.cloudHosts, CCFMConfig.ovxIP, matchMakingAgent)
+																								CCFMConfig.cloudSwitches, CCFMConfig.cloudHosts, CCFMConfig.ovxIP, matchMakingAgent)
 	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 	log.info("NetworkResourceAgent started at path: {}.", networkResourceAgent.path)
 

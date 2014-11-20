@@ -21,41 +21,23 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 /* Variables: */
 /* ========== */
 
-//	val _cloudSwitches: Vector[Switch]
-//	val _cloudHosts: Vector[Host] = _initialHostAlloc
-
 
 /* Public Methods: */
 /* =============== */
 
-	//TODO: Implement in 0.2 Integrated Controllers
-	/**
-	 * Receives ResourceInfos from the CCFM.
-	 * <p>
-	 *    Directly after the NetworkResourceAgent was started and everytime the topology changes from
-	 *    outside circumstances, the CCFM sends a Topology update in the form of an abstracted combination
-	 *    of total Resources of the whole Cloud (including the Host's, initial Power and their connections without load)
-	 *    and the available Resources, which are excluding Resources that are currently completely assigned and/or
-	 *    under load.
-	 * </p>
-	 * <p>
-	 * 	When a ResourceInfo message is queued at the NetworkResourceAgent the first time, the internal _initialized value
-	 * 	will be set to true, as the Agent is not able to function without these information.
-	 * </p>
-	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
-	 *
-	 * @param totalResources
-	 * @param availResources
-	 */
-//	def recvResourceInfo(totalResources: ResourceAlloc): Unit = {
-//		_totalResources	= _to
-//		_availResources	= availResources
-//
-//		unstashAll()
-//		context.become(receivedOnline())
-//	}
+	def receive(): Receive = {
+		case message: NRAResourceDest	=> message match {
+			case ResourceRequest(resourcesToAlloc, ofcIP)		=> recvResourceRequest(resourcesToAlloc, ofcIP)
+			case ResourceFederationRequest(resourcesToAlloc, ofcIP) => recvResourceFederationRequest(resourcesToAlloc, ofcIP)
+			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceFederationReply(resourcesAllocated)
+		}
+		case _														=> log.error("Unknown message received!")
+	}
 
-	//TODO: Implement in 0.2 Integrated Controllers
+
+/* Private Receiving Methods: */
+/* ========================== */
+
 	/**
 	 * Receives ResourceRequests from the CCFM.
 	 * <p>
@@ -68,19 +50,74 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 	 * 	or all Resources could have been allocated.
 	 * </p>
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
+	 * Implemented in 0.2 Integrated Controllers
 	 * @param resourceAlloc
-	 * @param address
+	 * @param ofcIP
 	 */
-	def recvResourceRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
+	private def recvResourceRequest(resourceAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
 
 		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
-			resourceAlloc.tenantID, resourceAlloc.resources.size, address)
+			resourceAlloc.tenantID, resourceAlloc.resources.size, ofcIP)
+
+		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourceAlloc)
+
+		// Prepare the locally fulfilled allocations as a JSON-Message
+		// that will be send to the OVX embedder:
+		prepareOVXJsonAllocation(allocationsPerHost, ofcIP)
+
+		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
+		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
+		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
+		if(remainResToAlloc.isDefined){
+			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
+				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceAlloc, remainResToAlloc)
+			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP)
+		}
+		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceAlloc)
+	}
+
+	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
+	/**
+	 * Receives a ResourceFederationReply from the MatchMakingAgent.
+	 * <p>
+	 * 	If a ResourceRequest could not have been processed locally,
+	 * 	the NetworkFederationAgent has asked the MatchMakingAgent
+	 * 	for Federation-Resources.
+	 * 	All results are included in such ResourceFederationReply,
+	 * 	stating the allocated Resources per foreign Cloud
+	 * 	(the ActorRef is the foreign MatchMakingAgent)
+	 * </p>
+	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
+	 * @param federationResAllocs
+	 */
+	private def recvResourceFederationReply(federationResAllocs: Vector[(ActorRef, ResourceAlloc)]): Unit = {
+	}
+
+
+	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
+	/**
+	 * Received from local MMA.
+	 *
+	 * @param resourcesToAlloc
+	 * @param ofcIP
+	 */
+	private def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
+
+	}
+
+
+/* Private Helper Methods: */
+/* ======================= */
+
+	private def allocateLocally(resourceAlloc: ResourceAlloc): (Map[Host, ResourceAlloc], Option[ResourceAlloc]) = {
+		// Will be filled with each allocation per Host that happened in this local allocation call:
+		var allocationPerHost: Map[Host, ResourceAlloc] = Map()
 
 		// Sort the potentialHosts as well as the resourceAlloc by their resources in descending Order:
 		val sortedHosts			= _cloudHosts.sorted(RelativeHostByResOrdering)
 		val sortedResAlloc	= ResourceAlloc(resourceAlloc.tenantID,
-																				resourceAlloc.resources.sorted(RelativeResOrdering),
-																				resourceAlloc.requestedHostSLA)
+			resourceAlloc.resources.sorted(RelativeResOrdering),
+			resourceAlloc.requestedHostSLA)
 
 		// Binpacking - First Fit Descending:
 		// Fit each resourceToAlloc in the first potentialHost (bin)
@@ -89,8 +126,12 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		breakable {
 			for (actHost <- sortedHosts) {
 				// Try to allocate the remaining ResourceAlloc to the actual Host:
-				val (allocatedSome, allocSplit) = actHost.allocate(remainResAlloc.get)
+				val (allocatedSome, allocSplit, allocation) = actHost.allocate(remainResAlloc.get)
 
+				// If an allocation took place, save this in the allocationPerHost-Map:
+				if(allocatedSome && allocation.isDefined){
+					allocationPerHost += (actHost -> allocation)
+				}
 				// If the actual ResourceAlloc could be allocated completely to the actHost,
 				// set the remaining ResourceAlloc to None and break out of the loop.
 				if (allocatedSome && allocSplit.isEmpty) {
@@ -104,70 +145,14 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 					remainResAlloc = allocSplit
 				}
 			}
-
 		}
-
-		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
-		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
-		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
-		if(remainResAlloc.isDefined){
-			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
-				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceAlloc, remainResAlloc)
-			matchMakingAgent ! ResourceRequest(remainResAlloc.get, address)
-		}
-		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceAlloc)
+		return (allocationPerHost, remainResAlloc)
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
-	/**
-	 * Receives a ResourceFederationReply from the MatchMakingAgent.
-	 * <p>
-	 * 	If a ResourceRequest could not have been processed locally,
-	 * 	the NetworkFederationAgent has asked the MatchMakingAgent
-	 * 	for Federation-Resources.
-	 * 	All results are included in such ResourceFederationReply,
-	 * 	stating the allocated Resources per foreign Cloud
-	 * 	(the ActorRef is the foreign MatchMakingAgent)
-	 * </p>
-	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
-	 * @param tuples
-	 */
-	def recvResourceFederationReply(tuples: Vector[(ActorRef, ResourceAlloc)]): Unit = {
+	private def prepareOVXJsonAllocation(allocationsPerHost: Map[Host, ResourceAlloc], ofcIP: InetAddress) = {
+
 	}
-
-
-//	override def receive(): Receive = {
-//		//case message: NetworkResourceMessage	=> message match {
-//			//case ResourceInfo(totalRes, availRes)			=> recvResourceInfo(totalRes, availRes)
-//
-//		//}
-//		case _														=> log.error("Unknown message received!")
-//	}
-
-	def receive(): Receive = {
-		case message: NRAResourceDest	=> message match {
-			case ResourceRequest(resourcesToAlloc, ofcIP)		=> recvResourceRequest(resourcesToAlloc, ofcIP)
-			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceFederationReply(resourcesAllocated)
-		}
-		case _														=> log.error("Unknown message received!")
-	}
-
-
-/* Private Methods: */
-/* ================ */
-
-	//TODO: if not needed anymore, delete.
-	private def stashMessage(): Unit = {
-		log.debug("Received Message, before NetworkResourceAgent went online. Stashed message until being online.")
-		try {
-			stash()
-		}
-		catch {
-			case e: StashOverflowException => log.error("Reached Stash buffer. Received message will be ignored."+
-			  e.printStackTrace())
-		}
-	}
-
 }
 
 /**

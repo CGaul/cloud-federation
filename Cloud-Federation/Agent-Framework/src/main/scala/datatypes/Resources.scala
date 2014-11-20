@@ -5,7 +5,7 @@ import java.net.{UnknownHostException, InetAddress}
 
 import datatypes.CPUUnit._
 
-import scala.xml.Node
+import scala.xml.{NodeSeq, Node}
 
 
 /* Data Containers (case classes): */
@@ -199,12 +199,13 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 	 * otherwise the allocation will take place and true will be returned.
 	 *
 	 * @param resToAlloc
-	 * @return A [[Tuple2]] that states, if the at least some of the resToAlloc
-	 *         where allocated (result._1 == true) and returns the ResourceAlloc
+	 * @return A [[Tuple3]] that states, if the at least some of the resToAlloc
+	 *         where allocated (result._1 == true), returns the ResourceAlloc
 	 *         Split that is left over after the allocation at this Host
 	 *         (result._1 == None if resToAlloc was fully allocated, otherwise subset of resToAlloc)
+	 *         and the allocated resources at the third position of the Tuple (None if nothing was allocated).
 	 */
-	def allocate(resToAlloc: ResourceAlloc): (Boolean, Option[ResourceAlloc]) = {
+	def allocate(resToAlloc: ResourceAlloc): (Boolean, Option[ResourceAlloc], Option[ResourceAlloc]) = {
 		val (success, testedSLA, resSplitAmount) = testAllocation(resToAlloc)
 		// If the allocation Test was successful,
 		// all resToAlloc could be fulfilled by this Host.
@@ -214,7 +215,8 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 
 			//Update the Host's HostSLA with the tested pre-allocation SLA
 			_hostSLA = testedSLA.get
-			return (true, None)
+			// Complete Allocation (allocatedSome = true, non-allocated Split = None, allocation = resToAlloc):
+			return (true, None, Option(resToAlloc))
 		}
 		// If the Test was not successful, only a part or no resources at all
 		// could be allocated by this Host.
@@ -222,7 +224,8 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 			// If the Option[HostSLA] is None, no allocation of the resToAlloc
 			// could be handled by this host at all.
 			if(testedSLA.isEmpty){
-				return (false, Option(resToAlloc))
+				// No Allocation (allocatedSome = false, non-allocated Split = resToAlloc, allocation = None):
+				return (false, Option(resToAlloc), None)
 			}
 			// Otherwise (if the testedSLA is not None), a ResourceAlloc split needs
 			// to be defined. The one split is allocated at this Host, the other part is
@@ -231,10 +234,12 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 				val (resSplitHost, resSplitOther) = splitAllocation(testedSLA.get, resToAlloc, resSplitAmount)
 				if(resSplitHost.resources.size > 0){
 					allocate(resSplitHost)
-					return (true, Option(resSplitOther))
+					// Partial Allocation (allocatedSome = true, non-allocated Split = resSplitOther, allocation = resSplitHost):
+					return (true, Option(resSplitOther), Option(resSplitHost))
 				}
 				else {
-					return (false, Option(resSplitOther))
+					// No Allocation (allocatedSome = false, non-allocated Split = resSplitOther (=resToAlloc), allocation = None):
+					return (false, Option(resSplitOther), None)
 				}
 			}
 		}
