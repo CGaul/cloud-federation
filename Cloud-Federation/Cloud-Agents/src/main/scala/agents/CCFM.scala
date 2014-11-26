@@ -88,7 +88,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 /* ========== */
 
   	//Called on CCFM construction:
-// val certFactory: CertificateFactory = CertificateFactory.getInstance("X.509")
+// val certFactory: CertificateFactory =  CertificateFactory.getInstance("X.509")
 //	val fis 						= new FileInputStream(CCFMConfig.certFile)
 //	val cert: Certificate 	= certFactory.generateCertificate(fis)
 //	fis.close()
