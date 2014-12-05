@@ -102,7 +102,11 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 	 * @param ofcIP
 	 */
 	private def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
+		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
+			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, ofcIP)
 
+		val hostResourceMap: Map[Host, ResourceAlloc] = mapResourcesToHosts(resourcesToAlloc)
+		prepareOVXJsonAllocation(hostResourceMap, ofcIP)
 	}
 
 
@@ -149,11 +153,22 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		return (allocationPerHost, remainResAlloc)
 	}
 
+
+	//TODO: Implement in 0.2 Integrated Controllers
+	private def mapResourcesToHosts(resourcesToAlloc: ResourceAlloc): Map[Host, ResourceAlloc] = {
+		val hostResourceMap: Map[Host, ResourceAlloc] = Map()
+		// TODO: if no single Host could be found to allocate all Resources on, split and allocate on multiple Hosts.
+		// TODO: Use previously defined FederationPool for this, as the NRA should know its free slots at this point.
+
+		return hostResourceMap
+	}
+
 	//TODO: Implement in 0.2 Integrated Controllers
 	private def prepareOVXJsonAllocation(allocationsPerHost: Map[Host, ResourceAlloc], ofcIP: InetAddress) = {
 
 	}
 }
+
 
 /**
  * Companion Object of the NetworkResource-Agent,

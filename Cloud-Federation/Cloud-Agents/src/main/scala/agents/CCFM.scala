@@ -57,15 +57,16 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 /* ======= */
 
 	// Akka Child-Actor spawning:
-	val mMASelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")
+	val mmaSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")
+	val nraSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/networkResourceAgent")
 	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
-																								pubSubActorSelection, mMASelection, CCFMConfig.certFile)
+																								pubSubActorSelection, mmaSelection, CCFMConfig.certFile)
 	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, name="discoveryAgent")
 	log.info("DiscoveryAgent started at path: {}.", discoveryAgent.path)
 
 	
 	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],
-																								CCFMConfig.cloudSLA)
+																								CCFMConfig.cloudSLA, nraSelection)
 	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, name="matchMakingAgent")
 	log.info("MatchMakingAgent started at path: {}.", matchMakingAgent.path)
 
