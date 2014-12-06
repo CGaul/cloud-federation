@@ -21,6 +21,9 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 /* Variables: */
 /* ========== */
 
+	var cloudSwitches = _cloudSwitches
+	var cloudHosts = _cloudHosts
+
 
 /* Public Methods: */
 /* =============== */
@@ -51,15 +54,15 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 	 * </p>
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
 	 * Implemented in 0.2 Integrated Controllers
-	 * @param resourceAlloc
+	 * @param resourceToAlloc
 	 * @param ofcIP
 	 */
-	private def recvResourceRequest(resourceAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
+	private def recvResourceRequest(resourceToAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
 
 		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
-			resourceAlloc.tenantID, resourceAlloc.resources.size, ofcIP)
+			resourceToAlloc.tenantID, resourceToAlloc.resources.size, ofcIP)
 
-		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourceAlloc)
+		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourceToAlloc)
 
 		// Prepare the locally fulfilled allocations as a JSON-Message
 		// that will be send to the OVX embedder:
@@ -70,10 +73,10 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
 		if(remainResToAlloc.isDefined){
 			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
-				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceAlloc, remainResToAlloc)
+				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
 			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP)
 		}
-		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceAlloc)
+		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
 	}
 
 	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
@@ -105,8 +108,11 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
 			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, ofcIP)
 
-		val hostResourceMap: Map[Host, ResourceAlloc] = mapResourcesToHosts(resourcesToAlloc)
-		prepareOVXJsonAllocation(hostResourceMap, ofcIP)
+		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourcesToAlloc)
+		// Prepare the locally fulfilled allocations as a JSON-Message
+		// that will be send to the OVX embedder:
+		prepareOVXJsonAllocation(allocationsPerHost, ofcIP)
+
 	}
 
 
@@ -117,7 +123,7 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		// Will be filled with each allocation per Host that happened in this local allocation call:
 		var allocationPerHost: Map[Host, ResourceAlloc] = Map()
 
-		// Sort the potentialHosts as well as the resourceAlloc by their resources in descending Order:
+		// Sort the potentialHosts as well as the resourceToAlloc by their resources in descending Order:
 		val sortedHosts			= _cloudHosts.sorted(RelativeHostByResOrdering)
 		val sortedResAlloc	= ResourceAlloc(resourceAlloc.tenantID,
 			resourceAlloc.resources.sorted(RelativeResOrdering),
@@ -153,19 +159,17 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		return (allocationPerHost, remainResAlloc)
 	}
 
-
-	//TODO: Implement in 0.2 Integrated Controllers
-	private def mapResourcesToHosts(resourcesToAlloc: ResourceAlloc): Map[Host, ResourceAlloc] = {
-		val hostResourceMap: Map[Host, ResourceAlloc] = Map()
-		// TODO: if no single Host could be found to allocate all Resources on, split and allocate on multiple Hosts.
-		// TODO: Use previously defined FederationPool for this, as the NRA should know its free slots at this point.
-
-		return hostResourceMap
-	}
-
 	//TODO: Implement in 0.2 Integrated Controllers
 	private def prepareOVXJsonAllocation(allocationsPerHost: Map[Host, ResourceAlloc], ofcIP: InetAddress) = {
 
+		// Extract all allocated Hosts:
+		val allocatedHosts = allocationsPerHost.map(_._1)
+
+		// Find out the Switches that are connecting the Hosts with each other:
+		var allocatedSwitches: Vector[Switch] = Vector()
+		for (actHost <- allocatedHosts ) {
+			 allocatedSwitches = allocatedSwitches ++ cloudSwitches.filter(_.hostLinks.contains(actHost.hardwareSpec.nodeID))
+		}
 	}
 }
 
