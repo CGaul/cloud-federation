@@ -3,6 +3,8 @@ package agents
 import java.net.InetAddress
 
 import akka.actor._
+import play.api.libs.json
+import play.api.libs.json.Json
 import util.control.Breaks._
 import datatypes._
 import messages._
@@ -10,19 +12,20 @@ import messages._
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
-class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[Host],
-													 _ovxIP: InetAddress, matchMakingAgent: ActorRef)
+class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: Vector[Host],
+													 var _ovxIP: InetAddress, var _ovxPort: Int,
+													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
-/* Values: */
-/* ======= */
-
-
-/* Variables: */
-/* ========== */
-
-	var cloudSwitches = _cloudSwitches
-	var cloudHosts = _cloudHosts
+///* Values: */
+///* ======= */
+//
+//
+///* Variables: */
+///* ========== */
+//
+//	var cloudSwitches = _cloudSwitches
+//	var cloudHosts = _cloudHosts
 
 
 /* Public Methods: */
@@ -30,9 +33,14 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 
 	def receive(): Receive = {
 		case message: NRAResourceDest	=> message match {
-			case ResourceRequest(resourcesToAlloc, ofcIP)		=> recvResourceRequest(resourcesToAlloc, ofcIP)
-			case ResourceFederationRequest(resourcesToAlloc, ofcIP) => recvResourceFederationRequest(resourcesToAlloc, ofcIP)
-			case ResourceFederationReply(resourcesAllocated) 	=> recvResourceFederationReply(resourcesAllocated)
+			case ResourceRequest(resourcesToAlloc, ofcIP, ofcPort)
+						=> recvResourceRequest(resourcesToAlloc, ofcIP, ofcPort)
+
+			case ResourceFederationRequest(resourcesToAlloc, ofcIP, ofcPort)
+						=> recvResourceFederationRequest(resourcesToAlloc, ofcIP, ofcPort)
+
+			case ResourceFederationReply(resourcesAllocated)
+						=> recvResourceFederationReply(resourcesAllocated)
 		}
 		case _														=> log.error("Unknown message received!")
 	}
@@ -57,7 +65,7 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 	 * @param resourceToAlloc
 	 * @param ofcIP
 	 */
-	private def recvResourceRequest(resourceToAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
+	private def recvResourceRequest(resourceToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
 
 		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
 			resourceToAlloc.tenantID, resourceToAlloc.resources.size, ofcIP)
@@ -66,7 +74,7 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 
 		// Prepare the locally fulfilled allocations as a JSON-Message
 		// that will be send to the OVX embedder:
-		prepareOVXJsonAllocation(allocationsPerHost, ofcIP)
+		allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
 
 		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
@@ -74,7 +82,7 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		if(remainResToAlloc.isDefined){
 			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
-			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP)
+			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP, ofcPort)
 		}
 		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
 	}
@@ -104,14 +112,14 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 	 * @param resourcesToAlloc
 	 * @param ofcIP
 	 */
-	private def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
+	private def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
 		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
 			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, ofcIP)
 
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourcesToAlloc)
 		// Prepare the locally fulfilled allocations as a JSON-Message
 		// that will be send to the OVX embedder:
-		prepareOVXJsonAllocation(allocationsPerHost, ofcIP)
+		allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
 
 	}
 
@@ -160,7 +168,8 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
-	private def prepareOVXJsonAllocation(allocationsPerHost: Map[Host, ResourceAlloc], ofcIP: InetAddress) = {
+	private def allocateOVXNetwork(allocationsPerHost: Map[Host, ResourceAlloc],
+																 ofcIP: InetAddress, ofcPort: Int) = {
 
 		// Extract all allocated Hosts:
 		val allocatedHosts = allocationsPerHost.map(_._1)
@@ -168,10 +177,76 @@ class NetworkResourceAgent(_cloudSwitches: Vector[Switch], _cloudHosts: Vector[H
 		// Find out the Switches that are connecting the Hosts with each other:
 		var allocatedSwitches: Vector[Switch] = Vector()
 		for (actHost <- allocatedHosts ) {
-			 allocatedSwitches = allocatedSwitches ++ cloudSwitches.filter(_.hostLinks.contains(actHost.hardwareSpec.nodeID))
+			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.hostLinks.contains(actHost.hardwareSpec.nodeID))
 		}
+
+		val freeNetID: Int = 1 //TODO: implement functionality for that.
+		val freeSubnetIP: InetAddress = InetAddress.getLocalHost //TODO: implement a functionality for that.
+		val hostsList: Seq = Seq()
+
+		val jsonQuery = Json.toJson(
+			Map(
+				"id" -> freeNetID,
+				"jsonrpc" -> "2.0",
+				"method" -> "createNetwork",
+				"params" -> Map(
+					"controller" -> Map(
+					"ctrls" -> Seq(
+						"tcp:"+ofcIP.getHostAddress+":"+ofcPort),
+					"type" -> "custom"),
+					"hosts" -> hostsList,
+					"routing" -> Map("algorithm" -> "spf", "backup_num" -> "1"),
+					"subnet" -> (freeSubnetIP.getHostAddress +"/24"),
+					"type" -> "physical")
+			)
+		)
 	}
 }
+
+//{
+//"id": "1",
+//"jsonrpc": "2.0",
+//"method": "createNetwork",
+//"params": {
+//	"network": {
+//		"controller": {
+//			"ctrls": [
+//				"tcp:localhost:10000"
+//			],
+//			"type": "custom"
+//			},
+//		"hosts": [
+//{
+//"dpid": "00:00:00:00:00:00:02:00",
+//"mac": "00:00:00:00:02:01",
+//"port": 1
+//},
+//{
+//"dpid": "00:00:00:00:00:00:05:00",
+//"mac": "00:00:00:00:05:02",
+//"port": 2
+//},
+//{
+//"dpid": "00:00:00:00:00:00:06:00",
+//"mac": "00:00:00:00:06:03",
+//"port": 3
+//},
+//{
+//"dpid": "00:00:00:00:00:00:09:00",
+//"mac": "00:00:00:00:09:04",
+//"port": 4
+//}
+//],
+//"routing": {
+//"algorithm": "spf",
+//"backup_num": 1
+//},
+//"subnet": "192.168.0.0/24",
+//"type": "bigswitch"
+//}
+//}
+//}
+
 
 
 /**
@@ -188,6 +263,8 @@ object NetworkResourceAgent
 	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(cloudSwitches: Vector[Switch], cloudHosts: Vector[Host], ovxIP: InetAddress, matchMakingAgent: ActorRef):
-	Props = Props(new NetworkResourceAgent(cloudSwitches, cloudHosts, ovxIP, matchMakingAgent))
+	def props(cloudSwitches: Vector[Switch], cloudHosts: Vector[Host],
+						ovxIP: InetAddress, ovxPort: Int,
+						matchMakingAgent: ActorRef):
+	Props = Props(new NetworkResourceAgent(cloudSwitches, cloudHosts, ovxIP, ovxPort, matchMakingAgent))
 }

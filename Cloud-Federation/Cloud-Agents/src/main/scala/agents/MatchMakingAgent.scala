@@ -45,14 +45,14 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	 * </p>
 	 * @param resourcesToGather The ResourceAllocation that the MMA needs to gather from its federated Clouds.
 	 */
-	def recvResourceRequest(resourcesToGather: ResourceAlloc, address: InetAddress): Unit = {
+	def recvResourceRequest(resourcesToGather: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
 		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at MatchMakingAgent.",
-						 resourcesToGather.tenantID, resourcesToGather.resources.size, address)
+						 resourcesToGather.tenantID, resourcesToGather.resources.size, ofcIP)
 		// TODO: Shortcut - Implement more specific:
 		// Shortcut: Forward ResourceRequest to previously published Cloud:
 		if(cloudDiscoveries.size > 0){
 			// Send a ResourceFederationRequest to the other Cloud's MMA immediately:
-			cloudDiscoveries(0).cloudMMA ! ResourceFederationRequest(resourcesToGather, address)
+			cloudDiscoveries(0).cloudMMA ! ResourceFederationRequest(resourcesToGather, ofcIP, ofcPort)
 		}
 	}
 
@@ -65,7 +65,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
 
 
-	def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress): Unit = {
+	def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
 		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at MatchMakingAgent.",
 			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, ofcIP)
 		// TODO: Shortcut - Implement more specific:
@@ -81,7 +81,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 			else{
 				// If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
 				// so that it will be mapped to the running OVX instance:
-				nraSelection ! ResourceFederationRequest(resourcesToAlloc, ofcIP)
+				nraSelection ! ResourceFederationRequest(resourcesToAlloc, ofcIP, ofcPort)
 			}
 		}
 		// Shortcut: Forward ResourceFederationRequest to local NRA,
@@ -109,10 +109,17 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 			case FederationInfoPublication(possibleAllocs) 	=> recvFederationInfoPublication(possibleAllocs)
 		}
 		case message: MMAResourceDest	=> message match {
-			case ResourceRequest(resources, ofcIP)	=> recvResourceRequest(resources, ofcIP)
-			case ResourceReply(allocResources) 			=> recvResourceReply(allocResources)
-			case ResourceFederationRequest(resources, ofcIP)	=> recvResourceFederationRequest(resources, ofcIP)
-			case ResourceFederationReply(allocatedResources)	=> recvResourceFederationReply(allocatedResources)
+			case ResourceRequest(resources, ofcIP, ofcPort)
+						=> recvResourceRequest(resources, ofcIP, ofcPort)
+				
+			case ResourceReply(allocResources)
+						=> recvResourceReply(allocResources)
+				
+			case ResourceFederationRequest(resources, ofcIP, ofcPort)
+						=> recvResourceFederationRequest(resources, ofcIP, ofcPort)
+				
+			case ResourceFederationReply(allocatedResources)
+						=> recvResourceFederationReply(allocatedResources)
 
 		}
 		case _										=> log.error("Unknown message received!")

@@ -19,6 +19,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	{
 		def certFile 			= _certFile
 		def ovxIP 				= _ovxIP
+		def ovxPort				= _ovxPort
 		def cloudSwitches = _cloudSwitches
 		def cloudHosts 		= _cloudHosts
 		def cloudSLA 			= _cloudSLA
@@ -28,6 +29,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		val _certFile: File			= new File("cloudconf/cloud1.key")
 
 		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
+		val _ovxPort: Int					= 10000
 
 
 		// Define the Cloud-Switches from all files in the resources/cloudconf/switches/ directory
@@ -72,7 +74,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 
 	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
-																								CCFMConfig.cloudSwitches, CCFMConfig.cloudHosts, CCFMConfig.ovxIP, matchMakingAgent)
+																								CCFMConfig.cloudSwitches, CCFMConfig.cloudHosts,
+																								CCFMConfig.ovxIP, CCFMConfig.ovxPort, matchMakingAgent)
 	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 	log.info("NetworkResourceAgent started at path: {}.", networkResourceAgent.path)
 

@@ -16,14 +16,14 @@ sealed trait NRAResourceDest extends NRADest
 sealed trait CCFMResourceDest extends CCFMDest
 
 
-case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress)
+case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int)
   extends ResourceMessage with NRAResourceDest with MMAResourceDest
 
 case class ResourceReply(allocatedResources: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest with MMAResourceDest
 
 
-case class ResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress)
+case class ResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int)
   extends ResourceMessage with NRAResourceDest with MMAResourceDest
 
 
