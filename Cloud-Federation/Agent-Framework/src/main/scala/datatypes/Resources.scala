@@ -109,13 +109,13 @@ object Resource {
 }
 
 
-case class Switch(switchID: NodeID, switchDPID: String, switchLinks: Vector[NodeID], hostLinks: Vector[NodeID]){
+case class Switch(id: NodeID, dpid: String, switchLinks: Vector[NodeID], hostLinks: Vector[NodeID]){
 
 	/* Basic Overrides: */
 	/* ---------------- */
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Switch => this.switchID == that.switchID && this.switchDPID == that.switchDPID
+		case that: Switch => this.id == that.id && this.dpid == that.dpid
 		case _ 						=> false
 	}
 
@@ -133,8 +133,8 @@ object Switch {
 
 	def toXML(switch: Switch): Node =
 		<Switch>
-			<ID>{switch.switchID.toString}</ID>
-			<DPID>{switch.switchDPID}</DPID>
+			<ID>{switch.id.toString}</ID>
+			<DPID>{switch.dpid}</DPID>
 			<SwitchLinks>{switch.switchLinks.mkString(" ")}</SwitchLinks>
 			<HostLinks>{switch.hostLinks.mkString(" ")}</HostLinks>
 		</Switch>
@@ -176,16 +176,16 @@ object Switch {
  *             and the Host's SLA
  * @param hardwareSpec
  * @param allocatedResources
- * @param _hostSLA bla
+ * @param sla bla
  */
-case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
+case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
 					 var allocatedResources: Vector[ResourceAlloc] = Vector(),
-					 private var _hostSLA: HostSLA){
+					 var sla: HostSLA){
 
 	/* Getter: */
 	/* ======= */
 
-	def hostSLA = _hostSLA
+	def nodeID = hardwareSpec.nodeID
 
 
 	/* Public Methods: */
@@ -214,7 +214,7 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 			allocatedResources = allocatedResources :+ resToAlloc
 
 			//Update the Host's HostSLA with the tested pre-allocation SLA
-			_hostSLA = testedSLA.get
+			sla = testedSLA.get
 			// Complete Allocation (allocatedSome = true, non-allocated Split = None, allocation = resToAlloc):
 			return (true, None, Option(resToAlloc))
 		}
@@ -275,7 +275,7 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 		val combinedTestResSLA: HostSLA = combineHostResSLAs(testedResAlloc)
 
 		// Test if the combinedTestResSLA still fulfills the Host's SLA QoS:
-		val fulfillsCombinedQoS = hostSLA.fulfillsQoS(combinedTestResSLA)
+		val fulfillsCombinedQoS = sla.fulfillsQoS(combinedTestResSLA)
 		if(! fulfillsCombinedQoS){
 			// If the QoS for the resToAlloc could not be fulfilled by the Host,
 			// the allocation has no chance to succeed:
@@ -307,7 +307,7 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 		// Combine all allocated-Resource's SLAs to a hardened QoS SLA:
 		val combinedAllocSLA: HostSLA				= allocatedSLAs.reduce(_ combineToAmplifiedSLA _)
 		// Afterwards combine this hardened SLA with the actual hostSLA and update this value:
-		val combinedHostSLA									= _hostSLA combineToAmplifiedSLA combinedAllocSLA
+		val combinedHostSLA									= sla combineToAmplifiedSLA combinedAllocSLA
 		return combinedHostSLA
 	}
 
@@ -350,8 +350,8 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 	/* ---------------- */
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA &&
-												 this.hostIP == that.hostIP && this.hostMAC == that.hostMAC
+		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.sla == that.sla &&
+												 this.ip == that.ip && this.mac == that.mac
 		case _ 						=> false
 	}
 
@@ -370,10 +370,10 @@ object Host {
 	def toXML(host: Host): Node =
 		<Host>
 			<Hardware>{Resource.toXML(host.hardwareSpec)}</Hardware>
-			<IP>{host.hostIP.getHostAddress}</IP>
-			<MAC>{host.hostMAC}</MAC>
+			<IP>{host.ip.getHostAddress}</IP>
+			<MAC>{host.mac}</MAC>
 			<ResourceAllocs>{host.allocatedResources.map(resAlloc => ResourceAlloc.toXML(resAlloc))}</ResourceAllocs>
-			<HostSLA>{HostSLA.toXML(host.hostSLA)}</HostSLA>
+			<HostSLA>{HostSLA.toXML(host.sla)}</HostSLA>
 		</Host>
 
 	def saveToXML(file: File, host: Host) = {

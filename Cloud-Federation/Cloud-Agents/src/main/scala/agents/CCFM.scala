@@ -98,7 +98,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 //	fis.close()
 
 	//TODO: Maybe possible HostSLAs should differ from initial CloudHostSLAs:
-	discoveryAgent ! FederationSLAs(CCFMConfig.cloudSLA, CCFMConfig.cloudHosts.map(_.hostSLA))
+	discoveryAgent ! FederationSLAs(CCFMConfig.cloudSLA, CCFMConfig.cloudHosts.map(_.sla))
   	log.debug("Discovery-Init send to Discovery-Agent!")
 
 

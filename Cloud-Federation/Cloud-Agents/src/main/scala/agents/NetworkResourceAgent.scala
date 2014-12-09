@@ -177,12 +177,24 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		// Find out the Switches that are connecting the Hosts with each other:
 		var allocatedSwitches: Vector[Switch] = Vector()
 		for (actHost <- allocatedHosts ) {
-			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.hostLinks.contains(actHost.hardwareSpec.nodeID))
+			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.hostLinks.contains(actHost.nodeID))
 		}
 
 		val freeNetID: Int = 1 //TODO: implement functionality for that.
 		val freeSubnetIP: InetAddress = InetAddress.getLocalHost //TODO: implement a functionality for that.
+
 		val hostsList: Seq = Seq()
+		for (actSwitch <- allocatedSwitches) {
+			// Find all allocated hosts that are connected to the actual switch:
+			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.hostLinks.contains(h.nodeID))
+
+			// Begin with 0 and increase port +1 per new Host connection to Switch:
+			var port = 0
+			for (actHost <- actHosts) {
+				Map("dpid" -> actSwitch.dpid, "mac" -> actHost.mac, "port" -> port)
+				port += 1
+			}
+		}
 
 		val jsonQuery = Json.toJson(
 			Map(
@@ -200,6 +212,8 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 					"type" -> "physical")
 			)
 		)
+
+		// TODO: send jsonQuery to OVX-Embedder.
 	}
 }
 

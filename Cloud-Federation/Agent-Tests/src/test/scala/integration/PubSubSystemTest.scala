@@ -75,9 +75,9 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 	val testActor_DA1 		= TestActorRef[DiscoveryAgent](discoveryAgent1Props, name="discoveryAgent1")
 	val testActor_DA2 		= TestActorRef[DiscoveryAgent](discoveryAgent2Props, name="discoveryAgent2")
 
-	val subscription0 = Subscription(testMMAActorSel0, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate0"))
-	val subscription1 = Subscription(testMMAActorSel1, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate1"))
-	val subscription2 = Subscription(testMMAActorSel2, cloudSLA, cloudHosts.map(_.hostSLA).distinct, new File("Certificate2"))
+	val subscription0 = Subscription(testMMAActorSel0, cloudSLA, cloudHosts.map(_.sla).distinct, new File("Certificate0"))
+	val subscription1 = Subscription(testMMAActorSel1, cloudSLA, cloudHosts.map(_.sla).distinct, new File("Certificate1"))
+	val subscription2 = Subscription(testMMAActorSel2, cloudSLA, cloudHosts.map(_.sla).distinct, new File("Certificate2"))
 
 
 
