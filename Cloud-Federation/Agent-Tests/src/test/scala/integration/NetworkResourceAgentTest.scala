@@ -3,7 +3,7 @@ package integration
 import java.net.InetAddress
 
 import agents.{MatchMakingAgent, NetworkResourceAgent}
-import akka.actor.{ActorSystem, Props}
+import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import datatypes.ByteUnit._
@@ -75,6 +75,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val cloudSwitches: Vector[Switch] = Vector(Switch(NodeID(1), "00:00:10:00", Vector(), Vector(NodeID(11), NodeID(12))))
 
 	val ovxIP = InetAddress.getLocalHost
+	val ovxPort = 10000
 
 
 /* AKKA Testing Environment: */
@@ -88,10 +89,13 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	}
 
 
-	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudSLA)
+	//val mmaSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")
+	val nraSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/CCFM/networkResourceAgent")
+
+	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudSLA, nraSelection)
 	val testActor_MMA 	= TestActorRef[MatchMakingAgent](mmaProps)
 
-	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudSwitches, cloudHosts, ovxIP, testActor_MMA)
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudSwitches, cloudHosts, ovxIP, ovxPort, testActor_MMA)
 	val testActor_NRA 	= TestActorRef[NetworkResourceAgent](nraProps)
 
 
@@ -102,13 +106,13 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	"A NetworkResourceAgent" should {
 		"answer with a ResourceReply, if ResourceRequests are locally fulfillable" in {
 			//TODO: Write out Shortcut implementation:
-			testActor_NRA.receive(ResourceRequest(resAlloc1, ovxIP))
-			testActor_NRA.receive(ResourceRequest(resAlloc2, ovxIP))
+			testActor_NRA.receive(ResourceRequest(resAlloc1, ovxIP, ovxPort))
+			testActor_NRA.receive(ResourceRequest(resAlloc2, ovxIP, ovxPort))
 		}
 
 		"try to allocate Resources via a Federation, if ResourceRequests are NOT locally fulfillable" in{
 			//TODO: Write out Shortcut implementation:
-			testActor_NRA.receive(ResourceRequest(resAlloc3, ovxIP))
+			testActor_NRA.receive(ResourceRequest(resAlloc3, ovxIP, ovxPort))
 		}
 	}
 

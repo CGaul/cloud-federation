@@ -4,6 +4,7 @@ import java.io.File
 import java.net.{UnknownHostException, InetAddress}
 
 import datatypes.CPUUnit._
+import play.api.libs.json.{Json, JsValue}
 
 import scala.xml.{NodeSeq, Node}
 
@@ -381,6 +382,10 @@ object Host {
 		xml.XML.save(file.getAbsolutePath, xmlNode)
 	}
 
+//	def toJson(host: Host): JsValue = {
+//		val jsonHost = Json.toJson(Map("Host" -> Seq(NodeID.toJson(host.nodeID), host.ip, host.mac, host.allocatedResources
+//	}
+
 /* De-Serialization: */
 /* ================= */
 
@@ -459,6 +464,11 @@ case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHo
  * Companion Object for ResourceAlloc
  */
 object ResourceAlloc {
+
+
+//	def apply(tenantID: Int, resources: Vector[Resource], requestedHostSLA: HostSLA): ResourceAlloc ={
+//		return new ResourceAlloc(tenantID, resources, requestedHostSLA)
+//	}
 	
 /* Serialization: */
 /* ============== */

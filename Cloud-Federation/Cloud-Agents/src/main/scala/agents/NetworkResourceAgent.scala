@@ -4,7 +4,7 @@ import java.net.InetAddress
 
 import akka.actor._
 import play.api.libs.json
-import play.api.libs.json.Json
+import play.api.libs.json.{JsValue, Json}
 import util.control.Breaks._
 import datatypes._
 import messages._
@@ -26,6 +26,9 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 //
 //	var cloudSwitches = _cloudSwitches
 //	var cloudHosts = _cloudHosts
+
+		private var _ovxSubnetID: Int = 1
+		private var _ovxSubnetAddress: InetAddress = InetAddress.getByName("10.10.1.0")
 
 
 /* Public Methods: */
@@ -74,7 +77,8 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 
 		// Prepare the locally fulfilled allocations as a JSON-Message
 		// that will be send to the OVX embedder:
-		allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
+		val jsonQuery: JsValue = allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
+		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery)
 
 		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
@@ -119,8 +123,13 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourcesToAlloc)
 		// Prepare the locally fulfilled allocations as a JSON-Message
 		// that will be send to the OVX embedder:
-		allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
+		val jsonQuery: JsValue = allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
 
+		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery)
+
+		if(remainResToAlloc.size > 0){
+			// TODO: send Information about remaing Resources to Allocate back to the sender.
+		}
 	}
 
 
@@ -169,7 +178,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	private def allocateOVXNetwork(allocationsPerHost: Map[Host, ResourceAlloc],
-																 ofcIP: InetAddress, ofcPort: Int) = {
+																 ofcIP: InetAddress, ofcPort: Int): JsValue = {
 
 		// Extract all allocated Hosts:
 		val allocatedHosts = allocationsPerHost.map(_._1)
@@ -180,10 +189,9 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.hostLinks.contains(actHost.nodeID))
 		}
 
-		val freeNetID: Int = 1 //TODO: implement functionality for that.
-		val freeSubnetIP: InetAddress = InetAddress.getLocalHost //TODO: implement a functionality for that.
-
-		val hostsList: Seq = Seq()
+		// Prepare the Host-List for the Json-Query.
+		// Each Host entry is defined by connected Switch DPID, Host MAC and Switch Port
+		var hostsList: Seq[Map[String, String]] = Seq()
 		for (actSwitch <- allocatedSwitches) {
 			// Find all allocated hosts that are connected to the actual switch:
 			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.hostLinks.contains(h.nodeID))
@@ -191,29 +199,40 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 			// Begin with 0 and increase port +1 per new Host connection to Switch:
 			var port = 0
 			for (actHost <- actHosts) {
-				Map("dpid" -> actSwitch.dpid, "mac" -> actHost.mac, "port" -> port)
+				hostsList = hostsList :+ Map("dpid" -> actSwitch.dpid, "mac" -> actHost.mac, "port" -> port.toString)
 				port += 1
 			}
 		}
 
-		val jsonQuery = Json.toJson(
+		val ofcQuery: JsValue = Json.toJson(Map(
+			"ctrls" -> Json.toJson(Seq(Json.toJson(
+				"tcp:"+ ofcIP.getHostAddress+":"+ofcPort))),
+			"type" -> Json.toJson("custom")))
+
+		val jsonQuery: JsValue = Json.toJson(
 			Map(
-				"id" -> freeNetID,
-				"jsonrpc" -> "2.0",
-				"method" -> "createNetwork",
-				"params" -> Map(
-					"controller" -> Map(
-					"ctrls" -> Seq(
-						"tcp:"+ofcIP.getHostAddress+":"+ofcPort),
-					"type" -> "custom"),
-					"hosts" -> hostsList,
-					"routing" -> Map("algorithm" -> "spf", "backup_num" -> "1"),
-					"subnet" -> (freeSubnetIP.getHostAddress +"/24"),
-					"type" -> "physical")
+				"id" -> Json.toJson(_ovxSubnetID),
+				"jsonrpc" -> Json.toJson("2.0"),
+				"method" -> Json.toJson("createNetwork"),
+				"params" -> Json.toJson(Map(
+					"controller" -> ofcQuery,
+					"hosts" -> Json.toJson(hostsList),
+					"routing" -> Json.toJson(Map("algorithm" -> "spf", "backup_num" -> "1")),
+					"subnet" -> Json.toJson(_ovxSubnetAddress.getHostAddress +"/24"),
+					"type" -> Json.toJson("physical")))
 			)
 		)
 
+		// Prepare (increase) SubnetID and SubnetAddress for the next OVX-Network allocation:
+		_ovxSubnetID += 1
+		val newSubnetRange: Int = _ovxSubnetAddress.getHostAddress.substring(3,5).toInt + 1
+		val newAddress: String = _ovxSubnetAddress.getHostAddress.substring(0,3) +
+														 newSubnetRange + _ovxSubnetAddress.getHostAddress.substring(5)
+		_ovxSubnetAddress = InetAddress.getByName(newAddress)
+
 		// TODO: send jsonQuery to OVX-Embedder.
+
+		return jsonQuery
 	}
 }
 
