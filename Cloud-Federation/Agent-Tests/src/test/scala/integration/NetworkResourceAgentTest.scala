@@ -77,6 +77,9 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val ovxIP = InetAddress.getLocalHost
 	val ovxPort = 10000
 
+	val embedderIP = InetAddress.getByName("192.168.1.42")
+	val embedderPort = 8000
+
 
 /* AKKA Testing Environment: */
 /* ========================= */
@@ -95,7 +98,10 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudSLA, nraSelection)
 	val testActor_MMA 	= TestActorRef[MatchMakingAgent](mmaProps)
 
-	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudSwitches, cloudHosts, ovxIP, ovxPort, testActor_MMA)
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudSwitches, cloudHosts,
+															ovxIP, ovxPort,
+															embedderIP, embedderPort,
+															testActor_MMA)
 	val testActor_NRA 	= TestActorRef[NetworkResourceAgent](nraProps)
 
 

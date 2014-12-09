@@ -1,6 +1,7 @@
 package agents
 
-import java.net.InetAddress
+import java.io._
+import java.net._
 
 import akka.actor._
 import play.api.libs.json
@@ -13,7 +14,8 @@ import messages._
  * @author Constantin Gaul, created on 10/15/14.
  */
 class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: Vector[Host],
-													 var _ovxIP: InetAddress, var _ovxPort: Int,
+													 ovxIP: InetAddress, ovxPort: Int,
+													 embedderIP: InetAddress, embedderPort: Int,
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
@@ -23,7 +25,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 //
 ///* Variables: */
 ///* ========== */
-//
+//rm -r
 //	var cloudSwitches = _cloudSwitches
 //	var cloudHosts = _cloudHosts
 
@@ -207,7 +209,6 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 				}
 			}
 		}
-
 		val ofcQuery: JsValue = Json.toJson(Map(
 			"ctrls" -> Json.toJson(Seq(Json.toJson(
 				"tcp:"+ ofcIP.getHostAddress+":"+ofcPort))),
@@ -226,6 +227,10 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 					"type" -> Json.toJson("physical")))
 			)
 		)
+		// Save the jsonQuery to file:
+		val out: FileWriter = new FileWriter(new File("ovx_subnet-"+_ovxSubnetID+".json"))
+		out.write(Json.stringify(jsonQuery))
+		out.close()
 
 		// Prepare (increase) SubnetID and SubnetAddress for the next OVX-Network allocation:
 		_ovxSubnetID += 1
@@ -234,7 +239,34 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 														 newSubnetRange + _ovxSubnetAddress.getHostAddress.substring(5)
 		_ovxSubnetAddress = InetAddress.getByName(newAddress)
 
-		// TODO: send jsonQuery to OVX-Embedder.
+
+		// prepare URL under which the OVX-Embedder should be available:
+		val embedderURL: URL = new URL("http", embedderIP.getHostAddress, embedderPort, "no file")
+		val connection: URLConnection = embedderURL.openConnection()
+		connection.setDoOutput(true)
+
+		try{
+			// send jsonQuery to OVX-Embedder:
+			val out: OutputStreamWriter = new OutputStreamWriter(connection.getOutputStream)
+			out.write(Json.stringify(jsonQuery))
+			out.close()
+
+			// receive the reply from the OVX-Embedder:
+			val in: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
+			var decodedString: String = ""
+			while ((decodedString = in.readLine()) != null) {
+				log.info("OVX-Embedder Reply: {}", decodedString)
+			}
+			in.close()
+		}
+		catch {
+			case e: ConnectException => log.error("OVX-Embedder refused connection at {}:{}. " +
+																						"No allocation in OVX-Network possible!",
+																						embedderIP.getHostAddress, embedderPort)
+			case e: IOException => log.error("IOException ocurred while reading or writing " +
+																			 "to the Stream to the OVX-Embedder at {}:{}!",
+																			 embedderIP.getHostAddress, embedderPort)
+		}
 
 		return jsonQuery
 	}
@@ -302,6 +334,7 @@ object NetworkResourceAgent
 	 */
 	def props(cloudSwitches: Vector[Switch], cloudHosts: Vector[Host],
 						ovxIP: InetAddress, ovxPort: Int,
+						embedderIP: InetAddress, embedderPort: Int,
 						matchMakingAgent: ActorRef):
-	Props = Props(new NetworkResourceAgent(cloudSwitches, cloudHosts, ovxIP, ovxPort, matchMakingAgent))
+	Props = Props(new NetworkResourceAgent(cloudSwitches, cloudHosts, ovxIP, ovxPort, embedderIP, embedderPort, matchMakingAgent))
 }
