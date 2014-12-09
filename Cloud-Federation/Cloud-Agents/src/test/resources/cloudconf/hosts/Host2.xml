@@ -1,7 +1,7 @@
 <Host>
 	<Hardware>
 		<Resource>
-			<NodeID>2</NodeID>
+			<ID>2</ID>
 			<CPU>MEDIUM</CPU>
 			<RAM>
 				<ByteSize>16.0 GiB</ByteSize>

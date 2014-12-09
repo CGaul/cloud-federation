@@ -17,22 +17,28 @@ import scala.xml.{NodeSeq, Node}
  * Used for syntactic Sugar in the Code.
  * @param id The ID of the Node/Host
  */
-case class NodeID(id: Int){
+case class CompID(id: Int){
 	override def toString: String = id.toString
 }
 /**
- * Companion Object for NodeID
+ * Companion Object for CompID
  */
-object NodeID {
+object CompID {
 
- def fromString(str: String): NodeID = {
-	 return NodeID(str.trim.toInt)
+ def fromString(str: String): CompID = {
+	 return CompID(str.trim.toInt)
  }
 }
 
 /**
+ * Desribes a Network-Component. The base class for Hosts and Switches
+ * @param compID The unique Component-ID of the Host or Switch
+ */
+case class NetComp(compID: CompID)
+
+/**
  *
- * @param nodeID The NodeID that is representing this resource. For VMs, this is the nodeID of the hypervising host
+ * @param compID The ComponentID that is representing this resource. For VMs, this is the compID of the hypervising host
  *               (which is also represented as a Resource). May be None for Resource Requests.
  * @param cpu CPU Speed on Node [CPUUnit]
  * @param ram Amount of RAM on Node [ByteSize]
@@ -40,13 +46,13 @@ object NodeID {
  * @param bandwidth Bandwidth, relatively monitored from GW to Node [ByteSize]
  * @param latency Latency, relatively monitored from GW to Node [ms]
  */
-case class Resource(nodeID: NodeID,
+case class Resource(compID: CompID,
 						  cpu: CPUUnit,
 						  ram: ByteSize,
 						  storage: ByteSize,
 						  bandwidth: ByteSize,
 						  latency: Float,
-						  links: Vector[NodeID])
+						  links: Vector[CompID])
 {
 
 	/* Basic Overrides: */
@@ -73,7 +79,7 @@ object Resource {
 
 	def toXML(resource: Resource): Node =
 		<Resource>
-			<NodeID>{resource.nodeID.toString}</NodeID>
+			<ID>{resource.compID.toString}</ID>
 			<CPU>{resource.cpu.toString}</CPU>
 			<RAM>{ByteSize.toXML(resource.ram)}</RAM>
 			<Storage>{ByteSize.toXML(resource.storage)}</Storage>
@@ -91,16 +97,16 @@ object Resource {
 /* ================= */
 
 	def fromXML(node: Node): Resource = {
-		val nodeID: NodeID 			= NodeID.fromString((node \\ "NodeID").text)
+		val compID: CompID 			= CompID.fromString((node \\ "ID").text)
 		val cpu: CPUUnit 	 			= CPUUnit.fromString((node \\ "CPU").text)
 		val ram: ByteSize	 			= ByteSize.fromString((node \\ "RAM").text)
 		val storage: ByteSize		= ByteSize.fromString((node \\ "Storage").text)
 		val bandwidth: ByteSize	= ByteSize.fromString((node \\ "Bandwidth").text)
 		val latency: Float			= (node \\ "Latency").text.toFloat
-		val links: Vector[NodeID] = if((node \\ "Links").text.trim == "") {Vector()}
-																else {(node \\ "Links").text.trim.split(" ").map(str => NodeID.fromString(str)).toVector}
+		val links: Vector[CompID] = if((node \\ "Links").text.trim == "") {Vector()}
+																else {(node \\ "Links").text.trim.split(" ").map(str => CompID.fromString(str)).toVector}
 
-		return Resource(nodeID, cpu, ram, storage, bandwidth, latency, links)
+		return Resource(compID, cpu, ram, storage, bandwidth, latency, links)
 	}
 
 	def loadFromXML(file: File): Resource = {
@@ -110,7 +116,8 @@ object Resource {
 }
 
 
-case class Switch(id: NodeID, dpid: String, switchLinks: Vector[NodeID], hostLinks: Vector[NodeID]){
+case class Switch(id: CompID, dpid: String, switchLinks: Vector[CompID], hostLinks: Vector[CompID])
+extends NetComp(id){
 
 	/* Basic Overrides: */
 	/* ---------------- */
@@ -150,10 +157,10 @@ object Switch {
 	/* ================= */
 
 	def fromXML(node: Node): Switch = {
-		val switchID: NodeID = NodeID.fromString((node \ "ID").text)
+		val switchID: CompID = CompID.fromString((node \ "ID").text)
 		val switchDPID: String = (node \ "DPID").text
-		val switchLinks: Vector[NodeID] = (node \ "SwitchLinks").text.trim.split(" ").map(NodeID.fromString).toVector
-		val hostLinks: Vector[NodeID] = (node \ "HostLinks").text.trim.split(" ").map(NodeID.fromString).toVector
+		val switchLinks: Vector[CompID] = (node \ "SwitchLinks").text.trim.split(" ").map(CompID.fromString).toVector
+		val hostLinks: Vector[CompID] = (node \ "HostLinks").text.trim.split(" ").map(CompID.fromString).toVector
 
 
 		return Switch(switchID, switchDPID, switchLinks, hostLinks)
@@ -181,12 +188,8 @@ object Switch {
  */
 case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
 					 var allocatedResources: Vector[ResourceAlloc] = Vector(),
-					 var sla: HostSLA){
-
-	/* Getter: */
-	/* ======= */
-
-	def nodeID = hardwareSpec.nodeID
+					 var sla: HostSLA)
+extends NetComp(hardwareSpec.compID){
 
 
 	/* Public Methods: */
@@ -383,7 +386,7 @@ object Host {
 	}
 
 //	def toJson(host: Host): JsValue = {
-//		val jsonHost = Json.toJson(Map("Host" -> Seq(NodeID.toJson(host.nodeID), host.ip, host.mac, host.allocatedResources
+//		val jsonHost = Json.toJson(Map("Host" -> Seq(CompID.toJson(host.compID), host.ip, host.mac, host.allocatedResources
 //	}
 
 /* De-Serialization: */

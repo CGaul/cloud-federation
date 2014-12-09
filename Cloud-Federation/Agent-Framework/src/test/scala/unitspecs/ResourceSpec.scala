@@ -30,22 +30,22 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	behavior of "A Resource"
 
 	//General Small Node
-	val res1 = new Resource(NodeID(1), SMALL,
+	val res1 = new Resource(CompID(1), SMALL,
 									ByteSize(8, GiB), ByteSize(50, GiB),
 									ByteSize(10, MB), 10, Vector())
 
 	//General Medium Node
-	val res2= new Resource(NodeID(2), MEDIUM,
+	val res2= new Resource(CompID(2), MEDIUM,
 									ByteSize(16, GiB), ByteSize(100, GiB),
 									ByteSize(10, MB), 10, Vector())
 
 	//Equals res2, but with lower latency
-	val res3 = new Resource(NodeID(3), MEDIUM,
+	val res3 = new Resource(CompID(3), MEDIUM,
 									ByteSize(16, GiB), ByteSize(100, GiB),
 									ByteSize(10, MB), 5, Vector())
 
 	//General Large Node
-	val res4 = new Resource(NodeID(3), LARGE,
+	val res4 = new Resource(CompID(3), LARGE,
 									ByteSize(24, GiB), ByteSize(200, GiB),
 									ByteSize(50, MB), 10, Vector())
 
@@ -61,7 +61,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 
 		Given("A Resource with the res1 footprint, instantiated statically via apply()")
-		val staticRes1 = Resource(NodeID(1), SMALL,
+		val staticRes1 = Resource(CompID(1), SMALL,
 			ByteSize(8, GiB), ByteSize(50, GiB),
 			ByteSize(10, MB), 10, Vector())
 
@@ -76,9 +76,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should  "be equal to another Resource with the same Resource footprint (even with different IDs and Neighbours)" in{
 
 		Given("A Respource with the res1 footprint, with additional link descriptions")
-		val equalRes1 		= Resource(NodeID(1), SMALL,
+		val equalRes1 		= Resource(CompID(1), SMALL,
 											ByteSize(8, GiB), ByteSize(50, GiB),
-											ByteSize(10, MB), 10, Vector(NodeID(2), NodeID(3)))
+											ByteSize(10, MB), 10, Vector(CompID(2), CompID(3)))
 
 
 		When("res1 is compared with the link-different equalRes1")
@@ -166,16 +166,16 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 	// All Hosts are starting with SLAs that allow 10 SMALL, 5 MEDIUM and 2 LARGE VMs at the beginning:
 
-	val switch1 	= new Switch(NodeID(1), "00:00:00:00:00:00:01:00", Vector(NodeID(2), NodeID(3)), Vector(NodeID(10), NodeID(20)))
-	val switch2 	= new Switch(NodeID(2), "00:00:00:00:00:00:02:00", Vector(NodeID(1), NodeID(3)), Vector(NodeID(11), NodeID(21)))
-	val switch3 	= new Switch(NodeID(3), "00:00:00:00:00:00:03:00", Vector(NodeID(1), NodeID(2)), Vector(NodeID(12), NodeID(22)))
+	val switch1 	= new Switch(CompID(1), "00:00:00:00:00:00:01:00", Vector(CompID(2), CompID(3)), Vector(CompID(10), CompID(20)))
+	val switch2 	= new Switch(CompID(2), "00:00:00:00:00:00:02:00", Vector(CompID(1), CompID(3)), Vector(CompID(11), CompID(21)))
+	val switch3 	= new Switch(CompID(3), "00:00:00:00:00:00:03:00", Vector(CompID(1), CompID(2)), Vector(CompID(12), CompID(22)))
 
 	it should "be equal equal to itself" in{
 		switch1 should equal(switch1)
 	}
 	
 	it should "be equal to another Switch with the same values" in{
-		val switch1Comp = new Switch(NodeID(1), "00:00:00:00:00:00:01:00", Vector(NodeID(1), NodeID(2)), Vector(NodeID(10), NodeID(20)))
+		val switch1Comp = new Switch(CompID(1), "00:00:00:00:00:00:01:00", Vector(CompID(1), CompID(2)), Vector(CompID(10), CompID(20)))
 		switch1 should equal(switch1Comp)
 	}
 	
