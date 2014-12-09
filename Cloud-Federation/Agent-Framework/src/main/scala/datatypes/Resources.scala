@@ -15,7 +15,7 @@ import scala.xml.{NodeSeq, Node}
 /**
  * Just a wrapper case class for an Integer ID.
  * Used for syntactic Sugar in the Code.
- * @param id The ID of the Node/Host
+ * @param id The unique Component-ID of a NetworkComponent (a Host or Switch)
  */
 case class CompID(id: Int){
 	override def toString: String = id.toString
@@ -31,10 +31,9 @@ object CompID {
 }
 
 /**
- * Desribes a Network-Component. The base class for Hosts and Switches
- * @param compID The unique Component-ID of the Host or Switch
+ * Desribes a Network-Component. The base trait for Hosts and Switches
  */
-case class NetComp(compID: CompID)
+sealed trait NetworkComponent
 
 /**
  *
@@ -116,8 +115,14 @@ object Resource {
 }
 
 
-case class Switch(id: CompID, dpid: String, switchLinks: Vector[CompID], hostLinks: Vector[CompID])
-extends NetComp(id){
+/**
+ * The representative data class of a Network-Switch.
+ * @param id
+ * @param dpid
+ * @param links A mapping from Port-Number (as Int) to the connected Network-Component (Host or other Switch)
+ */
+case class Switch(id: CompID, dpid: String, links: Map[Int, CompID])//switchLinks: Vector[CompID], hostLinks: Vector[CompID])
+extends NetworkComponent{
 
 	/* Basic Overrides: */
 	/* ---------------- */
@@ -143,8 +148,7 @@ object Switch {
 		<Switch>
 			<ID>{switch.id.toString}</ID>
 			<DPID>{switch.dpid}</DPID>
-			<SwitchLinks>{switch.switchLinks.mkString(" ")}</SwitchLinks>
-			<HostLinks>{switch.hostLinks.mkString(" ")}</HostLinks>
+			<Links>{switch.links.map(l => l._1.toString +":"+ l._2.toString).mkString(", ")}</Links>
 		</Switch>
 
 
@@ -159,11 +163,18 @@ object Switch {
 	def fromXML(node: Node): Switch = {
 		val switchID: CompID = CompID.fromString((node \ "ID").text)
 		val switchDPID: String = (node \ "DPID").text
-		val switchLinks: Vector[CompID] = (node \ "SwitchLinks").text.trim.split(" ").map(CompID.fromString).toVector
-		val hostLinks: Vector[CompID] = (node \ "HostLinks").text.trim.split(" ").map(CompID.fromString).toVector
+		val linkIter: Iterable[(Int, CompID)] = (node \ "Links").text.trim.split(", ").map(
+																								l => (l.split(":")(0).trim.toInt, CompID(l.split(":")(1).trim.toInt)))
+		var links: Map[Int, CompID] = Map()
+
+		for (actLink <- linkIter) {
+			links = links + (actLink._1 -> actLink._2)
+		}
+//		val switchLinks: Vector[CompID] = (node \ "Links").text.trim.split(" ").map(CompID.fromString).toVector
+//		val hostLinks: Vector[CompID] = (node \ "HostLinks").text.trim.split(" ").map(CompID.fromString).toVector
 
 
-		return Switch(switchID, switchDPID, switchLinks, hostLinks)
+		return Switch(switchID, switchDPID, links)
 	}
 
 	def loadFromXML(file: File): Switch = {
@@ -189,7 +200,12 @@ object Switch {
 case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
 					 var allocatedResources: Vector[ResourceAlloc] = Vector(),
 					 var sla: HostSLA)
-extends NetComp(hardwareSpec.compID){
+extends NetworkComponent{
+
+	/* Getters: */
+	/* -------- */
+
+	def compID = hardwareSpec.compID
 
 
 	/* Public Methods: */

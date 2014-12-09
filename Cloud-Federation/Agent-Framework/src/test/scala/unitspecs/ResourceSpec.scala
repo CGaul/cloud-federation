@@ -57,7 +57,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("res1 is directly compared to itself")
 		Then("res1.equals(res1) should be true")
 		res1 should equal(res1)
-		res1 == res1 should be(right = true)
+		res1 == res1 should be (right = true)
 
 
 		Given("A Resource with the res1 footprint, instantiated statically via apply()")
@@ -67,10 +67,10 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 		When("res1 is compared with the statically applied staticRes1 copy")
 		Then("res1.equals(staticRes1) should be true")
-		res1.equals(staticRes1) should be(true)
-		staticRes1.equals(res1) should be(true)
-		res1 == staticRes1 should be(true)
-		staticRes1 == res1 should be(true)
+		res1.equals(staticRes1) should be (right = true)
+		staticRes1.equals(res1) should be (right = true)
+		res1 == staticRes1 should be (right = true)
+		staticRes1 == res1 should be (right = true)
 	}
 	
 	it should  "be equal to another Resource with the same Resource footprint (even with different IDs and Neighbours)" in{
@@ -83,36 +83,36 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 		When("res1 is compared with the link-different equalRes1")
 		Then("res1.equals(equalRes1) should be true")
-		res1.equals(equalRes1) should be (true)
-		equalRes1.equals(res1) should be (true)
-		res1 == equalRes1 should be (true)
-		equalRes1 == res1 should be (true)
+		res1.equals(equalRes1) should be (right = true)
+		equalRes1.equals(res1) should be (right = true)
+		res1 == equalRes1 should be (right = true)
+		equalRes1 == res1 should be (right = true)
 		info("Equality tests completed!")
 	}
 
 	it should "be unequal to Resources with a different Resource footprint than the origin" in{
 		When("Two unequal resources are compared")
 		Then("equals should be false")
-		res1.equals(res2) should be (false)
-		res2.equals(res1) should be (false)
-		res1 == res3 should be (false)
-		res3 == res2 should be (false)
-		res3 == res1 should be (false)
+		res1.equals(res2) should be (right = false)
+		res2.equals(res1) should be (right = false)
+		res1 == res3 should be (right = false)
+		res3 == res2 should be (right = false)
+		res3 == res1 should be (right = false)
 		info("Unequality tests completed!")
 	}
 
 	it should "be comparable with another Resource in a relative ordering" in{
 		When("res1 is compared to itself")
 		Then("RelativeOrdering.compare(res1, res1) should be == 0")
-		(RelativeResOrdering.compare(res1, res1) == 0) should be (true)
+		(RelativeResOrdering.compare(res1, res1) == 0) should be (right = true)
 
 		When("smaller res1 is compared to medium res2")
 		Then("RelativeResOrdering.compare(res1, res2) should be < 0")
-		(RelativeResOrdering.compare(res1, res2) < 0) should be (true)
+		(RelativeResOrdering.compare(res1, res2) < 0) should be (right = true)
 
 		When("medium res2 is compared to smaller res1")
 		Then("RelativeResOrdering.compare(res2, res1) should be > 0")
-		(RelativeResOrdering.compare(res2, res1) > 0) should be (true)
+		(RelativeResOrdering.compare(res2, res1) > 0) should be (right = true)
 		info("Comparison tests completed!")
 	}
 
@@ -166,16 +166,16 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 	// All Hosts are starting with SLAs that allow 10 SMALL, 5 MEDIUM and 2 LARGE VMs at the beginning:
 
-	val switch1 	= new Switch(CompID(1), "00:00:00:00:00:00:01:00", Vector(CompID(2), CompID(3)), Vector(CompID(10), CompID(20)))
-	val switch2 	= new Switch(CompID(2), "00:00:00:00:00:00:02:00", Vector(CompID(1), CompID(3)), Vector(CompID(11), CompID(21)))
-	val switch3 	= new Switch(CompID(3), "00:00:00:00:00:00:03:00", Vector(CompID(1), CompID(2)), Vector(CompID(12), CompID(22)))
+	val switch1 	= new Switch(CompID(1), "00:00:00:00:00:00:01:00", Map(1->CompID(2), 2->CompID(3)))
+	val switch2 	= new Switch(CompID(2), "00:00:00:00:00:00:02:00", Map(1->CompID(1), 2->CompID(3)))
+	val switch3 	= new Switch(CompID(3), "00:00:00:00:00:00:03:00", Map(1->CompID(1), 2->CompID(2)))
 
 	it should "be equal equal to itself" in{
 		switch1 should equal(switch1)
 	}
 	
 	it should "be equal to another Switch with the same values" in{
-		val switch1Comp = new Switch(CompID(1), "00:00:00:00:00:00:01:00", Vector(CompID(1), CompID(2)), Vector(CompID(10), CompID(20)))
+		val switch1Comp = new Switch(CompID(1), "00:00:00:00:00:00:01:00", Map(1->CompID(1), 2->CompID(2)))
 		switch1 should equal(switch1Comp)
 	}
 	
@@ -266,18 +266,18 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should "be equal to itself, independent from the object creation (applied or instantiated)" in{
 		When("host1 is directly compared to itself")
 		Then("host1.equals(host1) should be true")
-		host1.equals(host1) should be(true)
-		host1 == host1 should be(true)
+		host1.equals(host1) should be (right = true)
+		host1 == host1 should be (right = true)
 
 		Given("A Host with the host1 footprint, instantiated statically via apply()")
 		val staticHost1 = Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
 
 		When("host1 is compared with the statically applied staticHost1 copy")
 		Then("host1.equals(staticHost1) should be true")
-		host1.equals(staticHost1) should be(true)
-		staticHost1.equals(host1) should be(true)
-		host1 == staticHost1 should be(true)
-		staticHost1 == host1 should be(true)
+		host1.equals(staticHost1) should be (right = true)
+		staticHost1.equals(host1) should be (right = true)
+		host1 == staticHost1 should be (right = true)
+		staticHost1 == host1 should be (right = true)
 	}
 
 	it should "be equal to another Host with the same Host footprint (even with different Resource Allocations)" in{
@@ -288,37 +288,37 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 		When("host1 is compared with the resourceAlloc-different equalHost1")
 		Then("host1.equals(equalHost1) should be true")
-		host1.equals(equalHost1) should be (true)
-		equalHost1.equals(host1) should be (true)
-		host1 == equalHost1 should be (true)
-		equalHost1 == host1 should be (true)
+		host1.equals(equalHost1) should be (right = true)
+		equalHost1.equals(host1) should be (right = true)
+		host1 == equalHost1 should be (right = true)
+		equalHost1 == host1 should be (right = true)
 		info("Equality tests completed!")
 	}
 
 	it should "be unequal to Hosts with a different Host footprint than the origin" in{
 		When("Two unequal Hosts are compared")
 		Then("equals should be false")
-		host1.equals(host2) should be (false)
-		host2.equals(host1) should be (false)
-		host2.equals(host3) should be (false)
-		host1 == host3 should be (false)
-		host3 == host2 should be (false)
-		host3 == host1 should be (false)
+		host1.equals(host2) should be (right = false)
+		host2.equals(host1) should be (right = false)
+		host2.equals(host3) should be (right = false)
+		host1 == host3 should be (right = false)
+		host3 == host2 should be (right = false)
+		host3 == host1 should be (right = false)
 		info("Unequality tests completed!")
 	}
 
 	it should "be comparable with another Host in a relative ordering" in{
 		When("host1 is compared to itself")
 		Then("RelativeHostByResOrdering.compare(host1, host1) should be == 0")
-		(RelativeHostByResOrdering.compare(host1, host1) == 0) should be (true)
+		(RelativeHostByResOrdering.compare(host1, host1) == 0) should be (right = true)
 
 		When("smaller host1 is compared to medium host2")
 		Then("RelativeHostByResOrdering.compare(host1, host2) should be < 0")
-		(RelativeHostByResOrdering.compare(host1, host2) < 0) should be (true)
+		(RelativeHostByResOrdering.compare(host1, host2) < 0) should be (right = true)
 
 		When("medium host2 is compared to smaller host1")
 		Then("RelativeHostByResOrdering.compare(host2, host1) should be > 0")
-		(RelativeHostByResOrdering.compare(host2, host1) > 0) should be (true)
+		(RelativeHostByResOrdering.compare(host2, host1) > 0) should be (right = true)
 		info("Comparison tests completed!")
 	}
 
@@ -327,87 +327,87 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		When("resAlloc1 is allocated to host1")
 		Then("host1.allocate(resAlloc1) should be true")
 		And ("resAlloc1 should be in host1's allocatedResources")
-		host1.allocate(resAlloc1)._1 should be (true)
+		host1.allocate(resAlloc1)._1 should be (right = true)
 		host1.allocatedResources.size should be (1)
-		host1.allocatedResources.contains(resAlloc1) should be (true)
-		host2.allocatedResources.contains(resAlloc2) should be (false)
-		host2.allocatedResources.contains(resAlloc3) should be (false)
+		host1.allocatedResources.contains(resAlloc1) should be (right = true)
+		host2.allocatedResources.contains(resAlloc2) should be (right = false)
+		host2.allocatedResources.contains(resAlloc3) should be (right = false)
 
 		When("resAlloc2 is allocated to host1")
 		Then("host1.allocate(resAlloc2) should be false, as the requested resAlloc2's image-formats are not supported")
 		And("resAlloc1 should still be in host1's allocatedResources")
-		host1.allocate(resAlloc2)._1 should be (false)
+		host1.allocate(resAlloc2)._1 should be (right = false)
 		host1.allocatedResources.size should be (1)
-		host1.allocatedResources.contains(resAlloc1) should be (true)
-		host1.allocatedResources.contains(resAlloc2) should be (false)
-		host1.allocatedResources.contains(resAlloc3) should be (false)
+		host1.allocatedResources.contains(resAlloc1) should be (right = true)
+		host1.allocatedResources.contains(resAlloc2) should be (right = false)
+		host1.allocatedResources.contains(resAlloc3) should be (right = false)
 
 		When("resAlloc3 is allocated to host1")
 		Then("host1.allocate(resAlloc3) should be false, as the resAlloc3 SLA uptime limit is above Host1's uptime possibility")
 		And("resAlloc1 should still be in host1's allocatedResources")
-		host1.allocate(resAlloc3)._1 should be (false)
+		host1.allocate(resAlloc3)._1 should be (right = false)
 		host1.allocatedResources.size should be (1)
-		host1.allocatedResources.contains(resAlloc1) should be (true)
-		host1.allocatedResources.contains(resAlloc2) should be (false)
-		host1.allocatedResources.contains(resAlloc3) should be (false)
+		host1.allocatedResources.contains(resAlloc1) should be (right = true)
+		host1.allocatedResources.contains(resAlloc2) should be (right = false)
+		host1.allocatedResources.contains(resAlloc3) should be (right = false)
 
 
 		// For Host2:
 		When("resAlloc1 is allocated to host2")
 		Then("host2.allocate(resAlloc1) should be false, as the requested resAlloc1's image-formats are not supported")
 		And ("resAlloc1 should not be in host2's allocatedResources")
-		host2.allocate(resAlloc1)._1 should be (false)
+		host2.allocate(resAlloc1)._1 should be (right = false)
 		host2.allocatedResources.size should be (0)
-		host2.allocatedResources.contains(resAlloc1) should be (false)
-		host2.allocatedResources.contains(resAlloc2) should be (false)
-		host2.allocatedResources.contains(resAlloc3) should be (false)
+		host2.allocatedResources.contains(resAlloc1) should be (right = false)
+		host2.allocatedResources.contains(resAlloc2) should be (right = false)
+		host2.allocatedResources.contains(resAlloc3) should be (right = false)
 
 		When("resAlloc2 is allocated to host2")
 		Then("host2.allocate(resAlloc2) should be true")
 		And("resAlloc2 should be in host2's allocatedResources")
-		host2.allocate(resAlloc2)._1 should be (true)
+		host2.allocate(resAlloc2)._1 should be (right = true)
 		host2.allocatedResources.size should be (1)
-		host2.allocatedResources.contains(resAlloc1) should be (false)
-		host2.allocatedResources.contains(resAlloc2) should be (true)
-		host2.allocatedResources.contains(resAlloc3) should be (false)
+		host2.allocatedResources.contains(resAlloc1) should be (right = false)
+		host2.allocatedResources.contains(resAlloc2) should be (right = true)
+		host2.allocatedResources.contains(resAlloc3) should be (right = false)
 
 		When("resAlloc3 is allocated to host2")
 		Then("host2.allocate(resAlloc3) should be false, as the resAlloc3 SLA uptime limit is above host2's uptime possibility")
 		And("resAlloc1 should still be in host2's allocatedResources")
-		host2.allocate(resAlloc3)._1 should be (false)
+		host2.allocate(resAlloc3)._1 should be (right = false)
 		host2.allocatedResources.size should be (1)
-		host2.allocatedResources.contains(resAlloc1) should be (false)
-		host2.allocatedResources.contains(resAlloc2) should be (true)
-		host2.allocatedResources.contains(resAlloc3) should be (false)
+		host2.allocatedResources.contains(resAlloc1) should be (right = false)
+		host2.allocatedResources.contains(resAlloc2) should be (right = true)
+		host2.allocatedResources.contains(resAlloc3) should be (right = false)
 
 
 		// For Host3:
 		When("resAlloc1 is allocated to host3")
 		Then("host3.allocate(resAlloc1) should be true")
 		And ("resAlloc1 should be in host3's allocatedResources")
-		host3.allocate(resAlloc1)._1 should be (true)
+		host3.allocate(resAlloc1)._1 should be (right = true)
 		host3.allocatedResources.size should be (1)
-		host3.allocatedResources.contains(resAlloc1) should be (true)
-		host3.allocatedResources.contains(resAlloc2) should be (false)
-		host3.allocatedResources.contains(resAlloc3) should be (false)
+		host3.allocatedResources.contains(resAlloc1) should be (right = true)
+		host3.allocatedResources.contains(resAlloc2) should be (right = false)
+		host3.allocatedResources.contains(resAlloc3) should be (right = false)
 
 		When("resAlloc2 is allocated to host3")
 		Then("host3.allocate(resAlloc2) should be true, as there is only a SMALL Node in it")
 		And("resAlloc2 should be in host3's allocatedResources")
-		host3.allocate(resAlloc2)._1 should be (true)
+		host3.allocate(resAlloc2)._1 should be (right = true)
 		host3.allocatedResources.size should be (2)
-		host3.allocatedResources.contains(resAlloc1) should be (true)
-		host3.allocatedResources.contains(resAlloc2) should be (true)
-		host3.allocatedResources.contains(resAlloc3) should be (false)
+		host3.allocatedResources.contains(resAlloc1) should be (right = true)
+		host3.allocatedResources.contains(resAlloc2) should be (right = true)
+		host3.allocatedResources.contains(resAlloc3) should be (right = false)
 
 		When("resAlloc3 is allocated to host3")
 		Then("host3.allocate(resAlloc3) should be false, as the current SLA prohibits to have more than one MEDIUM Node on this host")
 		And("resAlloc3 should not be in host3's allocatedResources, but the other two should be")
-		host3.allocate(resAlloc3)._1 should be (false)
+		host3.allocate(resAlloc3)._1 should be (right = false)
 		host3.allocatedResources.size should be (2)
-		host3.allocatedResources.contains(resAlloc1) should be (true)
-		host3.allocatedResources.contains(resAlloc2) should be (true)
-		host3.allocatedResources.contains(resAlloc3) should be (false)
+		host3.allocatedResources.contains(resAlloc1) should be (right = true)
+		host3.allocatedResources.contains(resAlloc2) should be (right = true)
+		host3.allocatedResources.contains(resAlloc3) should be (right = false)
 	}
 
 	it should "be able to split ResourceAllocations, if the allocation would violate the" +

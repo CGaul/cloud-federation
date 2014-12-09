@@ -72,7 +72,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 
-	val cloudSwitches: Vector[Switch] = Vector(Switch(CompID(1), "00:00:10:00", Vector(), Vector(CompID(11), CompID(12))))
+	val cloudSwitches: Vector[Switch] = Vector(Switch(CompID(1), "00:00:10:00", Map(1->CompID(11), 2->CompID(12))))
 
 	val ovxIP = InetAddress.getLocalHost
 	val ovxPort = 10000

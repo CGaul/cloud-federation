@@ -29,8 +29,6 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 
 		private var _ovxSubnetID: Int = 1
 		private var _ovxSubnetAddress: InetAddress = InetAddress.getByName("10.10.1.0")
-		private var _ovxSwitchPorts: Map[Switch, Int]
-
 
 /* Public Methods: */
 /* =============== */
@@ -187,7 +185,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		// Find out the Switches that are connecting the Hosts with each other:
 		var allocatedSwitches: Vector[Switch] = Vector()
 		for (actHost <- allocatedHosts ) {
-			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.hostLinks.contains(actHost.compID))
+			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.links.values.exists(_ == actHost.compID))
 		}
 
 		// Prepare the Host-List for the Json-Query.
@@ -195,13 +193,18 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		var hostsList: Seq[Map[String, String]] = Seq()
 		for (actSwitch <- allocatedSwitches) {
 			// Find all allocated hosts that are connected to the actual switch:
-			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.hostLinks.contains(h.compID))
+			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.links.values.exists(_ == h.compID))
 
-			// Begin with 0 and increase port +1 per new Host connection to Switch:
-			var port = 0
 			for (actHost <- actHosts) {
-				hostsList = hostsList :+ Map("dpid" -> actSwitch.dpid, "mac" -> actHost.mac, "port" -> port.toString)
-				port += 1
+				// Find the Port at the Switch that connects the actual Host:
+				val port: Option[(Int, CompID)] = actSwitch.links.find(_._2 == actHost.compID)
+				if(port.isDefined){
+					hostsList = hostsList :+ Map("dpid" -> actSwitch.dpid, "mac" -> actHost.mac, "port" -> port.get._1.toString)
+				}
+				else{
+					log.error("Host {} is not connected to a Port in the Switch {}! Aborting allocation into OVX-Network!",
+										actHost, actSwitch)
+				}
 			}
 		}
 
