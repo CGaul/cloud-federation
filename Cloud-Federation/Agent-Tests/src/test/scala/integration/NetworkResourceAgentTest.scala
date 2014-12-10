@@ -31,31 +31,31 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 									Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 10)))
 
 	//General Medium Node
-	val res1 = Resource(CompID(11), MEDIUM,
+	val hwspec1 = Resource(CompID(11), MEDIUM,
 							ByteSize(16, GiB), ByteSize(320, GiB),
 							ByteSize(50, MB), 10, Vector())
 
 	//General Large Node
-	val res2= Resource(CompID(12), LARGE,
+	val hwspec2= Resource(CompID(12), LARGE,
 							ByteSize(32, GiB), ByteSize(500, GiB),
 							ByteSize(50, MB), 10, Vector())
 
-	val host1 : Host = Host(res1, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
-	val host2 : Host = Host(res2, InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA)
+	val host1 : Host = Host(hwspec1, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
+	val host2 : Host = Host(hwspec2, InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA)
 
-	val resToAlloc1 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
+	val res1 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
 														20.0f, Vector[CompID]())
-	val resToAlloc2 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
+	val res2 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
 														20.0f, Vector[CompID]())
-	val resToAlloc3 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
+	val res3 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
 														20.0f, Vector[CompID]())
-	val resToAlloc4 : Resource = Resource(	CompID(1), SMALL, ByteSize(8.0, GiB),
+	val res4 : Resource = Resource(	CompID(1), SMALL, ByteSize(8.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
 														20.0f, Vector[CompID]())
-	val resToAlloc5 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
+	val res5 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
 														20.0f, Vector[CompID]())
 
@@ -66,9 +66,9 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val reqHostSLA3 = new HostSLA(0.95f, Vector(IMG, CLOOP, QCOW2),
 											Vector[(CPUUnit, Int)]((SMALL, 1), (MEDIUM, 2)))
 
-	val resAlloc1 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc1, resToAlloc2), reqHostSLA1)
-	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](resToAlloc3), 						 reqHostSLA2)
-	val resAlloc3 : ResourceAlloc = ResourceAlloc(2, Vector[Resource](resToAlloc4, resToAlloc5), reqHostSLA3)
+	val resAlloc1 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res1, res2), 	reqHostSLA1)
+	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res3),				reqHostSLA2)
+	val resAlloc3 : ResourceAlloc = ResourceAlloc(2, Vector[Resource](res4, res5), 	reqHostSLA3)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 

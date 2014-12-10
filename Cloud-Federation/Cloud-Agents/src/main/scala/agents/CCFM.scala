@@ -27,7 +27,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 
 		//TODO: build security interfaces for a Certificate-Store
-		val _certFile: File			= new File("cloudconf/cloud1.key")
+		val _certFile: File			= new File(cloudConfDir.getAbsolutePath +"/cloud1.key")
 
 		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
 		val _ovxPort: Int					= 10000
@@ -36,25 +36,25 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		val _embedderPort: Int 			 = 8000
 
 
-		// Define the Cloud-Switches from all files in the resources/cloudconf/switches/ directory
+		// Define the Cloud-Switches from all files in the cloudConfDir/switches/ directory
 		var _cloudSwitches: Vector[Switch] = Vector()
 		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
 		if(_cloudSwitchesDir.listFiles() == null)
-			log.error("Switches need at least one defined .xml file in $PROJECT$/resources/cloudconf/switches/ !")
+			log.error("Switches need at least one defined .xml file in {}/switches/ !", cloudConfDir.getAbsolutePath)
 		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
 			_cloudSwitches = _cloudSwitches :+ Switch.loadFromXML(actSwitchFile)
 		}
 
-		// Define the Cloud-Hosts from all files in the resources/cloudconf/hosts/ directory
+		// Define the Cloud-Hosts from all files in the cloudConfDir/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
 		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
 		if(_cloudHostDir.listFiles() == null)
-			log.error("Hosts need at least one defined .xml file in $PROJECT$/resources/cloudconf/hosts/ !")
+			log.error("Hosts need at least one defined .xml file in {}/hosts/ !", cloudConfDir.getAbsolutePath)
 		for (actHostFile <- _cloudHostDir.listFiles) {
 			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
 		}
 
-		// Define the Cloud-SLA from the CloudSLA.xml file in the resources/cloudconf/ directory
+		// Define the Cloud-SLA from the CloudSLA.xml file in the cloudConfDir/ directory
 		val _cloudSLA  = CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
 	}
 
@@ -115,13 +115,22 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	// -----------------------------------
 
 
+	def recvResourceRequest(resToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
+		log.info("CCFM Received ResourceRequest from Tenant {}. Forwarding to NRA...",
+		resToAlloc.tenantID)
+
+		networkResourceAgent ! ResourceRequest(resToAlloc, ofcIP, ofcPort)
+	}
+
+
 	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=> recvDiscoveryError(status)
 		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case message: CCFMResourceDest	=> message match {
-			case ResourceReply(allocResources)						=> recvResourceReply(allocResources)
+			case ResourceRequest(resToAlloc, ofcIP, ofcPort) 	=> recvResourceRequest(resToAlloc, ofcIP, ofcPort)
+			case ResourceReply(allocResources)								=> recvResourceReply(allocResources)
 		}
 		case _								=> log.error("Unknown message received!")
 	}

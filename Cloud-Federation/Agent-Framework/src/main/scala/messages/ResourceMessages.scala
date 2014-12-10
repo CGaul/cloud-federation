@@ -17,7 +17,7 @@ sealed trait CCFMResourceDest extends CCFMDest
 
 
 case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int)
-  extends ResourceMessage with NRAResourceDest with MMAResourceDest
+  extends ResourceMessage with CCFMResourceDest with NRAResourceDest with MMAResourceDest
 
 case class ResourceReply(allocatedResources: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest with MMAResourceDest
