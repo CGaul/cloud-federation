@@ -4,6 +4,7 @@ import java.io.File
 import java.net.InetAddress
 
 import akka.actor._
+import datatypes.{CloudSLA, Host, Switch, ResourceAlloc}
 import messages._
 
 
