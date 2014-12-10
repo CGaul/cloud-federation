@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{ResourceAlloc, Host, CloudSLA}
+import datatypes.{CloudSLA, Host, ResourceAlloc}
 
 /**
  * @author Constantin Gaul, created on 11/16/14.

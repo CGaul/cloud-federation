@@ -1,7 +1,7 @@
 import java.io.File
 
 import agents.PubSubFederator
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 
 /**

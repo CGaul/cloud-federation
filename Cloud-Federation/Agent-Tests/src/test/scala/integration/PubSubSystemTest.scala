@@ -5,15 +5,15 @@ import java.net.InetAddress
 
 import agents.{DiscoveryAgent, PubSubFederator}
 import akka.actor.{ActorSelection, ActorSystem, Props}
-import akka.testkit.{TestActors, ImplicitSender, TestKit, TestActorRef}
+import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import datatypes.ByteUnit._
 import datatypes.CPUUnit._
 import datatypes.CloudCurrency._
 import datatypes.ImgFormat._
 import datatypes._
-import messages.{DiscoveryPublication, AuthenticationInquiry, AuthenticationAnswer, DiscoverySubscription}
-import org.scalatest.{GivenWhenThen, BeforeAndAfterAll, Matchers, WordSpecLike}
+import messages.{AuthenticationAnswer, AuthenticationInquiry, DiscoveryPublication, DiscoverySubscription}
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.

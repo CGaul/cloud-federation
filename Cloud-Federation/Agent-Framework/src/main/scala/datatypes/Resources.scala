@@ -1,12 +1,11 @@
 package datatypes
 
 import java.io.File
-import java.net.{UnknownHostException, InetAddress}
+import java.net.{InetAddress, UnknownHostException}
 
 import datatypes.CPUUnit._
-import play.api.libs.json.{Json, JsValue}
 
-import scala.xml.{NodeSeq, Node}
+import scala.xml.Node
 
 
 /* Data Containers (case classes): */

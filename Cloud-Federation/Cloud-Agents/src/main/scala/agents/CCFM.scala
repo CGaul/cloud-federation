@@ -1,11 +1,9 @@
 package agents
 
-import java.io.{File}
+import java.io.File
 import java.net.InetAddress
-import java.security.cert.{CertificateFactory, Certificate}
 
 import akka.actor._
-import datatypes._
 import messages._
 
 

@@ -2,7 +2,7 @@ package datatypes
 
 import java.io.File
 
-import datatypes.CPUUnit.{CPUUnit}
+import datatypes.CPUUnit.CPUUnit
 import datatypes.CloudCurrency.CloudCurrency
 import datatypes.ImgFormat.ImgFormat
 

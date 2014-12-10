@@ -1,11 +1,9 @@
 package agents
 
 import java.io.File
-import java.security.cert.Certificate
 
-import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
-import datatypes.{Subscription, CloudSLA, HostSLA}
+import datatypes.{CloudSLA, HostSLA, Subscription}
 import messages._
 
 

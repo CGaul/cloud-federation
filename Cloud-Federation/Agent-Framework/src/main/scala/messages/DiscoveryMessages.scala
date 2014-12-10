@@ -1,10 +1,6 @@
 package messages
 
-import java.io.File
-import java.security.cert.Certificate
-
-import akka.actor.{ActorPath, ActorRef}
-import datatypes.{Subscription, CloudSLA, HostSLA}
+import datatypes.{CloudSLA, HostSLA, Subscription}
 
 sealed trait DiscoveryMessage
 

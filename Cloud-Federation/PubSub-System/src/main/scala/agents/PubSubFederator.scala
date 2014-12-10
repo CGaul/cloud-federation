@@ -1,10 +1,7 @@
 package agents
 
-import java.io.File
-import java.security.cert.Certificate
-
 import akka.actor._
-import datatypes.{Subscription, Subscriber, CloudSLA, HostSLA}
+import datatypes.{Subscriber, Subscription}
 import messages._
 
 /**

@@ -4,8 +4,8 @@ import java.io.File
 
 import datatypes.ByteUnit.GB
 import datatypes.CPUUnit._
-import datatypes.ImgFormat._
 import datatypes.CloudCurrency._
+import datatypes.ImgFormat._
 import datatypes._
 import org.scalatest.{FlatSpec, ShouldMatchers}
 

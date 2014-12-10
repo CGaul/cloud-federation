@@ -1,7 +1,7 @@
 import java.io.File
 
-import agents.{CCFM, PubSubFederator}
-import akka.actor.{ActorSelection, ActorSystem, Props}
+import agents.CCFM
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 
 

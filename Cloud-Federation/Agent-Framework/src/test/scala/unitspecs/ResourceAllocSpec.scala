@@ -1,6 +1,6 @@
 package unitspecs
 
-import org.scalatest.{ShouldMatchers, FlatSpec}
+import org.scalatest.{FlatSpec, ShouldMatchers}
 
 /**
  * @author Constantin Gaul, created onc 10/28/14.
