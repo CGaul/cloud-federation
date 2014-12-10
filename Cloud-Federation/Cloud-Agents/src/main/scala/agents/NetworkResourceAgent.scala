@@ -192,7 +192,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 
 		// Prepare the Host-List for the Json-Query.
 		// Each Host entry is defined by connected Switch DPID, Host MAC and Switch Port
-		var hostsList: Seq[Map[String, String]] = Seq()
+		var hostsList: Seq[JsValue] = Seq()
 		for (actSwitch <- allocatedSwitches) {
 			// Find all allocated hosts that are connected to the actual switch:
 			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.links.values.exists(_ == h.compID))
@@ -201,7 +201,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 				// Find the Port at the Switch that connects the actual Host:
 				val port: Option[(Int, CompID)] = actSwitch.links.find(_._2 == actHost.compID)
 				if(port.isDefined){
-					hostsList = hostsList :+ Map("dpid" -> actSwitch.dpid, "mac" -> actHost.mac, "port" -> port.get._1.toString)
+					hostsList = hostsList :+ Json.toJson(Map("dpid" -> Json.toJson(actSwitch.dpid), "mac" -> Json.toJson(actHost.mac), "port" -> Json.toJson(port.get._1)))
 				}
 				else{
 					log.error("Host {} is not connected to a Port in the Switch {}! Aborting allocation into OVX-Network!",
@@ -216,15 +216,18 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 
 		val jsonQuery: JsValue = Json.toJson(
 			Map(
-				"id" -> Json.toJson(_ovxSubnetID),
+				"id" -> Json.toJson(_ovxSubnetID.toString),
 				"jsonrpc" -> Json.toJson("2.0"),
 				"method" -> Json.toJson("createNetwork"),
 				"params" -> Json.toJson(Map(
-					"controller" -> ofcQuery,
-					"hosts" -> Json.toJson(hostsList),
-					"routing" -> Json.toJson(Map("algorithm" -> "spf", "backup_num" -> "1")),
-					"subnet" -> Json.toJson(_ovxSubnetAddress.getHostAddress +"/24"),
-					"type" -> Json.toJson("physical")))
+					"network" -> Json.toJson(Map(
+						"controller" -> ofcQuery,
+						"hosts" -> Json.toJson(hostsList),
+						"routing" -> Json.toJson(Map("algorithm" -> Json.toJson("spf"), "backup_num" -> Json.toJson(1))),
+						"subnet" -> Json.toJson(_ovxSubnetAddress.getHostAddress +"/24"),
+						"type" -> Json.toJson("physical")
+					))
+				))
 			)
 		)
 		// Save the jsonQuery to file:
