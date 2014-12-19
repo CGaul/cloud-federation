@@ -8,6 +8,7 @@ import akka.actor._
 import datatypes._
 import messages._
 import org.apache.http.client.entity.UrlEncodedFormEntity
+import org.apache.http.client.utils.URIBuilder
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.{NameValuePair, HttpEntity}
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
@@ -253,7 +254,9 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		//Use Apache HTTP-Client to send a HTTP POST to the OVX-Embedder:
 		val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
-		val httpPost: HttpPost = new HttpPost(embedderIP.getHostAddress+":"+embedderPort)
+		val uriBuilder: URIBuilder = new URIBuilder()
+		val embedderURI: URI = uriBuilder.setHost(embedderIP.getHostAddress).setPort(embedderPort).build() //.fromURI(uri).port(port).build("foo", "bar");
+		val httpPost: HttpPost = new HttpPost(embedderURI)
 		val nvps: util.ArrayList[NameValuePair] = new util.ArrayList[NameValuePair]()
 		nvps.add(new BasicNameValuePair("jsonquery", Json.stringify(jsonQuery)))
 		httpPost.setEntity(new UrlEncodedFormEntity(nvps))
