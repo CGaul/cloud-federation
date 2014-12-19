@@ -52,6 +52,8 @@ lazy val agentFramework: Project = project.in(file("Agent-Framework")).
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //JSON Support via PlayJson:
     libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
+    //Apache HTTP-Client for HTTP POST to OVX-Embedder:
+    libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.3.6",
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
   )

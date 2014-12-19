@@ -2,10 +2,17 @@ package agents
 
 import java.io._
 import java.net._
+import java.util
 
 import akka.actor._
 import datatypes._
 import messages._
+import org.apache.http.client.entity.UrlEncodedFormEntity
+import org.apache.http.message.BasicNameValuePair
+import org.apache.http.{NameValuePair, HttpEntity}
+import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
+import org.apache.http.impl.client.{HttpClients, CloseableHttpClient}
+import org.apache.http.util.EntityUtils
 import play.api.libs.json.{JsValue, Json}
 
 import scala.util.control.Breaks._
@@ -243,33 +250,54 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		_ovxSubnetAddress = InetAddress.getByName(newAddress)
 
 
-		// prepare URL under which the OVX-Embedder should be available:
-		val embedderURL: URL = new URL("http", embedderIP.getHostAddress, embedderPort, "no file")
-		val connection: URLConnection = embedderURL.openConnection()
-		connection.setDoOutput(true)
+		//Use Apache HTTP-Client to send a HTTP POST to the OVX-Embedder:
+		val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
-		try{
-			// send jsonQuery to OVX-Embedder:
-			val out: OutputStreamWriter = new OutputStreamWriter(connection.getOutputStream)
-			out.write(Json.stringify(jsonQuery))
-			out.close()
+		val httpPost: HttpPost = new HttpPost(embedderIP.getHostAddress+":"+embedderPort)
+		val nvps: util.ArrayList[NameValuePair] = new util.ArrayList[NameValuePair]()
+		nvps.add(new BasicNameValuePair("jsonquery", Json.stringify(jsonQuery)))
+		httpPost.setEntity(new UrlEncodedFormEntity(nvps))
+		val response: CloseableHttpResponse = httpclient.execute(httpPost)
 
-			// receive the reply from the OVX-Embedder:
-			val in: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
-			var decodedString: String = ""
-			while ((decodedString = in.readLine()) != null) {
-				log.info("OVX-Embedder Reply: {}", decodedString)
-			}
-			in.close()
+		try {
+			System.out.println(response.getStatusLine)
+			val entity: HttpEntity = response.getEntity
+			// do something useful with the response body
+			// and ensure it is fully consumed
+			EntityUtils.consume(entity)
 		}
-		catch {
-			case e: ConnectException => log.error("OVX-Embedder refused connection at {}:{}. " +
-																						"No allocation in OVX-Network possible!",
-																						embedderIP.getHostAddress, embedderPort)
-			case e: IOException => log.error("IOException ocurred while reading or writing " +
-																			 "to the Stream to the OVX-Embedder at {}:{}!",
-																			 embedderIP.getHostAddress, embedderPort)
+		finally {
+			response.close()
 		}
+
+
+//		// prepare URL under which the OVX-Embedder should be available:
+//		val embedderURL: URL = new URL("http", embedderIP.getHostAddress, embedderPort, "no file")
+//		val connection: URLConnection = embedderURL.openConnection()
+//		connection.setDoOutput(true)
+//
+//		try{
+//			// send jsonQuery to OVX-Embedder:
+//			val out: OutputStreamWriter = new OutputStreamWriter(connection.getOutputStream)
+//			out.write(Json.stringify(jsonQuery))
+//			out.close()
+//
+//			// receive the reply from the OVX-Embedder:
+//			val in: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
+//			var decodedString: String = ""
+//			while ((decodedString = in.readLine()) != null) {
+//				log.info("OVX-Embedder Reply: {}", decodedString)
+//			}
+//			in.close()
+//		}
+//		catch {
+//			case e: ConnectException => log.error("OVX-Embedder refused connection at {}:{}. " +
+//																						"No allocation in OVX-Network possible!",
+//																						embedderIP.getHostAddress, embedderPort)
+//			case e: IOException => log.error("IOException ocurred while reading or writing " +
+//																			 "to the Stream to the OVX-Embedder at {}:{}!",
+//																			 embedderIP.getHostAddress, embedderPort)
+//		}
 
 		return jsonQuery
 	}
