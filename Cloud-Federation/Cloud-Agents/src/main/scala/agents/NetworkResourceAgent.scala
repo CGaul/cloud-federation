@@ -254,8 +254,11 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		//Use Apache HTTP-Client to send a HTTP POST to the OVX-Embedder:
 		val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
-		val uriBuilder: URIBuilder = new URIBuilder()
-		val embedderURI: URI = uriBuilder.setHost(embedderIP.getHostAddress).setPort(embedderPort).build() //.fromURI(uri).port(port).build("foo", "bar");
+		val embedderURI: URI = new URIBuilder()
+																.setHost(embedderIP.getHostAddress)
+																.setPort(embedderPort)
+																.setScheme("http")
+																.build()
 		val httpPost: HttpPost = new HttpPost(embedderURI)
 		val nvps: util.ArrayList[NameValuePair] = new util.ArrayList[NameValuePair]()
 		nvps.add(new BasicNameValuePair("jsonquery", Json.stringify(jsonQuery)))
