@@ -93,7 +93,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
 		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
 		if(remainResToAlloc.isDefined){
-			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
+			log.info("ResourceRequest {} could	 not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
 			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP, ofcPort)
 		}
@@ -275,6 +275,8 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		}
 		catch{
 			case e: ConnectException => log.error("Connection to OVX-Embedder could not have been established at {}://{}:{}",
+																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
+			case e: NoRouteToHostException => log.error("No Route to OVX-Embedder Host at {}://{}:{}",
 																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
 		}
 //		finally {
