@@ -263,46 +263,22 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		val nvps: util.ArrayList[NameValuePair] = new util.ArrayList[NameValuePair]()
 		nvps.add(new BasicNameValuePair("jsonquery", Json.stringify(jsonQuery)))
 		httpPost.setEntity(new UrlEncodedFormEntity(nvps))
-		val response: CloseableHttpResponse = httpclient.execute(httpPost)
 
 		try {
+			val response: CloseableHttpResponse = httpclient.execute(httpPost)
 			System.out.println(response.getStatusLine)
 			val entity: HttpEntity = response.getEntity
 			// do something useful with the response body
 			// and ensure it is fully consumed
 			EntityUtils.consume(entity)
-		}
-		finally {
 			response.close()
 		}
-
-
-//		// prepare URL under which the OVX-Embedder should be available:
-//		val embedderURL: URL = new URL("http", embedderIP.getHostAddress, embedderPort, "no file")
-//		val connection: URLConnection = embedderURL.openConnection()
-//		connection.setDoOutput(true)
-//
-//		try{
-//			// send jsonQuery to OVX-Embedder:
-//			val out: OutputStreamWriter = new OutputStreamWriter(connection.getOutputStream)
-//			out.write(Json.stringify(jsonQuery))
-//			out.close()
-//
-//			// receive the reply from the OVX-Embedder:
-//			val in: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
-//			var decodedString: String = ""
-//			while ((decodedString = in.readLine()) != null) {
-//				log.info("OVX-Embedder Reply: {}", decodedString)
-//			}
-//			in.close()
-//		}
-//		catch {
-//			case e: ConnectException => log.error("OVX-Embedder refused connection at {}:{}. " +
-//																						"No allocation in OVX-Network possible!",
-//																						embedderIP.getHostAddress, embedderPort)
-//			case e: IOException => log.error("IOException ocurred while reading or writing " +
-//																			 "to the Stream to the OVX-Embedder at {}:{}!",
-//																			 embedderIP.getHostAddress, embedderPort)
+		catch{
+			case e: ConnectException => log.error("Connection to OVX-Embedder could not have been established at {}://{}:{}",
+																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
+		}
+//		finally {
+//			response.close()
 //		}
 
 		return jsonQuery

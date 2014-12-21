@@ -1,5 +1,5 @@
+import play.PlayScala
 import sbt.Keys._
-import AssemblyKeys._
 
 //##############//
 //## Frontend ##//
