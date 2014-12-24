@@ -33,8 +33,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 //
 ///* Variables: */
 ///* ========== */
-//rm -r
-//	var cloudSwitches = _cloudSwitches
+// 	var cloudSwitches = _cloudSwitches
 //	var cloudHosts = _cloudHosts
 
 		private var _ovxSubnetID: Int = 1
@@ -278,6 +277,8 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
 			case e: NoRouteToHostException => log.error("No Route to OVX-Embedder Host at {}://{}:{}",
 																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
+			case e: Throwable => log.error("An unhandled error occurred, connecting to the OVX-Embedder Host at {}://{}:{}. Exception: {}",
+													embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort, e.getMessage)
 		}
 //		finally {
 //			response.close()
