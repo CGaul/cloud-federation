@@ -9,6 +9,7 @@ import datatypes._
 import messages._
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.utils.URIBuilder
+import org.apache.http.entity.StringEntity
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.{NameValuePair, HttpEntity}
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
@@ -259,9 +260,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 																.setScheme("http")
 																.build()
 		val httpPost: HttpPost = new HttpPost(embedderURI)
-		val nvps: util.ArrayList[NameValuePair] = new util.ArrayList[NameValuePair]()
-		nvps.add(new BasicNameValuePair("jsonquery", Json.stringify(jsonQuery)))
-		httpPost.setEntity(new UrlEncodedFormEntity(nvps))
+		httpPost.setEntity(new StringEntity(Json.stringify(jsonQuery), "UTF-8"))
 
 		try {
 			val response: CloseableHttpResponse = httpclient.execute(httpPost)
