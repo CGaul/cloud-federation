@@ -77,7 +77,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val ovxIP = InetAddress.getLocalHost
 	val ovxPort = 10000
 
-	val embedderIP = InetAddress.getByName("192.168.1.42")
+	val embedderIP = InetAddress.getByName("127.0.1.1")
 	val embedderPort = 8000
 
 

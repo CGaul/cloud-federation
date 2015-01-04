@@ -1,12 +1,8 @@
-import sbtassembly.Plugin.AssemblyKeys._
-
-assemblySettings
-
-jarName in assembly := "pubsub-system_"+Common.prjVersion+".fat.jar"
+assemblyJarName in assembly := "pubsub-system_"+Common.prjVersion+".fat.jar"
 
 mainClass in assembly := Some("PubSubManagement")
 
-mergeStrategy in assembly <<= (mergeStrategy in assembly) {
+assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) {
 	(old) =>
 	{
 		case PathList("cloudconf", "cloud1.key") => MergeStrategy.discard

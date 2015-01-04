@@ -2,10 +2,19 @@ package agents
 
 import java.io._
 import java.net._
+import java.util
 
 import akka.actor._
 import datatypes._
 import messages._
+import org.apache.http.client.entity.UrlEncodedFormEntity
+import org.apache.http.client.utils.URIBuilder
+import org.apache.http.entity.StringEntity
+import org.apache.http.message.BasicNameValuePair
+import org.apache.http.{NameValuePair, HttpEntity}
+import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
+import org.apache.http.impl.client.{HttpClients, CloseableHttpClient}
+import org.apache.http.util.EntityUtils
 import play.api.libs.json.{JsValue, Json}
 
 import scala.util.control.Breaks._
@@ -25,8 +34,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 //
 ///* Variables: */
 ///* ========== */
-//rm -r
-//	var cloudSwitches = _cloudSwitches
+// 	var cloudSwitches = _cloudSwitches
 //	var cloudHosts = _cloudHosts
 
 		private var _ovxSubnetID: Int = 1
@@ -85,7 +93,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
 		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
 		if(remainResToAlloc.isDefined){
-			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
+			log.info("ResourceRequest {} could	 not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
 			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP, ofcPort)
 		}
@@ -243,81 +251,41 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		_ovxSubnetAddress = InetAddress.getByName(newAddress)
 
 
-		// prepare URL under which the OVX-Embedder should be available:
-		val embedderURL: URL = new URL("http", embedderIP.getHostAddress, embedderPort, "no file")
-		val connection: URLConnection = embedderURL.openConnection()
-		connection.setDoOutput(true)
+		//Use Apache HTTP-Client to send a HTTP POST to the OVX-Embedder:
+		val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
-		try{
-			// send jsonQuery to OVX-Embedder:
-			val out: OutputStreamWriter = new OutputStreamWriter(connection.getOutputStream)
-			out.write(Json.stringify(jsonQuery))
-			out.close()
+		val embedderURI: URI = new URIBuilder()
+																.setHost(embedderIP.getHostAddress)
+																.setPort(embedderPort)
+																.setScheme("http")
+																.build()
+		val httpPost: HttpPost = new HttpPost(embedderURI)
+		httpPost.setEntity(new StringEntity(Json.stringify(jsonQuery), "UTF-8"))
 
-			// receive the reply from the OVX-Embedder:
-			val in: BufferedReader = new BufferedReader(new InputStreamReader(connection.getInputStream))
-			var decodedString: String = ""
-			while ((decodedString = in.readLine()) != null) {
-				log.info("OVX-Embedder Reply: {}", decodedString)
-			}
-			in.close()
+		try {
+			val response: CloseableHttpResponse = httpclient.execute(httpPost)
+			System.out.println(response.getStatusLine)
+			val entity: HttpEntity = response.getEntity
+			// do something useful with the response body
+			// and ensure it is fully consumed
+			EntityUtils.consume(entity)
+			response.close()
 		}
-		catch {
-			case e: ConnectException => log.error("OVX-Embedder refused connection at {}:{}. " +
-																						"No allocation in OVX-Network possible!",
-																						embedderIP.getHostAddress, embedderPort)
-			case e: IOException => log.error("IOException ocurred while reading or writing " +
-																			 "to the Stream to the OVX-Embedder at {}:{}!",
-																			 embedderIP.getHostAddress, embedderPort)
+		catch{
+			case e: ConnectException => log.error("Connection to OVX-Embedder could not have been established at {}://{}:{}",
+																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
+			case e: NoRouteToHostException => log.error("No Route to OVX-Embedder Host at {}://{}:{}",
+																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
+			case e: Throwable => log.error("An unhandled error occurred, connecting to the OVX-Embedder Host at {}://{}:{}. Exception: {}",
+													embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort, e.getMessage)
 		}
+//		finally {
+//			response.close()
+//		}
 
 		return jsonQuery
 	}
 }
-
-//{
-//"id": "1",
-//"jsonrpc": "2.0",
-//"method": "createNetwork",
-//"params": {
-//	"network": {
-//		"controller": {
-//			"ctrls": [
-//				"tcp:localhost:10000"
-//			],
-//			"type": "custom"
-//			},
-//		"hosts": [
-//{
-//"dpid": "00:00:00:00:00:00:02:00",
-//"mac": "00:00:00:00:02:01",
-//"port": 1
-//},
-//{
-//"dpid": "00:00:00:00:00:00:05:00",
-//"mac": "00:00:00:00:05:02",
-//"port": 2
-//},
-//{
-//"dpid": "00:00:00:00:00:00:06:00",
-//"mac": "00:00:00:00:06:03",
-//"port": 3
-//},
-//{
-//"dpid": "00:00:00:00:00:00:09:00",
-//"mac": "00:00:00:00:09:04",
-//"port": 4
-//}
-//],
-//"routing": {
-//"algorithm": "spf",
-//"backup_num": 1
-//},
-//"subnet": "192.168.0.0/24",
-//"type": "bigswitch"
-//}
-//}
-//}
 
 
 
