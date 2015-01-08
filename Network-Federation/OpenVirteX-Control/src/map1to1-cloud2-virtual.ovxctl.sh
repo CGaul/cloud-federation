@@ -1,10 +1,10 @@
 #!/bin/bash
 
-#################################################
-## This Script defines a one-to-one mapping    ##
-## from the cloudnet-2 mininet topo to the     ##
-## tenant t_id OFC controller via an OVX vnet. ##
-#################################################
+###################################################
+## This Script defines a one-to-one mapping      ##
+## from the virt. cloudnet-2 mininet topo to the ##
+## tenant t_id OFC controller via an OVX vnet.   ##
+###################################################
 
 #author: Constantin.A.Gaul@campus.tu-berlin.de
 #date: Jan, 8th. 2015
@@ -29,9 +29,9 @@ printHelp(){
 	echo "--ofc_ip is a required parameter!"
         echo "possible calls:"
         echo "minimal arguments:"
-        echo "bash ./map1to1-cloud2.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
+        echo "bash ./map1to1-cloud2-virtual.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
         echo "all arguments:"
-        echo "bash ./map1to1-cloud2.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345 --tenant 2"
+        echo "bash ./map1to1-cloud2-virtual.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345 --tenant 2"
 }
 
 ## Command argument evaluation: ##
@@ -68,13 +68,13 @@ python ovxctl.py -n createNetwork tcp:${ofc_ip}:${ofc_port} 10.0.3.0 16
 # For each physical Switch create a virtual switch:
 # Home Gateway Switch:
 echo "Creating Gateway-1 Switch..."
-python ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:10:00
+python ovxctl.py -n createSwitch ${t_id} 00:a4:23:05:00:00:00:01 #00:00:00:00:00:02:10:00
 
 # Local (inner) Switches:
 echo "Creating internal Switches 1-3..."
-python ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:11:00
-python ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:12:00
-python ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:13:00
+python ovxctl.py -n createSwitch ${t_id} 00:a4:23:05:00:00:00:02 #00:00:00:00:00:02:11:00
+python ovxctl.py -n createSwitch ${t_id} 00:a4:23:05:00:00:00:03 #00:00:00:00:00:02:12:00
+python ovxctl.py -n createSwitch ${t_id} 00:a4:23:05:00:00:00:04 #00:00:00:00:00:02:13:00
 
 # Foreign Gateway Switch:
 #echo "Creating foreign Gateway-2 Switch..."
@@ -88,8 +88,8 @@ python ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:13:00
 
 # Home Gateway Switch (:11:00):
 echo "Creating Ports (1,2) for GW-1 Switch..."
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:10:00 1
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:10:00 2
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:01 #00:00:00:00:00:02:10:00 1
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:01 #00:00:00:00:00:02:10:00 2
 
 # Foreign Gateway Switch (:21:00):
 #echo "Creating Ports (1) for foreign GW-2 Switch..."
@@ -97,21 +97,21 @@ python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:10:00 2
 
 # Switch 2 (:22:00):
 echo "Creating Ports (1,2,3,4) for SWITCH-2..."
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:11:00 1
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:11:00 2
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:11:00 3
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:11:00 4
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:02 #00:00:00:00:00:02:11:00 1
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:02 #00:00:00:00:00:02:11:00 2
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:02 #00:00:00:00:00:02:11:00 3
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:02 #00:00:00:00:00:02:11:00 4
 
 # Switch 3 (:23:00):
 echo "Creating Ports (1,2,3) for SWITCH-3..."
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:12:00 1
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:12:00 2
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:12:00 3
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:03 #00:00:00:00:00:02:12:00 1
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:03 #00:00:00:00:00:02:12:00 2
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:03 #00:00:00:00:00:02:12:00 3
 
 # Switch 4 (:24:00):
 echo "Creating Ports (1,2) for SWITCH-4..."
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:13:00 1
-python ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:13:00 2
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:04 #00:00:00:00:00:02:13:00 1
+python ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:00:00:04 #00:00:00:00:00:02:13:00 2
 
 
 

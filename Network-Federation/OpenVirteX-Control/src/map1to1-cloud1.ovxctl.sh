@@ -1,5 +1,18 @@
 #!/bin/bash
 
+#################################################
+## This Script defines a one-to-one mapping    ##
+## from the cloudnet-1 mininet topo to the     ##
+## tenant t_id OFC controller via an OVX vnet. ##
+#################################################
+
+#author: Constantin.A.Gaul@campus.tu-berlin.de
+#date: Jan, 8th. 2015
+
+
+## Global Command Line Variables ##
+###################################
+
 # Command line arguments, specifying the OpenFlow-Controller, managing this vNet:
 ofc_ip=""
 ofc_port=10000
@@ -9,7 +22,21 @@ ofc_port=10000
 t_id=1
 
 
-### Command argument evaluation: ###
+## Function Definitions: ##
+###########################
+
+printHelp(){
+	echo "--ofc_ip is a required parameter!"
+        echo "possible calls:"
+        echo "minimal arguments:"
+        echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
+        echo "all arguments:"
+        echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345 --tenant 2"
+}
+
+## Command argument evaluation: ##
+##################################
+
 while [ $# -gt 0 ]; do 	# Until you run out of parameters
 	case "$1" in
 	#Required Parameters:
@@ -18,19 +45,20 @@ while [ $# -gt 0 ]; do 	# Until you run out of parameters
         --ofc_port)       ofc_port=$2 ;;
         --tenant)         t_id=$2 ;;
 	#Printing the Help:
-		#-[hH]|-help|--help)	printHelp ;;
+	-[hH]|-help|--help)	printHelp ;;
 	esac
 	shift	# Check next set of parameters.
 done
 
 if [[ ${ofc_ip} == "" ]]; then
-	echo "--ofc_ip is a required parameter!"
-	echo "possible calls:"
-	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 (defaults to port 10.000)"
-	echo "bash ./map1to1-cloud1.ovxctl.sh --ofc_ip 192.168.1.100 --ofc_port 12345"
+	printHelp
 	exit 1
 fi
 
+
+
+## Script Execution: ##
+#######################
 
 # Per default create Network with OpenFlowPort 10.000 (Floodlight-Controller listens on that port)
 # and handed over ofc_ip, as a required argument
