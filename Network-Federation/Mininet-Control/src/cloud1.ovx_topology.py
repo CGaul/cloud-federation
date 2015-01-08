@@ -152,7 +152,9 @@ if __name__ == '__main__':
     net.start()
 
     gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
+    gwNode.cmd('ovs-ofctl add-flow GW dl_type=0x88CC,in_port=3,actions=drop')
     gwNode.cmdPrint('ovs-vsctl show')
 
     CLI(net)
+    #net.do_sh('ovs-ofctl add-flow GW dl_type=0x88CC,actions=drop')
     net.stop()
