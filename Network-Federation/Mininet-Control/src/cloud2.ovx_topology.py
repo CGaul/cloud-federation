@@ -32,7 +32,7 @@ NET_IP = '10.2.0.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
 HOSTS = {
-    'hdhcp':  {'ip': '+1',  'mac': '00:00:00:00:02:10'},
+    #'hdhcp':  {'ip': '+1',  'mac': '00:00:00:00:02:10'},
     'h2_1_1': {'ip': '+11', 'mac': '00:00:00:00:02:11'},
     'h2_1_2': {'ip': '+12', 'mac': '00:00:00:00:02:12'},
     'h2_2_1': {'ip': '+13', 'mac': '00:00:00:00:02:13'},
@@ -42,7 +42,7 @@ HOSTS = {
 #Define all Switches inside this mininet via DPID, links between Switches and links to Hosts here:
 SWITCHES = {
     'GW':       {'dpid': '00:00:00:00:00:02:10:00',
-                 'links': ['SWITCH1'], 'hosts': ['hdhcp']},
+                 'links': ['SWITCH1'], 'hosts': []},#['hdhcp']},
     'SWITCH1':  {'dpid': '00:00:00:00:00:02:11:00',
                  'links': ['SWITCH2'], 'hosts': ['h2_1_1', 'h2_1_2']},
     'SWITCH2':  {'dpid': '00:00:00:00:00:02:12:00',
@@ -151,6 +151,7 @@ if __name__ == '__main__':
     net.start()
 
     gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.20')
+    gwNode.cmd('ovs-ofctl add-flow GW dl_type=0x88CC,in_port=2,actions=drop')
     gwNode.cmdPrint('ovs-vsctl show')
 
     CLI(net)
