@@ -67,18 +67,19 @@ python2 ovxctl.py -n createNetwork tcp:${ofc_ip}:${ofc_port} 10.0.3.0 16
 
 # For each physical Switch create a virtual switch:
 # Home Gateway Switch:
-echo "Creating Gateway-1 Switch..."
+echo "Creating local GW-1 Switch..."
 python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:10:00
+
+# Foreign Gateway Switch:
+echo "Creating foreign GW-2 Switch..."
+python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:01:10:00
+
 
 # Local (inner) Switches:
 echo "Creating internal Switches 1-3..."
 python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:11:00
 python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:12:00
 python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:13:00
-
-# Foreign Gateway Switch:
-#echo "Creating foreign Gateway-2 Switch..."
-#python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:01:10:00
 
 
 
@@ -87,13 +88,14 @@ python2 ovxctl.py -n createSwitch ${t_id} 00:00:00:00:00:02:13:00
 # where Port 1 is the Port that will be connected to the foreign GW:
 
 # Home Gateway Switch (:11:00):
-echo "Creating Ports (1,2) for GW-1 Switch..."
+echo "Creating Switch- and GRE-Tunnel-Port for GW-1 Switch..."
 python2 ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:10:00 1
-python2 ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:10:00 1
+python2 ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:10:00 2
 
 # Foreign Gateway Switch (:21:00):
-#echo "Creating Ports (1) for foreign GW-2 Switch..."
-#python2 ovxctl.py -n createPort ${t_id} 00:00:00:00:00:01:10:00 1
+echo "Creating GRE-Tunnel Port for foreign GW-2 Switch..."
+python2 ovxctl.py -n createPort ${t_id} 00:00:00:00:00:01:10:00 2
+
 
 # Switch 2 (:22:00):
 echo "Creating Ports (1,2,3,4) for SWITCH-2..."
@@ -117,12 +119,12 @@ python2 ovxctl.py -n createPort ${t_id} 00:00:00:00:00:02:13:00 2
 
 # Connect Switches with each other:
 # GW 1 <-> GW2:
-#echo "Connecting Link: (GW-1, Port 2) <-> (GW-2, Port 2)..."
-#python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 2 00:a4:23:05:00:00:00:05 2 spf 1
+echo "Connecting Link: (GW-1, GRE-Tunnel Port 2) <-> (GW-2, GRE-Tunnel Port 1)..."
+python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 2 00:a4:23:05:00:01:10:00 1 spf 1
 
 # GW 1 <-> Switch 2:
-echo "Connecting Link: (GW-1, Port 2) <-> (SWITCH-2, Port 3)..."
-python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 2 00:a4:23:05:00:02:11:00 3 spf 1
+echo "Connecting Link: (GW-1, Port 1) <-> (SWITCH-2, Port 3)..."
+python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 1 00:a4:23:05:00:02:11:00 3 spf 1
 
 # Switch 2 <-> Switch 3:
 echo "Connecting Link: (SWITCH-2, Port 4) <-> (SWITCH-3, Port 2)..."
