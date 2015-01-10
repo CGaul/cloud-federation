@@ -121,8 +121,8 @@ python2 ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:02:13:00 2 #00:00:00:00:0
 #python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 2 00:a4:23:05:00:00:00:05 2 spf 1
 
 # GW 1 <-> Switch 2:
-echo "Connecting Link: (GW-1, Port 2) <-> (SWITCH-2, Port 3)..."
-python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 2 00:a4:23:05:00:02:11:00 3 spf 1
+echo "Connecting Link: (GW-1, Port 1) <-> (SWITCH-2, Port 3)..."
+python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 1 00:a4:23:05:00:02:11:00 3 spf 1
 
 # Switch 2 <-> Switch 3:
 echo "Connecting Link: (SWITCH-2, Port 4) <-> (SWITCH-3, Port 2)..."
