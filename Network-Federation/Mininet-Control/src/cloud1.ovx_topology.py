@@ -157,7 +157,7 @@ if __name__ == '__main__':
 
     # Add GRE-Tunnel and LLDP dropping rule to that tunnel for GW-Switch:
     gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
-    gwNode.cmd('ovs-ofctl add-flow GW dl_type=0x88CC,in_port=2,actions=drop')
+    #gwNode.cmd('ovs-ofctl add-flow GW dl_type=0x88CC,in_port=2,actions=drop')
     gwNode.cmdPrint('ovs-vsctl show')
 
 
