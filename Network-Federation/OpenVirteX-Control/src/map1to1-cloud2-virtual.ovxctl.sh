@@ -118,36 +118,36 @@ python2 ovxctl.py -n createPort ${t_id} 00:a4:23:05:00:02:13:00 2 #00:00:00:00:0
 # Connect Switches with each other:
 # GW 1 <-> GW2:
 #echo "Connecting Link: (GW-1, Port 2) <-> (GW-2, Port 2)..."
-#python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 2 00:a4:23:05:00:00:00:05 2 spf 1
+#python2 ovxctl.py -n connectLink ${t_id} 00:b4:23:05:00:02:10:00 2 00:b4:23:05:00:00:00:05 2 spf 1
 
 # GW 1 <-> Switch 2:
 echo "Connecting Link: (GW-1, Port 1) <-> (SWITCH-2, Port 3)..."
-python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:10:00 1 00:a4:23:05:00:02:11:00 3 spf 1
+python2 ovxctl.py -n connectLink ${t_id} 00:b4:23:05:00:02:10:00 1 00:b4:23:05:00:02:11:00 3 spf 1
 
 # Switch 2 <-> Switch 3:
 echo "Connecting Link: (SWITCH-2, Port 4) <-> (SWITCH-3, Port 2)..."
-python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:11:00 4 00:a4:23:05:00:02:12:00 2 spf 1
+python2 ovxctl.py -n connectLink ${t_id} 00:b4:23:05:00:02:11:00 4 00:b4:23:05:00:02:12:00 2 spf 1
 
 # Switch 3 <-> Switch 4:
 echo "Connecting Link: (SWITCH-3, Port 3) <-> (SWITCH-4, Port 2)..."
-python2 ovxctl.py -n connectLink ${t_id} 00:a4:23:05:00:02:12:00 3 00:a4:23:05:00:02:13:00 2 spf 1
+python2 ovxctl.py -n connectLink ${t_id} 00:b4:23:05:00:02:12:00 3 00:b4:23:05:00:02:13:00 2 spf 1
 
 
 # Connect Hosts with Switches:
 # GW 1 ([Port 1: Host DHCP])
 echo "Connecting Host: hdhcp <-> GW..."
-python2 ovxctl.py -n connectHost ${t_id} 00:a4:23:05:00:02:10:00 1 00:00:00:00:02:01
+python2 ovxctl.py -n connectHost ${t_id} 00:b4:23:05:00:02:10:00 1 00:00:00:00:02:01
 
 # Switch 1 ([Port 1: Host 1], [Port 2: Host 2]):
 echo "Connecting Host: h2_1_1 <-> SWITCH-1..."
-python2 ovxctl.py -n connectHost ${t_id} 00:a4:23:05:00:02:11:00 1 00:00:00:00:02:11
+python2 ovxctl.py -n connectHost ${t_id} 00:b4:23:05:00:02:11:00 1 00:00:00:00:02:11
 echo "Connecting Host: h2_1_2 <-> SWITCH-1..."
-python2 ovxctl.py -n connectHost ${t_id} 00:a4:23:05:00:02:11:00 2 00:00:00:00:02:12
+python2 ovxctl.py -n connectHost ${t_id} 00:b4:23:05:00:02:11:00 2 00:00:00:00:02:12
 
 # Switch 3 ([Port 1: Host 3]):
 echo "Connecting Host: h2_2_1 <-> SWITCH-2..."
-python2 ovxctl.py -n connectHost ${t_id} 00:a4:23:05:00:02:12:00 1 00:00:00:00:02:13
+python2 ovxctl.py -n connectHost ${t_id} 00:b4:23:05:00:02:12:00 1 00:00:00:00:02:13
 
 # Switch 4 ([Port 1: Host 4]):
 echo "Connecting Host: h2_3_1 <-> SWITCH-3..."
-python2 ovxctl.py -n connectHost ${t_id} 00:a4:23:05:00:02:13:00 1 00:00:00:00:02:14
+python2 ovxctl.py -n connectHost ${t_id} 00:b4:23:05:00:02:13:00 1 00:00:00:00:02:14
