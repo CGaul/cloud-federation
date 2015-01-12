@@ -2,9 +2,9 @@ package unitspecs
 
 import java.io.File
 
-import datatypes.ByteUnit._
 import datatypes.ByteSize
-import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
+import datatypes.ByteUnit._
+import org.scalatest.{FlatSpec, GivenWhenThen, Matchers}
 
 /**
  * @author Constantin Gaul, created on 10/20/14.

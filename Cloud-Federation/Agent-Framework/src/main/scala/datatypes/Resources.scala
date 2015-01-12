@@ -1,7 +1,7 @@
 package datatypes
 
 import java.io.File
-import java.net.{UnknownHostException, InetAddress}
+import java.net.{InetAddress, UnknownHostException}
 
 import datatypes.CPUUnit._
 
@@ -14,24 +14,29 @@ import scala.xml.Node
 /**
  * Just a wrapper case class for an Integer ID.
  * Used for syntactic Sugar in the Code.
- * @param id The ID of the Node/Host
+ * @param id The unique Component-ID of a NetworkComponent (a Host or Switch)
  */
-case class NodeID(id: Int){
+case class CompID(id: Int){
 	override def toString: String = id.toString
 }
 /**
- * Companion Object for NodeID
+ * Companion Object for CompID
  */
-object NodeID {
+object CompID {
 
- def fromString(str: String): NodeID = {
-	 return NodeID(str.trim.toInt)
+ def fromString(str: String): CompID = {
+	 return CompID(str.trim.toInt)
  }
 }
 
 /**
+ * Desribes a Network-Component. The base trait for Hosts and Switches
+ */
+sealed trait NetworkComponent
+
+/**
  *
- * @param nodeID The NodeID that is representing this resource. For VMs, this is the nodeID of the hypervising host
+ * @param compID The ComponentID that is representing this resource. For VMs, this is the compID of the hypervising host
  *               (which is also represented as a Resource). May be None for Resource Requests.
  * @param cpu CPU Speed on Node [CPUUnit]
  * @param ram Amount of RAM on Node [ByteSize]
@@ -39,13 +44,13 @@ object NodeID {
  * @param bandwidth Bandwidth, relatively monitored from GW to Node [ByteSize]
  * @param latency Latency, relatively monitored from GW to Node [ms]
  */
-case class Resource(nodeID: NodeID,
+case class Resource(compID: CompID,
 						  cpu: CPUUnit,
 						  ram: ByteSize,
 						  storage: ByteSize,
 						  bandwidth: ByteSize,
 						  latency: Float,
-						  links: Vector[NodeID])
+						  links: Vector[CompID])
 {
 
 	/* Basic Overrides: */
@@ -72,14 +77,13 @@ object Resource {
 
 	def toXML(resource: Resource): Node =
 		<Resource>
-			<NodeID>{resource.nodeID.toString}</NodeID>
+			<ID>{resource.compID.toString}</ID>
 			<CPU>{resource.cpu.toString}</CPU>
 			<RAM>{ByteSize.toXML(resource.ram)}</RAM>
 			<Storage>{ByteSize.toXML(resource.storage)}</Storage>
 			<Bandwidth>{ByteSize.toXML(resource.bandwidth)}</Bandwidth>
 			<Latency>{resource.latency}</Latency>
-			<Links>{if(resource.links.size == 0) {}
-							else {resource.links.map(nodeID => nodeID.toString) +" "}}</Links>
+			<Links>{resource.links.mkString(" ")}</Links>
 		</Resource>
 
 	def saveToXML(file: File, resource: Resource) = {
@@ -91,19 +95,88 @@ object Resource {
 /* ================= */
 
 	def fromXML(node: Node): Resource = {
-		val nodeID: NodeID 			= NodeID.fromString((node \\ "NodeID").text)
+		val compID: CompID 			= CompID.fromString((node \\ "ID").text)
 		val cpu: CPUUnit 	 			= CPUUnit.fromString((node \\ "CPU").text)
 		val ram: ByteSize	 			= ByteSize.fromString((node \\ "RAM").text)
 		val storage: ByteSize		= ByteSize.fromString((node \\ "Storage").text)
 		val bandwidth: ByteSize	= ByteSize.fromString((node \\ "Bandwidth").text)
 		val latency: Float			= (node \\ "Latency").text.toFloat
-		val links: Vector[NodeID] = if((node \\ "Links").text.trim == "") {Vector()}
-																else {(node \\ "Links").text.trim.split(" ").map(str => NodeID.fromString(str)).toVector}
+		val links: Vector[CompID] = if((node \\ "Links").text.trim == "") {Vector()}
+																else {(node \\ "Links").text.trim.split(" ").map(str => CompID.fromString(str)).toVector}
 
-		return Resource(nodeID, cpu, ram, storage, bandwidth, latency, links)
+		return Resource(compID, cpu, ram, storage, bandwidth, latency, links)
 	}
 
 	def loadFromXML(file: File): Resource = {
+		val xmlNode = xml.XML.loadFile(file)
+		return fromXML(xmlNode)
+	}
+}
+
+
+/**
+ * The representative data class of a Network-Switch.
+ * @param id
+ * @param dpid
+ * @param links A mapping from Port-Number (as Int) to the connected Network-Component (Host or other Switch)
+ */
+case class Switch(id: CompID, dpid: String, links: Map[Int, CompID])//switchLinks: Vector[CompID], hostLinks: Vector[CompID])
+extends NetworkComponent{
+
+	/* Basic Overrides: */
+	/* ---------------- */
+
+	override def equals(obj: scala.Any): Boolean = obj match{
+		case that: Switch => this.id == that.id && this.dpid == that.dpid
+		case _ 						=> false
+	}
+
+	override def canEqual(that: Any): Boolean = that.isInstanceOf[Host]
+
+}
+
+/**
+ * Companion Object for Switch
+ */
+object Switch {
+
+	/* Serialization: */
+	/* ============== */
+
+	def toXML(switch: Switch): Node =
+		<Switch>
+			<ID>{switch.id.toString}</ID>
+			<DPID>{switch.dpid}</DPID>
+			<Links>{switch.links.map(l => l._1.toString +":"+ l._2.toString).mkString(", ")}</Links>
+		</Switch>
+
+
+	def saveToXML(file: File, switch: Switch) = {
+		val xmlNode = toXML(switch)
+		xml.XML.save(file.getAbsolutePath, xmlNode)
+	}
+
+	/* De-Serialization: */
+	/* ================= */
+
+	def fromXML(node: Node): Switch = {
+		val switchID: CompID = CompID.fromString((node \ "ID").text)
+		val switchDPID: String = (node \ "DPID").text
+		val linkIter: Iterable[(Int, CompID)] = (node \ "Links").text.trim.split(", ").map(
+																								l => (l.split(":")(0).trim.toInt, CompID(l.split(":")(1).trim.toInt)))
+		var links: Map[Int, CompID] = Map()
+
+		for (actLink <- linkIter) {
+			links = links + (actLink._1 -> actLink._2)
+		}
+//		val switchLinks: Vector[CompID] = (node \ "Links").text.trim.split(" ").map(CompID.fromString).toVector
+//		val hostLinks: Vector[CompID] = (node \ "HostLinks").text.trim.split(" ").map(CompID.fromString).toVector
+
+
+		return Switch(switchID, switchDPID, links)
+	}
+
+	def loadFromXML(file: File): Switch = {
 		val xmlNode = xml.XML.loadFile(file)
 		return fromXML(xmlNode)
 	}
@@ -121,16 +194,17 @@ object Resource {
  *             and the Host's SLA
  * @param hardwareSpec
  * @param allocatedResources
- * @param _hostSLA bla
+ * @param sla bla
  */
-case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
+case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
 					 var allocatedResources: Vector[ResourceAlloc] = Vector(),
-					 private var _hostSLA: HostSLA){
+					 var sla: HostSLA)
+extends NetworkComponent{
 
-	/* Getter: */
-	/* ======= */
+	/* Getters: */
+	/* -------- */
 
-	def hostSLA = _hostSLA
+	def compID = hardwareSpec.compID
 
 
 	/* Public Methods: */
@@ -144,12 +218,13 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 	 * otherwise the allocation will take place and true will be returned.
 	 *
 	 * @param resToAlloc
-	 * @return A [[Tuple2]] that states, if the at least some of the resToAlloc
-	 *         where allocated (result._1 == true) and returns the ResourceAlloc
+	 * @return A [[Tuple3]] that states, if the at least some of the resToAlloc
+	 *         where allocated (result._1 == true), returns the ResourceAlloc
 	 *         Split that is left over after the allocation at this Host
 	 *         (result._1 == None if resToAlloc was fully allocated, otherwise subset of resToAlloc)
+	 *         and the allocated resources at the third position of the Tuple (None if nothing was allocated).
 	 */
-	def allocate(resToAlloc: ResourceAlloc): (Boolean, Option[ResourceAlloc]) = {
+	def allocate(resToAlloc: ResourceAlloc): (Boolean, Option[ResourceAlloc], Option[ResourceAlloc]) = {
 		val (success, testedSLA, resSplitAmount) = testAllocation(resToAlloc)
 		// If the allocation Test was successful,
 		// all resToAlloc could be fulfilled by this Host.
@@ -158,8 +233,9 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 			allocatedResources = allocatedResources :+ resToAlloc
 
 			//Update the Host's HostSLA with the tested pre-allocation SLA
-			_hostSLA = testedSLA.get
-			return (true, None)
+			sla = testedSLA.get
+			// Complete Allocation (allocatedSome = true, non-allocated Split = None, allocation = resToAlloc):
+			return (true, None, Option(resToAlloc))
 		}
 		// If the Test was not successful, only a part or no resources at all
 		// could be allocated by this Host.
@@ -167,7 +243,8 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 			// If the Option[HostSLA] is None, no allocation of the resToAlloc
 			// could be handled by this host at all.
 			if(testedSLA.isEmpty){
-				return (false, Option(resToAlloc))
+				// No Allocation (allocatedSome = false, non-allocated Split = resToAlloc, allocation = None):
+				return (false, Option(resToAlloc), None)
 			}
 			// Otherwise (if the testedSLA is not None), a ResourceAlloc split needs
 			// to be defined. The one split is allocated at this Host, the other part is
@@ -176,10 +253,12 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 				val (resSplitHost, resSplitOther) = splitAllocation(testedSLA.get, resToAlloc, resSplitAmount)
 				if(resSplitHost.resources.size > 0){
 					allocate(resSplitHost)
-					return (true, Option(resSplitOther))
+					// Partial Allocation (allocatedSome = true, non-allocated Split = resSplitOther, allocation = resSplitHost):
+					return (true, Option(resSplitOther), Option(resSplitHost))
 				}
 				else {
-					return (false, Option(resSplitOther))
+					// No Allocation (allocatedSome = false, non-allocated Split = resSplitOther (=resToAlloc), allocation = None):
+					return (false, Option(resSplitOther), None)
 				}
 			}
 		}
@@ -215,7 +294,7 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 		val combinedTestResSLA: HostSLA = combineHostResSLAs(testedResAlloc)
 
 		// Test if the combinedTestResSLA still fulfills the Host's SLA QoS:
-		val fulfillsCombinedQoS = hostSLA.fulfillsQoS(combinedTestResSLA)
+		val fulfillsCombinedQoS = sla.fulfillsQoS(combinedTestResSLA)
 		if(! fulfillsCombinedQoS){
 			// If the QoS for the resToAlloc could not be fulfilled by the Host,
 			// the allocation has no chance to succeed:
@@ -247,7 +326,7 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 		// Combine all allocated-Resource's SLAs to a hardened QoS SLA:
 		val combinedAllocSLA: HostSLA				= allocatedSLAs.reduce(_ combineToAmplifiedSLA _)
 		// Afterwards combine this hardened SLA with the actual hostSLA and update this value:
-		val combinedHostSLA									= _hostSLA combineToAmplifiedSLA combinedAllocSLA
+		val combinedHostSLA									= sla combineToAmplifiedSLA combinedAllocSLA
 		return combinedHostSLA
 	}
 
@@ -290,8 +369,8 @@ case class Host(hardwareSpec: Resource, hostIP: InetAddress, hostMAC: String,
 	/* ---------------- */
 
 	override def equals(obj: scala.Any): Boolean = obj match{
-		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.hostSLA == that.hostSLA &&
-												 this.hostIP == that.hostIP && this.hostMAC == that.hostMAC
+		case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.sla == that.sla &&
+												 this.ip == that.ip && this.mac == that.mac
 		case _ 						=> false
 	}
 
@@ -310,16 +389,20 @@ object Host {
 	def toXML(host: Host): Node =
 		<Host>
 			<Hardware>{Resource.toXML(host.hardwareSpec)}</Hardware>
-			<IP>{host.hostIP.getHostAddress}</IP>
-			<MAC>{host.hostMAC}</MAC>
+			<IP>{host.ip.getHostAddress}</IP>
+			<MAC>{host.mac}</MAC>
 			<ResourceAllocs>{host.allocatedResources.map(resAlloc => ResourceAlloc.toXML(resAlloc))}</ResourceAllocs>
-			<HostSLA>{HostSLA.toXML(host.hostSLA)}</HostSLA>
+			<HostSLA>{HostSLA.toXML(host.sla)}</HostSLA>
 		</Host>
 
 	def saveToXML(file: File, host: Host) = {
 		val xmlNode = toXML(host)
 		xml.XML.save(file.getAbsolutePath, xmlNode)
 	}
+
+//	def toJson(host: Host): JsValue = {
+//		val jsonHost = Json.toJson(Map("Host" -> Seq(CompID.toJson(host.compID), host.ip, host.mac, host.allocatedResources
+//	}
 
 /* De-Serialization: */
 /* ================= */
@@ -334,7 +417,7 @@ object Host {
 			case e: UnknownHostException =>
 				System.err.println(s"Address: ${(node \\ "IP").text.trim} could not have been solved. Using Loopback Address")
 		}
-		val hostMAC: String 								= (node \\ "MAC").text
+		val hostMAC: String = (node \\ "MAC").text
 		var allocRes: Vector[ResourceAlloc] = Vector()
 		for (actResAlloc <- node \\ "ResourceAllocs") {
 			//Only parse, if the actual ResourceAlloc is existing.
@@ -342,7 +425,7 @@ object Host {
 				allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
 			}
 		}
-		val hostSLA: HostSLA 								= HostSLA.fromXML((node \ "HostSLA")(0))
+		val hostSLA: HostSLA = HostSLA.fromXML((node \ "HostSLA")(0))
 
 		return Host(hardwareSpec, hostIP, hostMAC, allocRes, hostSLA)
 	}
@@ -399,6 +482,11 @@ case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHo
  * Companion Object for ResourceAlloc
  */
 object ResourceAlloc {
+
+
+//	def apply(tenantID: Int, resources: Vector[Resource], requestedHostSLA: HostSLA): ResourceAlloc ={
+//		return new ResourceAlloc(tenantID, resources, requestedHostSLA)
+//	}
 	
 /* Serialization: */
 /* ============== */

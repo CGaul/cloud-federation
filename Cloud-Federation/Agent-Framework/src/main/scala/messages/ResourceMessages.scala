@@ -16,18 +16,15 @@ sealed trait NRAResourceDest extends NRADest
 sealed trait CCFMResourceDest extends CCFMDest
 
 
-//TODO: needed or delete?
-//case class ResourceInfo(totalResources: ResourceAlloc, availResources: ResourceAlloc) extends NetworkResourceMessage
-
-case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress)
-  extends ResourceMessage with NRAResourceDest with MMAResourceDest
+case class ResourceRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int)
+  extends ResourceMessage with CCFMResourceDest with NRAResourceDest with MMAResourceDest
 
 case class ResourceReply(allocatedResources: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest with MMAResourceDest
 
 
-case class ResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress)
-  extends ResourceMessage with MMAResourceDest
+case class ResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int)
+  extends ResourceMessage with NRAResourceDest with MMAResourceDest
 
 
 case class ResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)])

@@ -7,10 +7,10 @@ object Common {
 
   object Imports{
     def akkaDependencies = Seq(
-      "com.typesafe.akka" %% "akka-actor"     % "2.3.6",
-      "com.typesafe.akka" %% "akka-remote"    % "2.3.6",
-      "com.typesafe.akka" %% "akka-slf4j"     % "2.3.6",
-      "com.typesafe.akka" %% "akka-testkit"   % "2.3.6")
+      "com.typesafe.akka" %% "akka-actor"     % "2.3.8",
+      "com.typesafe.akka" %% "akka-remote"    % "2.3.8",
+      "com.typesafe.akka" %% "akka-slf4j"     % "2.3.8",
+      "com.typesafe.akka" %% "akka-testkit"   % "2.3.8")
 
     def testDependencies = Seq(
       "org.scalatest"     %% "scalatest"      % "2.2.1" % "test",

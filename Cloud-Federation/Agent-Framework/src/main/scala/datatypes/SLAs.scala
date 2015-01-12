@@ -2,7 +2,7 @@ package datatypes
 
 import java.io.File
 
-import datatypes.CPUUnit.{CPUUnit}
+import datatypes.CPUUnit.CPUUnit
 import datatypes.CloudCurrency.CloudCurrency
 import datatypes.ImgFormat.ImgFormat
 
@@ -224,7 +224,7 @@ object HostSLA {
 	def toXML(hostSLA: HostSLA): xml.Node =
 		<HostSLA>
 			<RelOnlineTime>{hostSLA.relOnlineTime}</RelOnlineTime>
-			<ImgFormats>{hostSLA.supportedImgFormats.map(_.toString +" ")}</ImgFormats>
+			<ImgFormats>{hostSLA.supportedImgFormats.mkString(" ")}</ImgFormats>
 			<maxResPerCPU>{hostSLA.maxResPerCPU.map(TupleSerializer.tupleToXML)}</maxResPerCPU>
 		</HostSLA>
 

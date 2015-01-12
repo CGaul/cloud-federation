@@ -1,6 +1,4 @@
 import sbt.Keys._
-import AssemblyKeys._
-
 
 // "Agent-Framework"-Module:
 // =========================
@@ -12,12 +10,17 @@ lazy val agentFramework: Project = project.in(file("Agent-Framework")).
     scalaVersion := Common.scalaVersion,
     //Resolver Link for Akka Libraries:
     resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
     //Logging (SLF4J):
     libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
     //Scala XML Support:
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //JSON Support via PlayJson:
+    libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
+    //Apache HTTP-Client for HTTP POST to OVX-Embedder:
+    libraryDependencies += "org.apache.httpcomponents" % "httpclient" % "4.3.6",
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
   )
@@ -34,15 +37,18 @@ lazy val pubSubSystem: Project = project.in(file("PubSub-System")).
     scalaVersion := Common.scalaVersion,
     //Resolver Link for Akka Libraries:
     resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
     //Logging (SLF4J):
     libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
     //Scala XML Support:
-    libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //JSON Support via PlayJson:
+    libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
-  ).dependsOn(agentFramework)//.dependsOn(cloudAgents % "test->compile")
+  ).dependsOn(agentFramework)
 
 
 
@@ -56,6 +62,31 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     scalaVersion := Common.scalaVersion,
     //Resolver Link for Akka Libraries:
     resolvers += Common.Resolvers.akkaTypeSafeRepo,
+    resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
+    //Akka Libraries:
+    libraryDependencies ++= Common.Imports.akkaDependencies,
+    //Logging (SLF4J):
+    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Scala XML Support:
+    //libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
+    //JSON Support via PlayJson:
+    libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
+    //Testing Scope:
+    libraryDependencies ++= Common.Imports.testDependencies
+  ).dependsOn(agentFramework).dependsOn(pubSubSystem)
+
+
+
+// "Testing"-Module:
+// =================
+
+lazy val agentTesting: Project = project.in(file("Agent-Tests")).
+  settings(
+    name := "Agent-Tests",
+    version := Common.prjVersion,
+    scalaVersion := Common.scalaVersion,
+    //Resolver Link for Akka Libraries:
+    resolvers += Common.Resolvers.akkaTypeSafeRepo,
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
     //Logging (SLF4J):
@@ -64,4 +95,6 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
-  ).dependsOn(agentFramework).dependsOn(pubSubSystem)
+  ).dependsOn(agentFramework % "test->compile")
+  .dependsOn(pubSubSystem % "test->compile")
+  .dependsOn(cloudAgents % "test->compile")

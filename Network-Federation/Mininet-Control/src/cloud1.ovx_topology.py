@@ -30,7 +30,7 @@ NET_IP = '10.1.0.0'         #The base IP-Network range, used for this mininet
 
 #Define all hosts inside this mininet here via ip (as an offset of NET_IP) and MAC-Addr here:
 HOSTS = {
-    'hdhcp':  {'ip': '+1',  'mac': '00:00:00:00:01:10'},
+    #'hdhcp':  {'ip': '+1',  'mac': '00:00:00:00:01:10'},
     'h1_1_1': {'ip': '+11', 'mac': '00:00:00:00:01:11'},
     'h1_1_2': {'ip': '+12', 'mac': '00:00:00:00:01:12'},
     'h1_2_1': {'ip': '+13', 'mac': '00:00:00:00:01:13'},
@@ -40,7 +40,7 @@ HOSTS = {
 #Define all Switches inside this mininet via DPID, links between Switches and links to Hosts here:
 SWITCHES = {
     'GW':       {'dpid': '00:00:00:00:00:01:10:00',
-                 'links': ['SWITCH1'], 'hosts': ['hdhcp']},
+                 'links': ['SWITCH1'], 'hosts': []},#['hdhcp']},
     'SWITCH1':  {'dpid': '00:00:00:00:00:01:11:00',
                  'links': ['SWITCH2'], 'hosts': ['h1_1_1', 'h1_1_2']},
     'SWITCH2':  {'dpid': '00:00:00:00:00:01:12:00',
@@ -151,8 +151,16 @@ if __name__ == '__main__':
     setLogLevel('info')
     net.start()
 
+
+    # Add both OVX-Hypervisors to the GW as its managing OFCs:
+    gwNode.cmd('ovs-vsctl set-controller GW tcp:192.168.1.42:6633 tcp:192.168.1.43:6633')
+
+    # Add GRE-Tunnel and LLDP dropping rule to that tunnel for GW-Switch:
     gwNode.cmd('ovs-vsctl add-port GW GW-gre1 -- set interface GW-gre1 type=gre options:remote_ip=10.1.1.30')
+    #gwNode.cmd('ovs-ofctl add-flow GW dl_type=0x88CC,in_port=2,actions=drop')
     gwNode.cmdPrint('ovs-vsctl show')
 
+
     CLI(net)
+    #net.do_sh('ovs-ofctl add-flow GW dl_type=0x88CC,actions=drop')
     net.stop()

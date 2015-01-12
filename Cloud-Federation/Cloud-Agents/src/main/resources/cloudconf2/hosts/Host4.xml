@@ -1,0 +1,34 @@
+<Host>
+	<Hardware>
+		<Resource>
+			<ID>14</ID>
+			<CPU>LARGE</CPU>
+			<RAM>
+				<ByteSize>24.0 GiB</ByteSize>
+			</RAM>
+			<Storage>
+				<ByteSize>500.0 GiB</ByteSize>
+			</Storage>
+			<Bandwidth>
+				<ByteSize>100.0 MB</ByteSize>
+			</Bandwidth>
+			<Latency>10.0</Latency>
+			<Links>3</Links>
+		</Resource>
+	</Hardware>
+	<IP>10.2.0.14</IP>
+	<MAC>0:00:00:00:02:14</MAC>
+	<ResourceAllocs>
+
+	</ResourceAllocs>
+
+	<HostSLA>
+		<HostSLA>
+			<RelOnlineTime>0.95</RelOnlineTime>
+			<ImgFormats>BOCHS CLOOP COW DMG IMG QCOW QCOW2 RAW</ImgFormats>
+			<maxResPerCPU>
+				<t2>SMALL,10</t2><t2>MEDIUM,5</t2><t2>LARGE,2</t2>
+			</maxResPerCPU>
+		</HostSLA>
+	</HostSLA>
+</Host>

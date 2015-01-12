@@ -1,7 +1,7 @@
 package unitspecs
 
 import datatypes.TupleSerializer
-import org.scalatest.{Inspectors, GivenWhenThen, FlatSpec, Matchers}
+import org.scalatest.{FlatSpec, GivenWhenThen, Inspectors, Matchers}
 
 /**
  * @author Constantin Gaul, created on 11/10/14.

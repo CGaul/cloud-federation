@@ -1,2 +1,5 @@
 output
 .idea
+
+#Ignore Symbolic Links:
+OpenVirteX-Control/src/ovxctl.py

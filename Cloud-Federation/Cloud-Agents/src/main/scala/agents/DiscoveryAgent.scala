@@ -1,11 +1,9 @@
 package agents
 
 import java.io.File
-import java.security.cert.Certificate
 
-import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
-import datatypes.{Subscription, CloudSLA, HostSLA}
+import datatypes.{CloudSLA, HostSLA, Subscription}
 import messages._
 
 
@@ -61,6 +59,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	}
 
 	def recvAuthenticationInquiry(hashKey: Long) = {
+		log.info("Received AuthenticationInquiry from PubSub-Federator.")
 		//TODO: decrypt hashKey with own private key:
 		val solvedKey = 0
 
@@ -73,6 +72,7 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 	def recvDiscoveryPublication(cloudDiscovery: Subscription) = {
 		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.cloudMMA)
 		// Forward this Publication to the MMA:
+		log.info("Trying to contact MMA at {}", matchMakingActorSelection)
 		matchMakingActorSelection ! DiscoveryPublication(cloudDiscovery)
 
 //	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.

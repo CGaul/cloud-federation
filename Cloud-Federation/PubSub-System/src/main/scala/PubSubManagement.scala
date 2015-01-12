@@ -1,7 +1,7 @@
 import java.io.File
 
 import agents.PubSubFederator
-import akka.actor.{Props, ActorSystem}
+import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 
 /**
@@ -12,9 +12,11 @@ object PubSubManagement extends App
   val appcfg = loadConfigs(args)
 
   val config = ConfigFactory.parseFileAnySyntax(appcfg)
-  val system = ActorSystem("pubSubSystem", config.getConfig("pubSubSystem").withFallback(config))
+  val system = ActorSystem("pubSubSystem", config.getConfig("pubsubsystem").withFallback(config))
 
   val pubSubActor = system.actorOf(Props[PubSubFederator], name="remoteFederator")
+
+  println("Starting PubSub-System. PubSub-Federator successful! PubSubFederator: "+ pubSubActor)
 
 
 
@@ -26,6 +28,7 @@ object PubSubManagement extends App
       System.err.println("At least one argument " +
         "(namely --appcfg application.conf) " +
         "has to be passed into this pubsub-system.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
       System.exit(1)
     }
     def exitOnFileError(file: File) = {
@@ -43,7 +46,7 @@ object PubSubManagement extends App
       case _						=>
     }
 
-    // Check whether appcfg and clouddir are existing Files:
+    // Check whether appcfg is an existing File:
     appcfg match {
       case Some(file) => if (!file.exists()) exitOnFileError(file)
       case None => exitOnParamError()

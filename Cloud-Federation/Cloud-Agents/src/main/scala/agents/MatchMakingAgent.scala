@@ -1,27 +1,29 @@
 package agents
 
-import java.io.File
 import java.net.InetAddress
 
-import akka.actor.{Props, ActorRef, Actor, ActorLogging}
+import akka.actor._
 import datatypes._
 import messages._
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
+class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends Actor with ActorLogging
 {
 	// TODO: Shortcut - Better handle in DB:
 	var cloudDiscoveries: Vector[Subscription] = Vector()
+	var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
+	var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
 
 /* Methods: */
 /* ======== */
 
 	def recvDiscoveryPublication(cloudDiscovery: Subscription): Unit = {
 		log.info("MatchMakingAgent received DiscoveryPublication. " +
-			"Subscribing on FederationInfo about that Cloud soon.")
+			"Subscribing on FederationInfo about that Cloud via other MMA...")
 		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
+		cloudDiscovery.cloudMMA ! FederationInfoSubscription(cloudSLA)
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
@@ -40,16 +42,16 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 	 *    		 Resources are on the table. </li>
 	 *    <ul>
 	 * </p>
-	 * @param resourceAlloc
+	 * @param resourcesToGather The ResourceAllocation that the MMA needs to gather from its federated Clouds.
 	 */
-	def recvResourceRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
+	def recvResourceRequest(resourcesToGather: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
 		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at MatchMakingAgent.",
-						 resourceAlloc.tenantID, resourceAlloc.resources.size, address)
+						 resourcesToGather.tenantID, resourcesToGather.resources.size, ofcIP)
 		// TODO: Shortcut - Implement more specific:
 		// Shortcut: Forward ResourceRequest to previously published Cloud:
 		if(cloudDiscoveries.size > 0){
 			// Send a ResourceFederationRequest to the other Cloud's MMA immediately:
-			cloudDiscoveries(0).cloudMMA ! ResourceFederationRequest(resourceAlloc, address)
+			cloudDiscoveries(0).cloudMMA ! ResourceFederationRequest(resourcesToGather, ofcIP, ofcPort)
 		}
 	}
 
@@ -62,27 +64,61 @@ class MatchMakingAgent(cloudSLA: CloudSLA) extends Actor with ActorLogging
 	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
 
 
-	def recvResourceFederationRequest(resourceAlloc: ResourceAlloc, address: InetAddress): Unit = {
+	def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
 		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at MatchMakingAgent.",
-			resourceAlloc.tenantID, resourceAlloc.resources.size, address)
+			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, ofcIP)
 		// TODO: Shortcut - Implement more specific:
+		if(auctionedResources.contains(sender())){
+			val sendersAvailResources: ResourceAlloc = auctionedResources(sender())
+			// Are the requested resources a subset (or the whole set) of the sender's available Resources?
+			// This is fulfilled, if no resource is left in the resourceToAlloc, if filtered by its available Resources:
+			val leftResToAlloc: Iterable[Resource] = resourcesToAlloc.resources.filter(sendersAvailResources.resources.contains)
+			if(leftResToAlloc.size > 0){
+				log.error("More Resources should be allocated over the Federation than available from won auctions!" +
+									" ResToAlloc: %s, Sender's AuctionedResources: %s", resourcesToAlloc.resources, sendersAvailResources.resources)
+			}
+			else{
+				// If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
+				// so that it will be mapped to the running OVX instance:
+				nraSelection ! ResourceFederationRequest(resourcesToAlloc, ofcIP, ofcPort)
+			}
+		}
 		// Shortcut: Forward ResourceFederationRequest to local NRA,
-		// so that it will be mapped to the running OVX instance.:
 		// TODO: implement.
 	}
 
 	def recvResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]): Unit = ???
 
 
+	def recvFederationInfoSubscription(otherCloudSLA: CloudSLA): Unit = {
+		log.info("Received FederationInfoSubscription from {}", sender())
+		federationSubscriptions = federationSubscriptions :+ (sender(), otherCloudSLA)
+	}
+
+	def recvFederationInfoPublication(possibleFederatedAllocs: Vector[(Host, Vector[ResourceAlloc])]): Unit = {
+		log.info("Received FederationInfoPublication from {}", sender())
+	}
+
 	override def receive(): Receive = {
 		case message: MMADiscoveryDest => message match {
 			case DiscoveryPublication(cloudDiscovery) => recvDiscoveryPublication(cloudDiscovery)
 		}
+		case message: MMAFederationDest => message match{
+			case FederationInfoSubscription(cloudSLA) 			=> recvFederationInfoSubscription(cloudSLA)
+			case FederationInfoPublication(possibleAllocs) 	=> recvFederationInfoPublication(possibleAllocs)
+		}
 		case message: MMAResourceDest	=> message match {
-			case ResourceRequest(resources, ofcIP)	=> recvResourceRequest(resources, ofcIP)
-			case ResourceReply(allocResources) 			=> recvResourceReply(allocResources)
-			case ResourceFederationRequest(resources, ofcIP)	=> recvResourceFederationRequest(resources, ofcIP)
-			case ResourceFederationReply(allocatedResources)	=> recvResourceFederationReply(allocatedResources)
+			case ResourceRequest(resources, ofcIP, ofcPort)
+						=> recvResourceRequest(resources, ofcIP, ofcPort)
+				
+			case ResourceReply(allocResources)
+						=> recvResourceReply(allocResources)
+				
+			case ResourceFederationRequest(resources, ofcIP, ofcPort)
+						=> recvResourceFederationRequest(resources, ofcIP, ofcPort)
+				
+			case ResourceFederationReply(allocatedResources)
+						=> recvResourceFederationReply(allocatedResources)
 
 		}
 		case _										=> log.error("Unknown message received!")
@@ -103,7 +139,7 @@ object MatchMakingAgent
 	 * @param cloudSLA The CloudSLA that is managed by the Cloud's CCFM.
 	 * @return An Akka Properties-Object
 	 */
-	def props(cloudSLA: CloudSLA):
-		Props = Props(new MatchMakingAgent(cloudSLA))
+	def props(cloudSLA: CloudSLA, nraSelection: ActorSelection):
+		Props = Props(new MatchMakingAgent(cloudSLA, nraSelection))
 }
 
