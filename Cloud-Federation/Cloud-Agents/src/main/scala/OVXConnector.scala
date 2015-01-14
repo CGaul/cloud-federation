@@ -40,6 +40,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get all of the ports on a PhysicalSwitch
+   * @param dpid DPID of a physical network switch
    * @return
    */
   def getPhysicalSwitchPorts(dpid: Long): Option[Short] = {
@@ -66,9 +67,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the flow table of a PhysicalSwitch
-   * @return
+   * @param dpid DPID of a physical network switch
+   * @return  
    */
-  def getPhysicalFlowtable() = {
+  def getPhysicalFlowtable(dpid: Long) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalFlowtable", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -78,9 +80,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the Address/Mask of a virtual network
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getSubnet() = {
+  def getSubnet(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getSubnet", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -102,9 +105,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the topology of a virtual network
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualTopology() = {
+  def getVirtualTopology(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualTopology", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -114,9 +118,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the PhysicalSwitch(es) mapped to an OVXSwitch
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualSwitchMapping() = {
+  def getVirtualSwitchMapping(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualSwitchMapping", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -126,9 +131,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the PhysicalLink(s) mapped to a virtual link
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualLinkMapping() = {
+  def getVirtualLinkMapping(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualLinkMapping", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -138,9 +144,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get all of the hosts on a virtual network. Hosts are described by virtual network addresses.
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualHosts() = {
+  def getVirtualHosts(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualHosts", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -150,9 +157,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the flow table of a OVXSwitch
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
    * @return
    */
-  def getVirtualFlowtable() = {
+  def getVirtualFlowtable(tenantId: Integer, vpid: Long) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualFlowtable", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -162,9 +171,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get the mappings between all available physical and virtual network addresses
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualAddressMapping() = {
+  def getVirtualAddressMapping(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualAddressMapping", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -174,9 +184,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Get all of the ports on a OVXSwitch
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualSwitchPorts() = {
+  def getVirtualSwitchPorts(tenantId: Integer, vpid: Long) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualSwitchPorts", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -192,9 +203,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   
   /**
    * Add a new controller to connect a virtual switch (OVXSwitch) to
-   * @return
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param controllerUrls String="proto:host:port" where proto is usually "tcp"
    */
-  def addControllers() = {
+  def addControllers(tenantId: Integer, vpid: Integer, controllerUrls: List[String]) = {
     val jsonRequest: JsValue = this.buildJsonQuery("addControllers", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -204,10 +217,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Remove a controller from the list of controllers a OVXSwitch can connect to
+   * @param tenantId The GUID of a virtual network
+   * @param controllerUrls String="proto:host:port" where proto is usually "tcp"
    * @return
    */
-  def removeControllers = {
-    val jsonRequest: JsValue = this.buildJsonQuery("",removeControllers Map())
+  def removeControllers(tenantId: Integer, controllerUrls: List[String]) = {
+    val jsonRequest: JsValue = this.buildJsonQuery("removeControllers", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
       // TODO: implement
@@ -217,9 +232,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
 
   /**
    * Create a new virtual network (OVXNetwork)
+   * @param controllerUrls String="proto:host:port" where proto is usually "tcp"
+   * @param networkAddress The IP address block used in a network
+   * @param mask The CIDR value (1-30) of the network mask used with NETADD
    * @return
    */
-  def createNetwork() = {
+  def createNetwork(controllerUrls: List[String], networkAddress: Integer, mask: Short) = {
     val jsonRequest: JsValue = this.buildJsonQuery("createNetwork", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -229,9 +247,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Create a new OVXSwitch
+   * @param tenantId The GUID of a virtual network
+   * @param dpids One or more DPIDs of switches mapped to an OVXBigSwitch
+   * @param dpid DPID of a physical network switch
    * @return
    */
-  def createSwitch() = {
+  def createSwitch(tenantId: Integer, dpids: List[Long], dpid: Long) = {
     val jsonRequest: JsValue = this.buildJsonQuery("createSwitch", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -241,9 +262,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Add a new port to an OVXSwitch
+   * @param tenantId The GUID of a virtual network
+   * @param dpid DPID of a physical network switch
+   * @param port The port number of a switch port
    * @return
    */
-  def createPort() = {
+  def createPort(tenantId: Integer, dpid: Long, port: Short) = {
     val jsonRequest: JsValue = this.buildJsonQuery("createPort", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -254,9 +278,13 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
 
   /**
    * Connect a host to an OVXNetwork
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param vport The port number of a virtual switch port
+   * @param mac Host MAC address in colon-hex: "xx:xx:xx:xx:xx:xx"
    * @return
    */
-  def connectHost() = {
+  def connectHost(tenantId: Integer, vpid: Long, vport: Short, mac: String) = {
     val jsonRequest: JsValue = this.buildJsonQuery("connectHost", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -266,9 +294,18 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Add a virtual link to an OVXNetwork
+   * @param tenantId The GUID of a virtual network
+   * @param srcDpid The colon-hex DPID of the source switch
+   * @param srcPort The port on the source switch
+   * @param dstDpid The DPID of the destination switch
+   * @param dstPort The port on the destination switch
+   * @param algorithm Method for setting routes in a OVXBigSwitch: "manual" or "spf"
+   * @param backup_num Number of backup paths associated with a virtual link or route
    * @return
    */
-  def connectLink() = {
+  def connectLink(tenantId: Integer, srcDpid: Long, srcPort: Short, 
+                  dstDpid: Long, dstPort: Short, 
+                  algorithm: String, backup_num: Byte) = {
     val jsonRequest: JsValue = this.buildJsonQuery("connectLink", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -278,22 +315,30 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Create a new route within a OVXBigSwitch
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param srcPort The port on the source switch
+   * @param dstPort The port on the destination switch
+   * @param path The physical path taken by a virtual link or route
    * @return
    */
-  def connectRoute() = {
+  def connectRoute(tenantId: Integer, vpid: Long, srcPort: Short, dstPort: Short, path: List[(Long, Short, Long, Short)]) = {
     val jsonRequest: JsValue = this.buildJsonQuery("connectRoute", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
       // TODO: implement
     }
-    
   }
 
   /**
    * Add a physical network path to a virtual link (OVXLink)
+   * @param tenantId The GUID of a virtual network
+   * @param linkId OVX-generated UUID of a virtual link
+   * @param path The physical path taken by a virtual link or route
+   * @param priority
    * @return
    */
-  def setLinkPath() = {
+  def setLinkPath(tenantId: Integer, linkId: Integer, path: List[(Long, Short, Long, Short)], priority: Byte) = {
     val jsonRequest: JsValue = this.buildJsonQuery("setLinkPath", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -304,83 +349,67 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
 
   /**
    * Remove an OVXNetwork
-   * @return
+   * @param tenantId The GUID of a virtual network
    */
-  def removeNetwork() = {
+  def removeNetwork(tenantId: Integer): Unit = {
     val jsonRequest: JsValue = this.buildJsonQuery("removeNetwork", Map())
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
-    if(jsonReply.isDefined){
-      // TODO: implement
-    }
-    
+    this.sendJsonQuery(jsonRequest)
   }
   /**
    * Remove an OVXSwitch from an OVXNetwork
-   * @return
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
    */
-  def removeSwitch() = {
+  def removeSwitch(tenantId: Integer, vpid: Long): Unit = {
     val jsonRequest: JsValue = this.buildJsonQuery("removeSwitch", Map())
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
-    if(jsonReply.isDefined){
-      // TODO: implement
-    }
-    
+    this.sendJsonQuery(jsonRequest)
   }
   /**
    * Remove a port from an OVXSwitch
-   * @return
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param vport The port number of a virtual switch port
    */
-  def removePort() = {
+  def removePort(tenantId: Integer, vpid: Long, vport: Short): Unit = {
     val jsonRequest: JsValue = this.buildJsonQuery("removePort", Map())
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
-    if(jsonReply.isDefined){
-      // TODO: implement
-    }
-    
+    this.sendJsonQuery(jsonRequest)
   }
 
   /**
    * Detach (remove) a host from a OVXNetwork
-   * @return
+   * @param tenantId The GUID of a virtual network
+   * @param hostId UUID of a host
    */
-  def disconnectHost() = {
+  def disconnectHost(tenantId: Integer, hostId: Integer): Unit = {
     val jsonRequest: JsValue = this.buildJsonQuery("disconnectHost", Map())
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
-    if(jsonReply.isDefined){
-      // TODO: implement
-    }
-    
+    this.sendJsonQuery(jsonRequest)
   }
   /**
    * Detach (remove) a virtual link from an OVXNetwork
-   * @return
+   * @param tenantId The GUID of a virtual network
+   * @param linkId OVX-generated UUID of a virtual link
    */
-  def disconnectLink() = {
+  def disconnectLink(tenantId: Integer, linkId: Integer): Unit = {
     val jsonRequest: JsValue = this.buildJsonQuery("disconnectLink", Map())
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
-    if(jsonReply.isDefined){
-      // TODO: implement
-    }
-    
+    this.sendJsonQuery(jsonRequest)
   }
   /**
    * Detach (remove) a route from an OVXBigSwitch
-   * @return
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param routeId OVX-generated UUID of a route
    */
-  def disconnectRoute() = {
+  def disconnectRoute(tenantId: Integer, vpid: Long, routeId: Integer): Unit = {
     val jsonRequest: JsValue = this.buildJsonQuery("disconnectRoute", Map())
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
-    if(jsonReply.isDefined){
-      // TODO: implement
-    }
-    
+    this.sendJsonQuery(jsonRequest)
   }
 
   /**
    * Initialize (boot) an OVXNetwork
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def startNetwork() = {
+  def startNetwork(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("startNetwork", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -390,9 +419,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Intialize (boot) an OVXSwitch
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
    * @return
    */
-  def startSwitch() = {
+  def startSwitch(tenantId: Integer, vpid: Long) = {
     val jsonRequest: JsValue = this.buildJsonQuery("startSwitch", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -402,9 +433,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Enable a port on an OVXSwitch
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param vport The port number of a virtual switch port
    * @return
    */
-  def startPort() = {
+  def startPort(tenantId: Integer, vpid: Long, vport: Short) = {
     val jsonRequest: JsValue = this.buildJsonQuery("startPort", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -415,9 +449,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
 
   /**
    * Disable an OVXNetwork temporarily
+   * @param tenantId The GUID of a virtual network
    * @return
    */
-  def stopNetwork() = {
+  def stopNetwork(tenantId: Integer) = {
     val jsonRequest: JsValue = this.buildJsonQuery("stopNetwork", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -427,9 +462,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Disable an OVXSwitch temporarily
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
    * @return
    */
-  def stopSwitch() = {
+  def stopSwitch(tenantId: Integer, vpid: Long) = {
     val jsonRequest: JsValue = this.buildJsonQuery("stopSwitch", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -439,9 +476,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
   }
   /**
    * Disable a port on an OVXSwitch temporarily
+   * @param tenantId The GUID of a virtual network
+   * @param vpid DPID of a virtual switch
+   * @param vport The port number of a virtual switch port
    * @return
    */
-  def stopPort() = {
+  def stopPort(tenantId: Integer, vpid: Long, vport: Short) = {
     val jsonRequest: JsValue = this.buildJsonQuery("stopPort", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest)
     if(jsonReply.isDefined){
@@ -491,13 +531,13 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, log: LoggingAdapter
       return Some(jsonResponse)
     }
     catch{
-      case e: ConnectException => log.error("Connection to OVX-Embedder could not have been established at {}://{}:{}",
+      case e: ConnectException => log.error("Connection to OVX-API could not have been established at {}://{}:{}",
         ovxURI.getScheme, ovxURI.getHost, ovxURI.getPort)
         return None
-      case e: NoRouteToHostException => log.error("No Route to OVX-Embedder Host at {}://{}:{}",
+      case e: NoRouteToHostException => log.error("No Route to OVX-API Host at {}://{}:{}",
         ovxURI.getScheme, ovxURI.getHost, ovxURI.getPort)
         return None
-      case e: Throwable => log.error("An unhandled error occurred, connecting to the OVX-Embedder Host at {}://{}:{}. Exception: {}",
+      case e: Throwable => log.error("An unhandled error occurred, connecting to the OVX-API Host at {}://{}:{}. Exception: {}",
         ovxURI.getScheme, ovxURI.getHost, ovxURI.getPort, e.getMessage)
         return None
     }
