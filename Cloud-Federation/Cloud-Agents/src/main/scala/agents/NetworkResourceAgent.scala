@@ -24,7 +24,7 @@ import scala.util.control.Breaks._
  */
 class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: Vector[Host],
 													 ovxIP: InetAddress, ovxPort: Int,
-													 embedderIP: InetAddress, embedderPort: Int,
+													 ovxApiAddr: InetAddress, ovxApiPort: Int,
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
@@ -255,12 +255,13 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		val httpclient: CloseableHttpClient = HttpClients.createDefault()
 
 		val embedderURI: URI = new URIBuilder()
-																.setHost(embedderIP.getHostAddress)
-																.setPort(embedderPort)
+																.setHost(ovxApiAddr.getHostAddress)
+																.setPort(ovxApiPort)
 																.setScheme("http")
 																.build()
 		val httpPost: HttpPost = new HttpPost(embedderURI)
 		httpPost.setEntity(new StringEntity(Json.stringify(jsonQuery), "UTF-8"))
+		httpPost.addHeader("content-type", "application/json")
 
 		try {
 			val response: CloseableHttpResponse = httpclient.execute(httpPost)
@@ -286,7 +287,6 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		return jsonQuery
 	}
 }
-
 
 
 /**
