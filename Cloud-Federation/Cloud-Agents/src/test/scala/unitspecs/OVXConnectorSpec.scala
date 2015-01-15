@@ -16,5 +16,8 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   behavior of "The OVXConnector"
   
   val ovxConn: OVXConnector = OVXConnector(InetAddress.getByName("192.168.1.42"))
-  ovxConn.getPhysicalHosts()
+  val tenantIds = ovxConn.listVirtualNetworks
+  System.out.println(tenantIds.mkString(", "))
+//  val physicalHosts = ovxConn.getPhysicalHosts() //Currently not working, due to "ipAddress" bug
+  val physicalTopo = ovxConn.getPhysicalTopology
 }
