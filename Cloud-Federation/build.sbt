@@ -13,8 +13,8 @@ lazy val agentFramework: Project = project.in(file("Agent-Framework")).
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
-    //Logging (SLF4J):
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Logging (SLF4J + Logback):
+    libraryDependencies ++= Common.Imports.loggerDependencies,
     //Scala XML Support:
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //JSON Support via PlayJson:
@@ -40,8 +40,8 @@ lazy val pubSubSystem: Project = project.in(file("PubSub-System")).
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
-    //Logging (SLF4J):
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Logging (SLF4J + Logback):
+    libraryDependencies ++= Common.Imports.loggerDependencies,
     //Scala XML Support:
     //libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //JSON Support via PlayJson:
@@ -65,8 +65,8 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
-    //Logging (SLF4J):
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Logging (SLF4J + Logback):
+    libraryDependencies ++= Common.Imports.loggerDependencies,
     //Scala XML Support:
     //libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //JSON Support via PlayJson:
@@ -89,8 +89,8 @@ lazy val agentTesting: Project = project.in(file("Agent-Tests")).
     resolvers += Common.Resolvers.akkaTypeSafeRepo,
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
-    //Logging (SLF4J):
-    libraryDependencies += "org.slf4j" % "slf4j-simple" % "1.6.4",
+    //Logging (SLF4J + Logback):
+    libraryDependencies ++= Common.Imports.loggerDependencies,
     //Scala XML Support:
     libraryDependencies += "org.scala-lang.modules" %% "scala-xml" % "1.0.2",
     //Testing Scope:
