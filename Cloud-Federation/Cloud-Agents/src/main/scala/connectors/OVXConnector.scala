@@ -37,15 +37,15 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * Get the current PhysicalNetwork topology
    * @return
    */
-  def getPhysicalTopology: (Option[List[String]], Option[List[Link]]) = {
+  def getPhysicalTopology: (List[String], List[Link]) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalTopology", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     if(jsonReply.isDefined){
-      val switches = (jsonReply.get \ "switches").asOpt[List[String]]
-      val links = (jsonReply.get \ "links").asOpt[List[Link]]
+      val switches = (jsonReply.get \ "switches").as[List[String]]
+      val links = (jsonReply.get \ "links").as[List[Link]]
       return (switches, links)
     }
-      return (None, None)
+      return (List(), List())
   }
   /**
    * Get all of the ports on a PhysicalSwitch
