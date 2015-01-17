@@ -13,6 +13,7 @@ import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
 import org.apache.http.util.EntityUtils
 import org.slf4j.{LoggerFactory, Logger}
 import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
 /**
  * @author Constantin Gaul, created on 1/14/15.
@@ -719,7 +720,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
 
   }
   
-  case class PhysicalHost(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: String = "")
+  case class PhysicalHost(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: Option[String])
 
   case class Endpoint(dpid: String, port: Short)
   case class Link(linkId: Int, src: Endpoint, dst: Endpoint)
@@ -732,14 +733,21 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
       Json.parse(s"[${path.route.map(link => link.toString).mkString(",")}}]")
     }
   }
-  
+
   implicit val connectionWrites = new Writes[Connection] {
     override def writes(link: Connection): JsValue = {
       Json.parse(link.toString)
     }
   }
   
-  implicit val physicalHostReads = Json.reads[PhysicalHost]
+  implicit val physicalHostReads: Reads[PhysicalHost] =(
+    (JsPath \ "hostId").read[Int] and
+    (JsPath \ "dpid").read[String] and
+    (JsPath \ "port").read[Short] and
+    (JsPath \ "mac").read[String] and
+    (JsPath \ "ipAddress").readNullable[String]
+  )(PhysicalHost.apply _)
+
   implicit val endpointReads = Json.reads[Endpoint]
   implicit val linkReads = Json.reads[Link]
 }
