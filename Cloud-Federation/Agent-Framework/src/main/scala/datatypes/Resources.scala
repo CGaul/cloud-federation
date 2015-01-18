@@ -118,9 +118,9 @@ object Resource {
  * The representative data class of a Network-Switch.
  * @param id
  * @param dpid
- * @param links A mapping from Port-Number (as Int) to the connected Network-Component (Host or other Switch)
+ * @param links A mapping from Port-Number (as Short) to the connected Network-Component (Host or other Switch)
  */
-case class Switch(id: CompID, dpid: String, links: Map[Int, CompID])//switchLinks: Vector[CompID], hostLinks: Vector[CompID])
+case class Switch(id: CompID, dpid: String, links: Map[Short, CompID])//switchLinks: Vector[CompID], hostLinks: Vector[CompID])
 extends NetworkComponent{
 
 	/* Basic Overrides: */
@@ -162,9 +162,9 @@ object Switch {
 	def fromXML(node: Node): Switch = {
 		val switchID: CompID = CompID.fromString((node \ "ID").text)
 		val switchDPID: String = (node \ "DPID").text
-		val linkIter: Iterable[(Int, CompID)] = (node \ "Links").text.trim.split(", ").map(
-																								l => (l.split(":")(0).trim.toInt, CompID(l.split(":")(1).trim.toInt)))
-		var links: Map[Int, CompID] = Map()
+		val linkIter: Iterable[(Short, CompID)] = (node \ "Links").text.trim.split(", ").map(
+																								l => (l.split(":")(0).trim.toShort, CompID(l.split(":")(1).trim.toInt)))
+		var links: Map[Short, CompID] = Map()
 
 		for (actLink <- linkIter) {
 			links = links + (actLink._1 -> actLink._2)
@@ -182,6 +182,8 @@ object Switch {
 	}
 }
 
+
+case class Tenant(tenantId: Int, tenantSubnet: String, ofcIp: InetAddress, ofcPort: Short)
 
 
 //TODO: use http://docs.scala-lang.org/style/scaladoc.html to go on with ScalaDocs in code.
