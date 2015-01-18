@@ -402,7 +402,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param mask The CIDR value (1-30) of the network mask used with NETADD
    * @return
    */
-  def createNetwork(controllerUrls: List[String], networkAddress: Int, mask: Short) = {
+  def createNetwork(controllerUrls: List[String], networkAddress: String, mask: Short): Option[Network] = {
     val jsonRequest: JsValue = this.buildJsonQuery("createNetwork", 
       Map(
         "controllerUrls"  -> Json.toJson(controllerUrls),
@@ -410,10 +410,13 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "mask"            -> Json.toJson(mask)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+        return result.asOpt[Network]
+
+      case None =>
+        return None
+    }
   }
   /**
    * Create a new OVXSwitch
@@ -422,18 +425,23 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param dpid DPID of a physical network switch
    * @return
    */
-  def createSwitch(tenantId: Int, dpids: List[Long], dpid: String) = {
+  def createSwitch(tenantId: Int, dpids: List[String], dpid: String = ""): Option[VirtualSwitch] = {
+    val optDpid: Map[String, JsNumber] = if(dpid == "") Map() else 
+      Map(
+        "dpid"        -> OVXConnector.convertString2HexDpid(dpid)
+      )
     val jsonRequest: JsValue = this.buildJsonQuery("createSwitch", 
       Map(
         "tenantId"    -> Json.toJson(tenantId),
-        "dpids"       -> Json.toJson(dpids),
-        "dpid"        -> OVXConnector.convertString2HexDpid(dpid)
-      ))
+        "dpids"       -> JsArray(dpids.map(OVXConnector.convertString2HexDpid))
+      ) ++ optDpid)
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+        return result.asOpt[VirtualSwitch]
+      case None =>
+        return None
+    }
   }
   /**
    * Add a new port to an OVXSwitch
@@ -830,6 +838,10 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
   case class Endpoint(dpid: String, port: Short)
   case class Link(linkId: Int, tenantId: Option[Int], src: Endpoint, dst: Endpoint)
 
+  case class Network(tenantId: Option[Int], networkAddress: Int, mask: Short, controllerUrls: List[String])
+  case class VirtualSwitch(tenantId: Int, dpids: List[Long], vdpid: Long)
+  
+  
   /* Implicit Conversions for Containers: */
   /* ==================================== */
   
@@ -855,6 +867,9 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
 
   implicit val endpointReads = Json.reads[Endpoint]
   implicit val linkReads: Reads[Link] = Json.reads[Link]
+  
+  implicit val networkReads: Reads[Network] = Json.reads[Network]
+  implicit val vSwitchReads: Reads[VirtualSwitch] = Json.reads[VirtualSwitch]
 }
 
 /**

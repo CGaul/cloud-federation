@@ -16,10 +16,14 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   behavior of "The OVXConnector"
   
   val ovxConn: OVXConnector = OVXConnector(InetAddress.getByName("192.168.1.40"))
-  val testDpid  = "00:00:00:00:00:01:11:00"
+  val dpids     = List("00:00:00:00:00:01:11:00", "00:00:00:00:00:01:12:00", "00:00:00:00:00:01:13:00")
+  val testDpid  = dpids(0)
   val vpid      = "00:a4:23:05:00:01:11:00"
   val tenantId  = 1
   val ctrlUrls  = List("tcp:192.168.1.42:10000", "tcp:192.168.1.43:10000")
+  val ctrlUrl   = List("tcp:192.168.1.42:10000")
+  val netAddr   = "10.0.1.1"
+  val mask: Short = 16
 
 
   // Test-Specs for Monitoring API-Calls:
@@ -86,20 +90,24 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   // Test-Specs for Tenant API-Calls:
   // ---------------------------------
 
-  it should "get the correct json values from Tenant-API call: \"addControllers\""
-  val addedCtrlUrls = ovxConn.addControllers(tenantId, vpid, ctrlUrls)
-  println("addedCtrlUrls = " + addedCtrlUrls)
+  //TODO: see, why removeControllers(..) is not undoing the addControllers command...
+  //TODO: add both methods to test again, if known.
+//  it should "get the correct json values from Tenant-API call: \"addControllers\""
+//  val addedCtrlUrls = ovxConn.addControllers(tenantId, vpid, ctrlUrls)
+//  println("addedCtrlUrls = " + addedCtrlUrls)
+//  
+//  it should "get the correct json values from Tenant-API call: \"removeControllers\""
+//  val removedCtrlUrls = ovxConn.removeControllers(tenantId, ctrlUrls)
+//  println("removedCtrlUrls = " + removedCtrlUrls)
+//  
+  it should "get the correct json values from Tenant-API call: \"createNetwork\""
+  val createdNetwork = ovxConn.createNetwork(ctrlUrl, netAddr, mask)
+  println("createdNetwork = " + createdNetwork)
   
-  it should "get the correct json values from Tenant-API call: \"removeControllers\""
-  val removedCtrlUrls = ovxConn.removeControllers(tenantId, List(ctrlUrls(1)))
-  println("removedCtrlUrls = " + removedCtrlUrls)
+  it should "get the correct json values from Tenant-API call: \"createSwitch\""
+  val createdSwitch = ovxConn.createSwitch(tenantId, List(testDpid))
+  println("createdSwitch = " + createdSwitch)
   
-//  it should "get the correct json values from Tenant-API call: \"createNetwork\""
-//  val createdNetwork = ovxConn.createNetwork()
-//
-//  it should "get the correct json values from Tenant-API call: \"createSwitch\""
-//  val createdSwitch = ovxConn.createSwitch()
-//
 //  it should "get the correct json values from Tenant-API call: \"createPort\""
 //  val createdPort = ovxConn.createPort()
 //
