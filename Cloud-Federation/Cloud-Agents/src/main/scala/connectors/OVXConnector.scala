@@ -48,24 +48,26 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     }
       return (List(), List())
   }
-  /**
-   * Get all of the ports on a PhysicalSwitch
-   * @param dpid DPID of a physical network switch
-   * @return
-   */
-  def getPhysicalSwitchPorts(dpid: String): Option[Short] = {
-    val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalSwitchPorts", 
-      Map(
-        "dpid"      -> Json.toJson(dpid)
-      ))
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
-    if(jsonReply.isDefined){
-      val port: Option[Short] = (jsonReply.get \ "port").asOpt[Short]
-      return port
-    }
-    else
-      return None
-  }
+  
+  // Method is not yet implemented in OVX:
+//  /**
+//   * Get all of the ports on a PhysicalSwitch
+//   * @param dpid DPID of a physical network switch
+//   * @return
+//   */
+//  def getPhysicalSwitchPorts(dpid: String): Option[Short] = {
+//    val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalSwitchPorts", 
+//      Map(
+//        "dpid"      -> OVXConnector.convertStringDpid(dpid)
+//      ))
+//    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
+//    if(jsonReply.isDefined){
+//      val port: Option[Short] = (jsonReply.get \ "port").asOpt[Short]
+//      return port
+//    }
+//    else
+//      return None
+//  }
   /**
    * Get all hosts from all virtual networks. Hosts are described by physical network addresses.
    * @return A list of Tuple4, where each entry in the list is a host's virtual representation
@@ -75,7 +77,6 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     
     if(jsonReply.isDefined){
-      // TODO: fix - does not work currently:
       val hostList = jsonReply.get.as[List[PhysicalHost]]
       return hostList
     }
@@ -88,16 +89,31 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param dpid DPID of a physical network switch
    * @return  
    */
-  def getPhysicalFlowtable(dpid: String) = {
-    val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalFlowtable", 
+  def getPhysicalFlowtable(dpid: String): List[String] = {
+    val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalFlowtable",
       Map(
-        "dpid"      -> Json.toJson(dpid)
+        "dpid"        -> OVXConnector.convertString2HexDpid(dpid)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     if(jsonReply.isDefined){
       // TODO: implement
+      return List()
     }
-    
+    return List()
+  }
+  
+  /**
+   * Get all flow tables of each PhysicalSwitch
+   * @return
+   */
+  def getPhysicalFlowtables: List[String] = {
+    val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalFlowtable", Map())
+    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
+    if(jsonReply.isDefined){
+      // TODO: implement
+      return List()
+    }
+    return List()
   }
   /**
    * Get the Address/Mask of a virtual network
@@ -319,7 +335,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
       Map(
         "tenantId"    -> Json.toJson(tenantId),
         "dpids"       -> Json.toJson(dpids),
-        "dpid"        -> Json.toJson(dpid)
+        "dpid"        -> OVXConnector.convertString2HexDpid(dpid)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
     if(jsonReply.isDefined){
@@ -338,7 +354,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonRequest: JsValue = this.buildJsonQuery("createPort", 
       Map(
         "tenantId"    -> Json.toJson(tenantId),
-        "dpid"        -> Json.toJson(dpid),
+        "dpid"        -> OVXConnector.convertString2HexDpid(dpid),
         "port"        -> Json.toJson(port)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
@@ -672,7 +688,6 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
 
     try {
       val response: CloseableHttpResponse = httpclient.execute(httpPost)
-      System.out.println(response.getStatusLine)
       val entity: HttpEntity = response.getEntity
       val jsonResponse: JsValue = Json.parse(EntityUtils.toString(response.getEntity))
       EntityUtils.consume(entity)
@@ -692,15 +707,6 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         log.error("IOException occured, during connection to OVX-API Server. \nError-Message: {}",
                   e.getMessage)
         return None
-//      case e: ConnectException => log.error("Connection to OVX-API could not have been established at {}://{}:{}",
-//        ovxURI.getScheme, ovxURI.getHost, ovxURI.getPort)
-//        return None
-//      case e: NoRouteToHostException => log.error("No Route to OVX-API Host at {}://{}:{}",
-//        ovxURI.getScheme, ovxURI.getHost, ovxURI.getPort)
-//        return None
-//      case e: Throwable => log.error("An unhandled error occurred, connecting to the OVX-API Host at {}://{}:{}. Exception: {}",
-//        ovxURI.getScheme, ovxURI.getHost, ovxURI.getPort, e.getMessage)
-//        return None
     }
   }
 
@@ -771,5 +777,12 @@ object OVXConnector
   def apply(ovxApiAddr: InetAddress, ovxApiPort: Int,
             userName: String, userPW: String) =
     new OVXConnector(ovxApiAddr, ovxApiPort, userName, userPW)
+  
+  
+  
+  // Static Methods:
+  //----------------
+  
+  def convertString2HexDpid(string: String): JsNumber = JsNumber(java.lang.Long.parseLong(string.replace(":",""), 16))
   
 }
