@@ -16,34 +16,38 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   behavior of "The OVXConnector"
   
   val ovxConn: OVXConnector = OVXConnector(InetAddress.getByName("192.168.1.40"))
+  val testDpid = "00:00:00:00:00:01:10:00"
+  val tenantId = 1
 
 
   // Test-Specs for Monitoring API-Calls:
   // ------------------------------------
   
   it should "get the correct json values from method \"getPhysicalTopology\""
-  val physicalTopo = ovxConn.getPhysicalTopology
-  val firstDpid = physicalTopo._1(0)
-  System.out.println(physicalTopo)
+  val physicalTopology = ovxConn.getPhysicalTopology
+  println("physicalTopology = " + physicalTopology)
   
 //  it should "get the correct json values from method \"getPhysicalSwitchPorts\""
 //  val physicalSwitchPorts = ovxConn.getPhysicalSwitchPorts(firstDpid)
     
   it should "get the correct json values from method \"getPhysicalHosts\""
   val physicalHosts = ovxConn.getPhysicalHosts
+  println("physicalHosts = " + physicalHosts)
   
   it should "get the correct json values from method \"getPhysicalFlowtable\""
-  val physicalFlowtable = ovxConn.getPhysicalFlowtable("00:00:00:00:00:01:12:00")
+  val physicalFlowtable = ovxConn.getPhysicalFlowtable(testDpid)
 
-//  it should "get the correct json values from method \"getSubnet\""
-//  val subnet = ovxConn.getSubnet()
-//
-//  it should "get the correct json values from method \"listVirtualNetworks\""
-//  val tenantIds = ovxConn.listVirtualNetworks
-//  System.out.println(tenantIds.mkString(", "))
-//
-//  it should "get the correct json values from method \"getVirtualTopology\""
-//  val virtualTopology = ovxConn.getVirtualTopology()
+  it should "get the correct json values from method \"getSubnet\""
+  val subnet = ovxConn.getSubnet(tenantId)
+  println("subnet = " + subnet)
+
+  it should "get the correct json values from method \"listVirtualNetworks\""
+  val tenantIds = ovxConn.listVirtualNetworks
+  println("tenantIds = " + tenantIds.mkString(", "))
+
+  it should "get the correct json values from method \"getVirtualTopology\""
+  val virtualTopology = ovxConn.getVirtualTopology(tenantId)
+  println("virtualTopology = " + virtualTopology)
 //
 //  it should "get the correct json values from method \"getVirtualSwitchMapping\""
 //  val virtualSwitchMapping = ovxConn.getVirtualSwitchMapping()

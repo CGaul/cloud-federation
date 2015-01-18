@@ -120,15 +120,17 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getSubnet(tenantId: Int) = {
+  def getSubnet(tenantId: Int): Option[String] = {
     val jsonRequest: JsValue = this.buildJsonQuery("getSubnet", 
       Map(
         "tenantId"    -> Json.toJson(tenantId)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     if(jsonReply.isDefined){
-      // TODO: implement
+      val subnet = jsonReply.get.toString()
+      return Option(subnet)
     }
+    return None
     
   }
   /**
@@ -149,15 +151,18 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualTopology(tenantId: Int) = {
+  def getVirtualTopology(tenantId: Int): (List[String], List[Link]) = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualTopology", 
       Map(
         "tenantId"    -> Json.toJson(tenantId)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     if(jsonReply.isDefined){
-      // TODO: implement
+      val switches = (jsonReply.get \ "switches").as[List[String]]
+      val links = (jsonReply.get \ "links").as[List[Link]]
+      return (switches, links)
     }
+    return (List(), List())
     
   }
   /**
@@ -729,7 +734,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
   case class PhysicalHost(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: Option[String])
 
   case class Endpoint(dpid: String, port: Short)
-  case class Link(linkId: Int, src: Endpoint, dst: Endpoint)
+  case class Link(linkId: Int, tenantId: Option[Int], src: Endpoint, dst: Endpoint)
 
   /* Implicit Conversions for Containers: */
   /* ==================================== */
@@ -755,7 +760,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
   )(PhysicalHost.apply _)
 
   implicit val endpointReads = Json.reads[Endpoint]
-  implicit val linkReads = Json.reads[Link]
+  implicit val linkReads: Reads[Link] = (
+    (JsPath \ "linkId").read[Int] and 
+    (JsPath \ "tenantId").readNullable[Int] and
+    (JsPath \ "src").read[Endpoint] and
+    (JsPath \ "dst").read[Endpoint]
+    )(Link)
 }
 
 /**
