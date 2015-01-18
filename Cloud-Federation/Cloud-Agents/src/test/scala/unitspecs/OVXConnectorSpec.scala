@@ -38,6 +38,9 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   it should "get the correct json values from method \"getPhysicalFlowtable\""
   val physicalFlowtable = ovxConn.getPhysicalFlowtable(testDpid)
 
+  it should "get the correct json values from method \"getPhysicalFlowtables\""
+  val physicalFlowtables = ovxConn.getPhysicalFlowtables
+
   it should "get the correct json values from method \"getSubnet\""
   val subnet = ovxConn.getSubnet(tenantId)
   println("subnet = " + subnet)
@@ -65,6 +68,10 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   it should "get the correct json values from method \"getVirtualFlowtable\""
   val virtualFlowtable = ovxConn.getVirtualFlowtable(tenantId, vpid)
   println("virtualFlowtable = " + virtualFlowtable)
+
+  it should "get the correct json values from method \"getVirtualFlowtables\""
+  val virtualFlowtables = ovxConn.getVirtualFlowtables(tenantId)
+  println("virtualFlowtables = " + virtualFlowtables)
   
   it should "get the correct json values from method \"getVirtualAddressMapping\""
   val virtualAddrMapping = ovxConn.getVirtualAddressMapping(tenantId)
@@ -73,13 +80,13 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   it should "get the correct json values from method \"getVirtualSwitchPorts\""
   val virtualSwitchPorts = ovxConn.getVirtualSwitchPorts(tenantId, vpid)
   println("virtualSwitchPorts = " + virtualSwitchPorts)
-//
-//
-//  // Test-Specs for Tenant API-Calls:
-//  // ---------------------------------
-//
-//  it should "get the correct json values from Tenant-API call: \"addControllers\""
-//  val addedCtrlUrls = ovxConn.addControllers()
+
+
+  // Test-Specs for Tenant API-Calls:
+  // ---------------------------------
+
+  it should "get the correct json values from Tenant-API call: \"addControllers\""
+  val addedCtrlUrls = ovxConn.addControllers(tenantId, vpid, List("192.168.1.43"))
 //
 //  it should "get the correct json values from Tenant-API call: \"removeControllers\""
 //  val removedCtrlUrls = ovxConn.removeControllers()
