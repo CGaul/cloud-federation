@@ -16,9 +16,10 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   behavior of "The OVXConnector"
   
   val ovxConn: OVXConnector = OVXConnector(InetAddress.getByName("192.168.1.40"))
-  val testDpid = "00:00:00:00:00:01:11:00"
-  val vpid = "00:a4:23:05:00:01:11:00"
-  val tenantId = 1
+  val testDpid  = "00:00:00:00:00:01:11:00"
+  val vpid      = "00:a4:23:05:00:01:11:00"
+  val tenantId  = 1
+  val ctrlUrls  = List("tcp:192.168.1.42:10000", "tcp:192.168.1.43:10000")
 
 
   // Test-Specs for Monitoring API-Calls:
@@ -86,11 +87,13 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   // ---------------------------------
 
   it should "get the correct json values from Tenant-API call: \"addControllers\""
-  val addedCtrlUrls = ovxConn.addControllers(tenantId, vpid, List("192.168.1.43"))
-//
-//  it should "get the correct json values from Tenant-API call: \"removeControllers\""
-//  val removedCtrlUrls = ovxConn.removeControllers()
-//
+  val addedCtrlUrls = ovxConn.addControllers(tenantId, vpid, ctrlUrls)
+  println("addedCtrlUrls = " + addedCtrlUrls)
+  
+  it should "get the correct json values from Tenant-API call: \"removeControllers\""
+  val removedCtrlUrls = ovxConn.removeControllers(tenantId, List(ctrlUrls(1)))
+  println("removedCtrlUrls = " + removedCtrlUrls)
+  
 //  it should "get the correct json values from Tenant-API call: \"createNetwork\""
 //  val createdNetwork = ovxConn.createNetwork()
 //
