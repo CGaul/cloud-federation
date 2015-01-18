@@ -703,7 +703,12 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
       val responseId = (jsonResponse \ "id").as[String]
       if(requestId == responseId){
         val responseResult = jsonResponse \ "result"
-        return Some(responseResult)
+        responseResult match {
+          case result: JsUndefined =>
+            return None //TODO: throw something here.
+          case _ =>
+            return Some(responseResult)
+        }
       }
       return None
     }
@@ -760,12 +765,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
   )(PhysicalHost.apply _)
 
   implicit val endpointReads = Json.reads[Endpoint]
-  implicit val linkReads: Reads[Link] = (
-    (JsPath \ "linkId").read[Int] and 
-    (JsPath \ "tenantId").readNullable[Int] and
-    (JsPath \ "src").read[Endpoint] and
-    (JsPath \ "dst").read[Endpoint]
-    )(Link)
+  implicit val linkReads: Reads[Link] = Json.reads[Link]
 }
 
 /**

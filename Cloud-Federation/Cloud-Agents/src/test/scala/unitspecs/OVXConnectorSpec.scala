@@ -43,7 +43,7 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
 
   it should "get the correct json values from method \"listVirtualNetworks\""
   val tenantIds = ovxConn.listVirtualNetworks
-  println("tenantIds = " + tenantIds.mkString(", "))
+  println("tenantIds = " + tenantIds)
 
   it should "get the correct json values from method \"getVirtualTopology\""
   val virtualTopology = ovxConn.getVirtualTopology(tenantId)
