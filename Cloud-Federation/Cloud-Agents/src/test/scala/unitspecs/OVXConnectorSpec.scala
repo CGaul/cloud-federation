@@ -48,15 +48,19 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   it should "get the correct json values from method \"getVirtualTopology\""
   val virtualTopology = ovxConn.getVirtualTopology(tenantId)
   println("virtualTopology = " + virtualTopology)
-//
-//  it should "get the correct json values from method \"getVirtualSwitchMapping\""
-//  val virtualSwitchMapping = ovxConn.getVirtualSwitchMapping()
-//
-//  it should "get the correct json values from method \"getVirtualLinkMapping\""
-//  val virtualLinkMapping = ovxConn.getVirtualLinkMapping()
-//
-//  it should "get the correct json values from method \"getVirtualHosts\""
-//  val virtualHosts = ovxConn.getVirtualHosts()
+
+  it should "get the correct json values from method \"getVirtualSwitchMapping\""
+  val virtualSwitchMapping = ovxConn.getVirtualSwitchMapping(tenantId)
+  println("virtualSwitchMapping = " + virtualSwitchMapping)
+  
+  it should "get the correct json values from method \"getVirtualLinkMapping\""
+  val virtualLinkMapping = ovxConn.getVirtualLinkMapping(tenantId)
+  println("virtualLinkMapping = " + virtualLinkMapping)
+
+  it should "get the correct json values from method \"getVirtualHosts\""
+  val virtualHosts = ovxConn.getVirtualHosts(tenantId)
+  println("virtualHosts = " + virtualHosts)
+  
 //
 //  it should "get the correct json values from method \"getVirtualFlowtable\""
 //  val virtualFlowtable = ovxConn.getVirtualFlowtable()
