@@ -108,9 +108,10 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   val createdSwitch = ovxConn.createSwitch(tenantId, List(testDpid))
   println("createdSwitch = " + createdSwitch)
   
-//  it should "get the correct json values from Tenant-API call: \"createPort\""
-//  val createdPort = ovxConn.createPort()
-//
+  it should "get the correct json values from Tenant-API call: \"createPort\""
+  val createdPort = ovxConn.createPort(tenantId, testDpid, 1)
+  println("createdPort = " + createdPort)
+
 //  it should "get the correct json values from Tenant-API call: \"connectHost\""
 //  val connectedHost = ovxConn.connectHost()
 //

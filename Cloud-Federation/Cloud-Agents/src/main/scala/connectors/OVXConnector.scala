@@ -450,7 +450,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param port The port number of a switch port
    * @return
    */
-  def createPort(tenantId: Int, dpid: String, port: Short) = {
+  def createPort(tenantId: Int, dpid: String, port: Short): Option[(Short, Short)] = {
     val jsonRequest: JsValue = this.buildJsonQuery("createPort", 
       Map(
         "tenantId"    -> Json.toJson(tenantId),
@@ -458,10 +458,14 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "port"        -> Json.toJson(port)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+        val pPort = (result \ "port").as[Short]
+        val vPort = (result \ "vport").as[Short]
+        return Option(pPort, vPort)
+      case None =>
+        return None
+    }
   }
 
   /**
@@ -481,10 +485,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "mac"         -> Json.toJson(mac)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
   /**
    * Add a virtual link to an OVXNetwork
@@ -511,10 +516,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "backup_num"  -> Json.toJson(backup_num.toInt)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
   /**
    * Create a new route within a OVXBigSwitch
@@ -559,10 +565,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "priority"    -> Json.toJson(priority.toInt)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
 
   /**
@@ -658,10 +665,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "tenantId"    -> Json.toJson(tenantId)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
   /**
    * Intialize (boot) an OVXSwitch
@@ -676,10 +684,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "vdpid"       -> OVXConnector.convertString2HexDpid(vdpid)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
   /**
    * Enable a port on an OVXSwitch
@@ -696,10 +705,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "vport"       -> Json.toJson(vport)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
 
   /**
@@ -713,10 +723,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "tenantId"    -> Json.toJson(tenantId)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
   /**
    * Disable an OVXSwitch temporarily
@@ -731,10 +742,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "vdpid"       -> OVXConnector.convertString2HexDpid(vdpid)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
   /**
    * Disable a port on an OVXSwitch temporarily
@@ -751,10 +763,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "vport"       -> Json.toJson(vport)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match{
-//      case Some(result) =>
-//        
-//      case None =>
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
 
 
