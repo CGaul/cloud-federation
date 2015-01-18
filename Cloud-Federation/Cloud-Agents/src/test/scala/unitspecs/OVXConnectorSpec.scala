@@ -16,7 +16,8 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   behavior of "The OVXConnector"
   
   val ovxConn: OVXConnector = OVXConnector(InetAddress.getByName("192.168.1.40"))
-  val testDpid = "00:00:00:00:00:01:10:00"
+  val testDpid = "00:00:00:00:00:01:11:00"
+  val vpid = "00:a4:23:05:00:01:11:00"
   val tenantId = 1
 
 
@@ -60,16 +61,18 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   it should "get the correct json values from method \"getVirtualHosts\""
   val virtualHosts = ovxConn.getVirtualHosts(tenantId)
   println("virtualHosts = " + virtualHosts)
+
+  it should "get the correct json values from method \"getVirtualFlowtable\""
+  val virtualFlowtable = ovxConn.getVirtualFlowtable(tenantId, vpid)
+  println("virtualFlowtable = " + virtualFlowtable)
   
-//
-//  it should "get the correct json values from method \"getVirtualFlowtable\""
-//  val virtualFlowtable = ovxConn.getVirtualFlowtable()
-//
-//  it should "get the correct json values from method \"getVirtualAddressMapping\""
-//  val virtualAddrMapping = ovxConn.getVirtualAddressMapping()
-//
-//  it should "get the correct json values from method \"getVirtualSwitchPorts\""
-//  val virtualSwitchPorts = ovxConn.getVirtualSwitchPorts()
+  it should "get the correct json values from method \"getVirtualAddressMapping\""
+  val virtualAddrMapping = ovxConn.getVirtualAddressMapping(tenantId)
+  println("virtualAddrMapping = " + virtualAddrMapping)
+  
+  it should "get the correct json values from method \"getVirtualSwitchPorts\""
+  val virtualSwitchPorts = ovxConn.getVirtualSwitchPorts(tenantId, vpid)
+  println("virtualSwitchPorts = " + virtualSwitchPorts)
 //
 //
 //  // Test-Specs for Tenant API-Calls:
