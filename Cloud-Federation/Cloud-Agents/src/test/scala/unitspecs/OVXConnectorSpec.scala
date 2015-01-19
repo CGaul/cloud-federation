@@ -132,10 +132,13 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
   
   it should "get the correct json values from Tenant-API call: \"connectLink\""
   // Connect SWITCH-1 with SWITCH-2
-  val connectedLink = ovxConn.connectLink(tenantId, 
-    createdSwitch1.get.vdpid, switch1Port4.get._2,
-    createdSwitch2.get.vdpid, switch2Port2.get._2, "spf", 1)
-  println("connectedLink = " + connectedLink)
+  if(createdSwitch1.isDefined && createdSwitch2.isDefined && 
+    switch1Port4.isDefined && switch2Port2.isDefined) {
+    val connectedLink = ovxConn.connectLink(tenantId,
+      createdSwitch1.get.vdpid, switch1Port4.get._2,
+      createdSwitch2.get.vdpid, switch2Port2.get._2, "spf", 1)
+    println("connectedLink = " + connectedLink)
+  }
 
   it should "get the correct json values from Tenant-API call: \"connectHost\""
   // Host 00:00:00:00:01:11 on SWITCH-1:
@@ -155,8 +158,8 @@ class OVXConnectorSpec extends FlatSpec with Matchers with GivenWhenThen
 //  it should "get the correct json values from Tenant-API call: \"setLinkPath\""
 //  val linkPath = ovxConn.setLinkPath()
 //
-//  it should "get the correct json values from Tenant-API call: \"removeNetwork\""
-//  ovxConn.removeNetwork()
+  it should "get the correct json values from Tenant-API call: \"removeNetwork\""
+  ovxConn.removeNetwork(tenantId)
 //
 //  it should "get the correct json values from Tenant-API call: \"removeSwitch\""
 //  ovxConn.removeSwitch()

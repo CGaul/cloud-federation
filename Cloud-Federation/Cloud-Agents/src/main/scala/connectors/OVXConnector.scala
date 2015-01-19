@@ -551,11 +551,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         "path" -> Json.toJson(path)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
-//    jsonReply match {
-//      case Some(result) =>
-//
-//      case None =>
-//    }
+    jsonReply match {
+      case Some(result) =>
+
+      case None =>
+    }
   }
 
   /**
@@ -887,14 +887,6 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
       Json.parse(link.toString)
     }
   }
-  
-//  implicit val hostReads: Reads[Host] =(
-//    (JsPath \ "hostId").read[Int] and
-//    (JsPath \ "dpid").read[String] and
-//    (JsPath \ "port").read[Short] and
-//    (JsPath \ "mac").read[String] and
-//    (JsPath \ "ipAddress").readNullable[String]
-//  )(Host.apply _)
 
   implicit val pHostReads: Reads[PhysicalHost] = Json.reads[PhysicalHost]
   implicit val vHostReads: Reads[VirtualHost] = Json.reads[VirtualHost]
