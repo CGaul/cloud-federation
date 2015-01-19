@@ -54,7 +54,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     }
   }
   
-  // Method is not yet implemented in OVX:
+  // TODO: Add or delete. Method is not yet implemented in OVX:
 //  /**
 //   * Get all of the ports on a PhysicalSwitch
 //   * @param dpid DPID of a physical network switch
@@ -80,13 +80,13 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * Get all hosts from all virtual networks. Hosts are described by physical network addresses.
    * @return A list of Tuple4, where each entry in the list is a host's virtual representation
    */
-  def getPhysicalHosts: List[Host] = {
+  def getPhysicalHosts: List[PhysicalHost] = {
     val jsonRequest: JsValue = this.buildJsonQuery("getPhysicalHosts", Map())
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     
     jsonReply match{
       case Some(result) =>
-        val hostList = result.as[List[Host]]
+        val hostList = result.as[List[PhysicalHost]]
         return hostList
         
       case None =>
@@ -242,11 +242,11 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     }
   }
   /**
-   * Get all of the hosts on a virtual network. Hosts are described by virtual network addresses.
+   * Get all physical hosts on a virtual network. Hosts are described by virtual network addresses.
    * @param tenantId The GUID of a virtual network
    * @return
    */
-  def getVirtualHosts(tenantId: Int): List[Host] = {
+  def getVirtualHosts(tenantId: Int): List[PhysicalHost] = {
     val jsonRequest: JsValue = this.buildJsonQuery("getVirtualHosts", 
       Map(
         "tenantId"    -> Json.toJson(tenantId)
@@ -254,7 +254,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
     jsonReply match{
       case Some(result) =>
-        return result.as[List[Host]]
+        return result.as[List[PhysicalHost]]
         
       case None =>
         return List()
@@ -326,26 +326,28 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         return Map()
     }
   }
-  /**
-   * Get all of the ports on an OVXSwitch
-   * @param tenantId The GUID of a virtual network
-   * @return
-   */
-  def getVirtualSwitchPorts(tenantId: Int, vdpid: String): List[Short] = {
-    val jsonRequest: JsValue = this.buildJsonQuery("getVirtualSwitchPorts", 
-      Map(
-        "tenantId"    -> Json.toJson(tenantId),
-        "vdpid"       -> OVXConnector.convertString2HexDpid(vdpid)
-      ))
-    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
-    jsonReply match{
-      case Some(result) =>
-        return result.as[List[Short]] //TODO: check if portlist is a List[Short] repr
-        
-      case None =>
-        return List()
-    }
-  }
+
+  // TODO: Add or delete. Method is not yet implemented in OVX:
+//  /**
+//   * Get all of the ports on an OVXSwitch
+//   * @param tenantId The GUID of a virtual network
+//   * @return
+//   */
+//  def getVirtualSwitchPorts(tenantId: Int, vdpid: String): List[Short] = {
+//    val jsonRequest: JsValue = this.buildJsonQuery("getVirtualSwitchPorts",
+//      Map(
+//        "tenantId"    -> Json.toJson(tenantId),
+//        "vdpid"       -> OVXConnector.convertString2HexDpid(vdpid)
+//      ))
+//    val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "status")
+//    jsonReply match{
+//      case Some(result) =>
+//        return result.as[List[Short]] //TODO: check if portlist is a List[Short] repr
+//
+//      case None =>
+//        return List()
+//    }
+//  }
 
 
 
@@ -369,6 +371,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     jsonReply match{
       case Some(result) =>
         return result.as[List[String]]
+        
       case None =>
         return List()
     }
@@ -390,6 +393,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         //TODO: test if works.
       case Some(result) =>
         return result.as[List[String]]
+        
       case None =>
         return List()
     }
@@ -439,6 +443,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     jsonReply match {
       case Some(result) =>
         return result.asOpt[VirtualSwitch]
+        
       case None =>
         return None
     }
@@ -448,7 +453,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param tenantId The GUID of a virtual network
    * @param dpid DPID of a physical network switch
    * @param port The port number of a switch port
-   * @return
+   * @return A Tuple of Short, representing the physical Port -> virtual Port mapping.
    */
   def createPort(tenantId: Int, dpid: String, port: Short): Option[(Short, Short)] = {
     val jsonRequest: JsValue = this.buildJsonQuery("createPort", 
@@ -463,6 +468,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         val pPort = (result \ "port").as[Short]
         val vPort = (result \ "vport").as[Short]
         return Option(pPort, vPort)
+        
       case None =>
         return None
     }
@@ -476,7 +482,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param mac Host MAC address in colon-hex: "xx:xx:xx:xx:xx:xx"
    * @return
    */
-  def connectHost(tenantId: Int, vdpid: String, vport: Short, mac: String) = {
+  def connectHost(tenantId: Int, vdpid: String, vport: Short, mac: String): Option[VirtualHost] = {
     val jsonRequest: JsValue = this.buildJsonQuery("connectHost", 
       Map(
         "tenantId"    -> Json.toJson(tenantId),
@@ -487,39 +493,43 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
     jsonReply match {
       case Some(result) =>
-
+        return result.asOpt[VirtualHost]
+        
       case None =>
+        return None
     }
   }
   /**
    * Add a virtual link to an OVXNetwork
    * @param tenantId The GUID of a virtual network
-   * @param srcDpid The colon-hex DPID of the source switch
-   * @param srcPort The port on the source switch
-   * @param dstDpid The DPID of the destination switch
-   * @param dstPort The port on the destination switch
+   * @param srcVDpid The virtual colon-hex DPID of the source switch
+   * @param srcVPort The virtual port on the source switch
+   * @param dstVDpid The virtual  DPID of the destination switch
+   * @param dstVPort The virtual  port on the destination switch
    * @param algorithm Method for setting routes in a OVXBigSwitch: "manual" or "spf"
    * @param backup_num Number of backup paths associated with a virtual link or route
    * @return
    */
-  def connectLink(tenantId: Int, srcDpid: Long, srcPort: Short,
-                  dstDpid: Long, dstPort: Short,
-                  algorithm: String, backup_num: Byte) = {
+  def connectLink(tenantId: Int, srcVDpid: Long, srcVPort: Short,
+                  dstVDpid: Long, dstVPort: Short,
+                  algorithm: String, backup_num: Byte): Option[VirtualLink] = {
     val jsonRequest: JsValue = this.buildJsonQuery("connectLink", 
       Map(
         "tenantId"    -> Json.toJson(tenantId),
-        "srcDpid"     -> Json.toJson(srcDpid),
-        "srcPort"     -> Json.toJson(srcPort),
-        "dstDpid"     -> Json.toJson(dstDpid),
-        "dstPort"     -> Json.toJson(dstPort),
+        "srcDpid"     -> Json.toJson(srcVDpid),
+        "srcPort"     -> Json.toJson(srcVPort),
+        "dstDpid"     -> Json.toJson(dstVDpid),
+        "dstPort"     -> Json.toJson(dstVPort),
         "algorithm"   -> Json.toJson(algorithm),
         "backup_num"  -> Json.toJson(backup_num.toInt)
       ))
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
     jsonReply match {
       case Some(result) =>
-
+        return result.asOpt[VirtualLink]
+        
       case None =>
+        return None
     }
   }
   /**
@@ -659,7 +669,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param tenantId The GUID of a virtual network
    * @return
    */
-  def startNetwork(tenantId: Int) = {
+  def startNetwork(tenantId: Int): Option[Network] = {
     val jsonRequest: JsValue = this.buildJsonQuery("startNetwork", 
       Map(
         "tenantId"    -> Json.toJson(tenantId)
@@ -667,8 +677,9 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
     jsonReply match {
       case Some(result) =>
-
+        return result.asOpt[Network]
       case None =>
+        return None
     }
   }
   /**
@@ -677,7 +688,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
    * @param vdpid DPID of a virtual switch
    * @return
    */
-  def startSwitch(tenantId: Int, vdpid: String) = {
+  def startSwitch(tenantId: Int, vdpid: String): Option[VirtualSwitch] = {
     val jsonRequest: JsValue = this.buildJsonQuery("startSwitch", 
       Map(
         "tenantId"    -> Json.toJson(tenantId),
@@ -686,8 +697,9 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonReply: Option[JsValue] = this.sendJsonQuery(jsonRequest, "tenant")
     jsonReply match {
       case Some(result) =>
-
+        return result.asOpt[VirtualSwitch]
       case None =>
+        return None
     }
   }
   /**
@@ -815,6 +827,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
         val responseResult = jsonResponse \ "result"
         responseResult match {
           case result: JsUndefined =>
+            log.warn("OVX-API returned error: {}", jsonResponse)
             return None //TODO: throw something here.
           case _ =>
             return Some(responseResult)
@@ -846,12 +859,17 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
 
   }
   
-  case class Host(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: Option[String])
+  case class PhysicalHost(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: Option[String])
+  //TODO: mac address should be a String by definition in http://ovx.onlab.us/documentation/api/
+  case class VirtualHost(tenantId: Int, hostId: Int, vdpid: Long, vport: Short, mac: Int, ipAddress: Option[String])
 
   case class Endpoint(dpid: String, port: Short)
   case class Link(linkId: Int, tenantId: Option[Int], src: Endpoint, dst: Endpoint)
+  case class VirtualLink(tenantId: Int, linkId: Int, backup_num: Int, priority: Int, path: Option[List[String]], algorithm: String,
+                         srcDpid: Long, srcPort: Int, dstDpid: Long, dstPort: Int)
 
-  case class Network(tenantId: Option[Int], networkAddress: Int, mask: Short, controllerUrls: List[String])
+  case class Network(tenantId: Option[Int], isBooted: Option[Boolean], 
+                     networkAddress: Int, mask: Short, controllerUrls: List[String])
   case class VirtualSwitch(tenantId: Int, dpids: List[Long], vdpid: Long)
   
   
@@ -870,17 +888,21 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     }
   }
   
-  implicit val hostReads: Reads[Host] =(
-    (JsPath \ "hostId").read[Int] and
-    (JsPath \ "dpid").read[String] and
-    (JsPath \ "port").read[Short] and
-    (JsPath \ "mac").read[String] and
-    (JsPath \ "ipAddress").readNullable[String]
-  )(Host.apply _)
+//  implicit val hostReads: Reads[Host] =(
+//    (JsPath \ "hostId").read[Int] and
+//    (JsPath \ "dpid").read[String] and
+//    (JsPath \ "port").read[Short] and
+//    (JsPath \ "mac").read[String] and
+//    (JsPath \ "ipAddress").readNullable[String]
+//  )(Host.apply _)
+
+  implicit val pHostReads: Reads[PhysicalHost] = Json.reads[PhysicalHost]
+  implicit val vHostReads: Reads[VirtualHost] = Json.reads[VirtualHost]
 
   implicit val endpointReads = Json.reads[Endpoint]
   implicit val linkReads: Reads[Link] = Json.reads[Link]
-  
+  implicit val vLinkReads: Reads[VirtualLink] = Json.reads[VirtualLink]
+
   implicit val networkReads: Reads[Network] = Json.reads[Network]
   implicit val vSwitchReads: Reads[VirtualSwitch] = Json.reads[VirtualSwitch]
 }
