@@ -4,7 +4,7 @@ import java.io.File
 import java.net.InetAddress
 
 import akka.actor._
-import datatypes.{CloudSLA, Host, Switch, ResourceAlloc}
+import datatypes._
 import messages._
 
 
@@ -115,11 +115,11 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	// -----------------------------------
 
 
-	def recvResourceRequest(resToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
+	def recvResourceRequest(tenant: Tenant, resToAlloc: ResourceAlloc): Unit = {
 		log.info("CCFM Received ResourceRequest from Tenant {}. Forwarding to NRA...",
 		resToAlloc.tenantID)
 
-		networkResourceAgent ! ResourceRequest(resToAlloc, ofcIP, ofcPort)
+		networkResourceAgent ! ResourceRequest(tenant, resToAlloc)
 	}
 
 
@@ -129,8 +129,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case message: CCFMResourceDest	=> message match {
-			case ResourceRequest(resToAlloc, ofcIP, ofcPort) 	=> recvResourceRequest(resToAlloc, ofcIP, ofcPort)
-			case ResourceReply(allocResources)								=> recvResourceReply(allocResources)
+			case ResourceRequest(tenant, resToAlloc) 	=> recvResourceRequest(tenant, resToAlloc)
+			case ResourceReply(allocResources)				=> recvResourceReply(allocResources)
 		}
 		case _								=> log.error("Unknown message received!")
 	}

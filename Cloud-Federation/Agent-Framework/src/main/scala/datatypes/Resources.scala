@@ -183,7 +183,7 @@ object Switch {
 }
 
 
-case class Tenant(tenantId: Int, tenantSubnet: String, ofcIp: InetAddress, ofcPort: Short)
+case class Tenant(tenantId: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short)
 
 
 //TODO: use http://docs.scala-lang.org/style/scaladoc.html to go on with ScalaDocs in code.

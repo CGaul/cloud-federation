@@ -843,35 +843,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     }
   }
 
-  
-  
-  /* Container Classes for OVXConnector: */
-  /* =================================== */
 
-  case class Path(route: List[Connection])
-
-  case class Connection(srcDpid: Long, srcPort: Short,
-                  dstDpid: Long, dstPort: Short){
-
-    override def toString = {
-      s"$srcDpid/$srcPort-$dstDpid/$dstPort"
-    }
-
-  }
-  
-  case class PhysicalHost(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: Option[String])
-  //TODO: mac address should be a String by definition in http://ovx.onlab.us/documentation/api/
-  case class VirtualHost(tenantId: Int, hostId: Int, vdpid: Long, vport: Short, mac: Int, ipAddress: Option[String])
-
-  case class Endpoint(dpid: String, port: Short)
-  case class Link(linkId: Int, tenantId: Option[Int], src: Endpoint, dst: Endpoint)
-  case class VirtualLink(tenantId: Int, linkId: Int, backup_num: Int, priority: Int, path: Option[List[String]], algorithm: String,
-                         srcDpid: Long, srcPort: Int, dstDpid: Long, dstPort: Int)
-
-  case class Network(tenantId: Option[Int], isBooted: Option[Boolean], 
-                     networkAddress: Int, mask: Short, controllerUrls: List[String])
-  case class VirtualSwitch(tenantId: Int, dpids: List[Long], vdpid: Long)
-  
   
   /* Implicit Conversions for Containers: */
   /* ==================================== */
@@ -907,23 +879,53 @@ object OVXConnector
 {
   //Constructors, with default OVX - Username/PW:
   //---------------------------------------------
-  
+
   def apply(ovxApiAddr: InetAddress = InetAddress.getLocalHost, ovxApiPort: Int = 8080) =
     new OVXConnector(ovxApiAddr, ovxApiPort, "admin", "")
 
 
   //Constructors, with specific OVX - Username/PW:
   //----------------------------------------------
-  
+
   def apply(ovxApiAddr: InetAddress, ovxApiPort: Int,
             userName: String, userPW: String) =
     new OVXConnector(ovxApiAddr, ovxApiPort, userName, userPW)
-  
-  
-  
+
+
+
   // Static Methods:
   //----------------
-  
+
   def convertString2HexDpid(string: String): JsNumber = JsNumber(java.lang.Long.parseLong(string.replace(":",""), 16))
-  
+
 }
+
+
+
+/* Container Classes for OVXConnector: */
+/* =================================== */
+
+case class Path(route: List[Connection])
+
+case class Connection(srcDpid: Long, srcPort: Short,
+                      dstDpid: Long, dstPort: Short){
+
+  override def toString = {
+    s"$srcDpid/$srcPort-$dstDpid/$dstPort"
+  }
+
+}
+
+case class PhysicalHost(hostId: Int, dpid: String, port: Short, mac: String, ipAddress: Option[String])
+//TODO: mac address should be a String by definition in http://ovx.onlab.us/documentation/api/
+case class VirtualHost(tenantId: Int, hostId: Int, vdpid: Long, vport: Short, mac: Int, ipAddress: Option[String])
+
+case class Endpoint(dpid: String, port: Short)
+case class Link(linkId: Int, tenantId: Option[Int], src: Endpoint, dst: Endpoint)
+case class VirtualLink(tenantId: Int, linkId: Int, backup_num: Int, priority: Int, path: Option[List[String]], algorithm: String,
+                       srcDpid: Long, srcPort: Int, dstDpid: Long, dstPort: Int)
+
+case class Network(tenantId: Option[Int], isBooted: Option[Boolean],
+                   networkAddress: Int, mask: Short, controllerUrls: List[String])
+case class VirtualSwitch(tenantId: Int, dpids: List[Long], vdpid: Long)
+

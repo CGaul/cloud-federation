@@ -5,6 +5,7 @@ import java.net._
 import java.util
 
 import akka.actor._
+import connectors.{OVXConnector, Network}
 import datatypes._
 import messages._
 import org.apache.http.client.entity.UrlEncodedFormEntity
@@ -28,28 +29,35 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
-///* Values: */
-///* ======= */
-//
-//
-///* Variables: */
-///* ========== */
+/* Values: */
+/* ======= */
+	
+		val _ovxConn = OVXConnector(ovxApiAddr, ovxApiPort)
+	
+
+/* Variables: */
+/* ========== */
+
+		var _tenantNetMap: Map[Tenant, Network] = Map()
+		var _hostSwitchesMap: Map[Host, List[Switch]] = Map()
+
+	//TODO: delete
 // 	var cloudSwitches = _cloudSwitches
 //	var cloudHosts = _cloudHosts
 
-		private var _ovxSubnetID: Int = 1
-		private var _ovxSubnetAddress: InetAddress = InetAddress.getByName("10.10.1.0")
+//		private var _ovxSubnetID: Int = 1
+//		private var _ovxSubnetAddress: InetAddress = InetAddress.getByName("10.10.1.0")
 
 /* Public Methods: */
 /* =============== */
 
 	def receive(): Receive = {
 		case message: NRAResourceDest	=> message match {
-			case ResourceRequest(resourcesToAlloc, ofcIP, ofcPort)
-						=> recvResourceRequest(resourcesToAlloc, ofcIP, ofcPort)
+			case ResourceRequest(tenant, resourcesToAlloc)
+						=> recvResourceRequest(tenant, resourcesToAlloc)
 
-			case ResourceFederationRequest(resourcesToAlloc, ofcIP, ofcPort)
-						=> recvResourceFederationRequest(resourcesToAlloc, ofcIP, ofcPort)
+			case ResourceFederationRequest(tenant, resourcesToAlloc)
+						=> recvResourceFederationRequest(tenant, resourcesToAlloc)
 
 			case ResourceFederationReply(resourcesAllocated)
 						=> recvResourceFederationReply(resourcesAllocated)
@@ -74,20 +82,21 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 	 * </p>
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
 	 * Implemented in 0.2 Integrated Controllers
+	 * @param tenant
 	 * @param resourceToAlloc
-	 * @param ofcIP
 	 */
-	private def recvResourceRequest(resourceToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
+	private def recvResourceRequest(tenant: Tenant, resourceToAlloc: ResourceAlloc): Unit = {
 
-		log.info("Received ResourceRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
-			resourceToAlloc.tenantID, resourceToAlloc.resources.size, ofcIP)
+		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) at NetworkResourceAgent.",
+			tenant, resourceToAlloc.resources.size)
 
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourceToAlloc)
 
-		// Prepare the locally fulfilled allocations as a JSON-Message
-		// that will be send to the OVX embedder:
-		val jsonQuery: JsValue = allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
-		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery)
+		// Prepare the locally fulfilled allocations that will be send to OVX via
+		// the own OVXConnector-API:
+		val hostList = allocationsPerHost.map(_._1).toList
+		mapAllocOnOVX(tenant, hostList)
+//		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
 
 		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
@@ -95,7 +104,7 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 		if(remainResToAlloc.isDefined){
 			log.info("ResourceRequest {} could	 not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
-			matchMakingAgent ! ResourceRequest(remainResToAlloc.get, ofcIP, ofcPort)
+			matchMakingAgent ! ResourceRequest(tenant, remainResToAlloc.get)
 		}
 		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
 	}
@@ -123,18 +132,19 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 	 * Received from local MMA.
 	 *
 	 * @param resourcesToAlloc
-	 * @param ofcIP
+	 * @param tenant
 	 */
-	private def recvResourceFederationRequest(resourcesToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
+	private def recvResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc): Unit = {
 		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
-			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, ofcIP)
+			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, tenant.ofcIp)
 
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourcesToAlloc)
 		// Prepare the locally fulfilled allocations as a JSON-Message
 		// that will be send to the OVX embedder:
-		val jsonQuery: JsValue = allocateOVXNetwork(allocationsPerHost, ofcIP, ofcPort)
+		val hostList = allocationsPerHost.map(_._1).toList
+		mapAllocOnOVX(tenant, hostList)
 
-		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery)
+//		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
@@ -186,105 +196,92 @@ class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: 
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
-	private def allocateOVXNetwork(allocationsPerHost: Map[Host, ResourceAlloc],
-																 ofcIP: InetAddress, ofcPort: Int): JsValue = {
+	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
 
-		// Extract all allocated Hosts:
-		val allocatedHosts = allocationsPerHost.map(_._1)
-
-		// Find out the Switches that are connecting the Hosts with each other:
-		var allocatedSwitches: Vector[Switch] = Vector()
-		for (actHost <- allocatedHosts ) {
-			 allocatedSwitches = allocatedSwitches ++ _cloudSwitches.filter(_.links.values.exists(_ == actHost.compID))
+		// If the tenant does not have an OVX tenant-network until now:
+		if(! _tenantNetMap.keys.exists(_ == tenant)){
+			val net = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
+			if(net.isDefined)
+				_tenantNetMap = _tenantNetMap + (tenant -> net.get)
 		}
+		// In general, this allocation includes all physical Switches, that are needed to connect all hosts with each other.
+		// first only get the physical Switches, directly connected to the hosts:
+		// (get a flat list of each host -> List[Switch] mapping)
+		val physSwitches = hosts.flatMap(_hostSwitchesMap).distinct
+		// Afterwards, try to solve a path from each host to all other hosts, using all
+		// currently discovered physical Switches as direct gateway to them:
+		// TODO: path discovery
+		
+		// Once all Switches in this allocation are discovered,
+		for (actPhysSwitch <- physSwitches) {
+			// Create the virtual Switch as a direct mapping from phys -> virt
+			val vSwitch = _ovxConn.createSwitch(tenant.tenantId, List(actPhysSwitch.dpid))
 
-		// Prepare the Host-List for the Json-Query.
-		// Each Host entry is defined by connected Switch DPID, Host MAC and Switch Port
-		var hostsList: Seq[JsValue] = Seq()
-		for (actSwitch <- allocatedSwitches) {
-			// Find all allocated hosts that are connected to the actual switch:
-			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.links.values.exists(_ == h.compID))
+			// Add all known physical Ports to the virtual Switch:
+			//TODO: add Ports to vSwitch
 
-			for (actHost <- actHosts) {
-				// Find the Port at the Switch that connects the actual Host:
-				val port: Option[(Int, CompID)] = actSwitch.links.find(_._2 == actHost.compID)
-				if(port.isDefined){
-					hostsList = hostsList :+ Json.toJson(Map("dpid" -> Json.toJson(actSwitch.dpid), "mac" -> Json.toJson(actHost.mac), "port" -> Json.toJson(port.get._1)))
-				}
-				else{
-					log.error("Host {} is not connected to a Port in the Switch {}! Aborting allocation into OVX-Network!",
-										actHost, actSwitch)
+			// Add each Host that is connected directly to the current physical Switch to the
+			// virtual Switch also:
+			for (actHost <- hosts) {
+				if(_hostSwitchesMap(actHost).contains(actPhysSwitch)){
+					// TODO: connect Host to vSwitch
 				}
 			}
 		}
-		val ofcQuery: JsValue = Json.toJson(Map(
-			"ctrls" -> Json.toJson(Seq(Json.toJson(
-				"tcp:"+ ofcIP.getHostAddress+":"+ofcPort))),
-			"type" -> Json.toJson("custom")))
 
-		val jsonQuery: JsValue = Json.toJson(
-			Map(
-				"id" -> Json.toJson(_ovxSubnetID.toString),
-				"jsonrpc" -> Json.toJson("2.0"),
-				"method" -> Json.toJson("createNetwork"),
-				"params" -> Json.toJson(Map(
-					"network" -> Json.toJson(Map(
-						"controller" -> ofcQuery,
-						"hosts" -> Json.toJson(hostsList),
-						"routing" -> Json.toJson(Map("algorithm" -> Json.toJson("spf"), "backup_num" -> Json.toJson(1))),
-						"subnet" -> Json.toJson(_ovxSubnetAddress.getHostAddress +"/24"),
-						"type" -> Json.toJson("physical")
-					))
-				))
-			)
-		)
-		// Save the jsonQuery to file:
-		val out: FileWriter = new FileWriter(new File("ovx_subnet-"+_ovxSubnetID+".json"))
-		out.write(Json.stringify(jsonQuery))
-		out.close()
-
-		// Prepare (increase) SubnetID and SubnetAddress for the next OVX-Network allocation:
-		_ovxSubnetID += 1
-		val newSubnetRange: Int = _ovxSubnetAddress.getHostAddress.substring(3,5).toInt + 1
-		val newAddress: String = _ovxSubnetAddress.getHostAddress.substring(0,3) +
-														 newSubnetRange + _ovxSubnetAddress.getHostAddress.substring(5)
-		_ovxSubnetAddress = InetAddress.getByName(newAddress)
-
-
-		//Use Apache HTTP-Client to send a HTTP POST to the OVX-Embedder:
-		val httpclient: CloseableHttpClient = HttpClients.createDefault()
-
-		val embedderURI: URI = new URIBuilder()
-																.setHost(ovxApiAddr.getHostAddress)
-																.setPort(ovxApiPort)
-																.setScheme("http")
-																.build()
-		val httpPost: HttpPost = new HttpPost(embedderURI)
-		httpPost.setEntity(new StringEntity(Json.stringify(jsonQuery), "UTF-8"))
-		httpPost.addHeader("content-type", "application/json")
-
-		try {
-			val response: CloseableHttpResponse = httpclient.execute(httpPost)
-			System.out.println(response.getStatusLine)
-			val entity: HttpEntity = response.getEntity
-			// do something useful with the response body
-			// and ensure it is fully consumed
-			EntityUtils.consume(entity)
-			response.close()
-		}
-		catch{
-			case e: ConnectException => log.error("Connection to OVX-Embedder could not have been established at {}://{}:{}",
-																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
-			case e: NoRouteToHostException => log.error("No Route to OVX-Embedder Host at {}://{}:{}",
-																						embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort)
-			case e: Throwable => log.error("An unhandled error occurred, connecting to the OVX-Embedder Host at {}://{}:{}. Exception: {}",
-													embedderURI.getScheme, embedderURI.getHost, embedderURI.getPort, e.getMessage)
-		}
-//		finally {
-//			response.close()
+		//TODO: delete:
+//		// Prepare the Host-List for the Json-Query.
+//		// Each Host entry is defined by connected Switch DPID, Host MAC and Switch Port
+//		var hostsList: Seq[JsValue] = Seq()
+//		for (actSwitch <- allocatedSwitches) {
+//			// Find all allocated hosts that are connected to the actual switch:
+//			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.links.values.exists(_ == h.compID))
+//
+//			for (actHost <- actHosts) {
+//				// Find the Port at the Switch that connects the actual Host:
+//				val port: Option[(Int, CompID)] = actSwitch.links.find(_._2 == actHost.compID)
+//				if(port.isDefined){
+//					hostsList = hostsList :+ Json.toJson(Map("dpid" -> Json.toJson(actSwitch.dpid), "mac" -> Json.toJson(actHost.mac), "port" -> Json.toJson(port.get._1)))
+//				}
+//				else{
+//					log.error("Host {} is not connected to a Port in the Switch {}! Aborting allocation into OVX-Network!",
+//										actHost, actSwitch)
+//				}
+//			}
 //		}
+//		val ofcQuery: JsValue = Json.toJson(Map(
+//			"ctrls" -> Json.toJson(Seq(Json.toJson(
+//				"tcp:"+ ofcIP.getHostAddress+":"+ofcPort))),
+//			"type" -> Json.toJson("custom")))
+//
+//		val jsonQuery: JsValue = Json.toJson(
+//			Map(
+//				"id" -> Json.toJson(_ovxSubnetID.toString),
+//				"jsonrpc" -> Json.toJson("2.0"),
+//				"method" -> Json.toJson("createNetwork"),
+//				"params" -> Json.toJson(Map(
+//					"network" -> Json.toJson(Map(
+//						"controller" -> ofcQuery,
+//						"hosts" -> Json.toJson(hostsList),
+//						"routing" -> Json.toJson(Map("algorithm" -> Json.toJson("spf"), "backup_num" -> Json.toJson(1))),
+//						"subnet" -> Json.toJson(_ovxSubnetAddress.getHostAddress +"/24"),
+//						"type" -> Json.toJson("physical")
+//					))
+//				))
+//			)
+//		)
+//		// Save the jsonQuery to file:
+//		val out: FileWriter = new FileWriter(new File("ovx_subnet-"+_ovxSubnetID+".json"))
+//		out.write(Json.stringify(jsonQuery))
+//		out.close()
+//
+//		// Prepare (increase) SubnetID and SubnetAddress for the next OVX-Network allocation:
+//		_ovxSubnetID += 1
+//		val newSubnetRange: Int = _ovxSubnetAddress.getHostAddress.substring(3,5).toInt + 1
+//		val newAddress: String = _ovxSubnetAddress.getHostAddress.substring(0,3) +
+//														 newSubnetRange + _ovxSubnetAddress.getHostAddress.substring(5)
+//		_ovxSubnetAddress = InetAddress.getByName(newAddress)
 
-		return jsonQuery
 	}
 }
 
