@@ -2,7 +2,7 @@ package integration
 
 import java.net.InetAddress
 
-import agents.{MatchMakingAgent, NetworkResourceAgent}
+import agents.{NetworkDiscoveryAgent, MatchMakingAgent, NetworkResourceAgent}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
@@ -72,13 +72,13 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 
-	val cloudSwitches: Vector[OFSwitch] = Vector(OFSwitch(ResId(1), "00:00:10:00", Map(1->ResId(11), 2->ResId(12))))
+	val cloudSwitches: Vector[OFSwitch] = Vector(OFSwitch("00:00:10:00"))
 
-	val ovxIP = InetAddress.getLocalHost
-	val ovxPort = 10000
-
-	val embedderIP = InetAddress.getByName("127.0.1.1")
-	val embedderPort = 8000
+	val ovxIp = InetAddress.getLocalHost
+	val ovxApiPort = 8080
+	
+	val tenant1: Tenant = Tenant(1, ("10.1.1.10", 16), InetAddress.getByName("192.168.1.42"), 10000)
+	
 
 
 /* AKKA Testing Environment: */
@@ -96,31 +96,41 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val nraSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/CCFM/networkResourceAgent")
 
 	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudSLA, nraSelection)
-	val testActor_MMA 	= TestActorRef[MatchMakingAgent](mmaProps)
+	val tActorRefMMA 	= TestActorRef[MatchMakingAgent](mmaProps)
 
-	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudSwitches, cloudHosts,
-															ovxIP, ovxPort,
-															embedderIP, embedderPort,
-															testActor_MMA)
-	val testActor_NRA 	= TestActorRef[NetworkResourceAgent](nraProps)
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent],
+															ovxIp, ovxApiPort, cloudHosts.toList,
+															tActorRefMMA)
+	val tActorRefNRA 	= TestActorRef[NetworkResourceAgent](nraProps)
+	
+	val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, tActorRefNRA)
+	val tActorRefNDA 	= TestActorRef[NetworkDiscoveryAgent](ndaProps)
+	
 
 
 
 	/* Test Specifications: */
 	/* ==================== */
 
+	"A NetworkDiscoveryAgent" should {
+		"be able to discover the physical Topology" in{
+			tActorRefNDA.underlyingActor.discoverPhysicalTopology()
+
+		}
+	}
 	"A NetworkResourceAgent" should {
 		"answer with a ResourceReply, if ResourceRequests are locally fulfillable" in {
 			//TODO: Write out Shortcut implementation:
-			testActor_NRA.receive(ResourceRequest(resAlloc1, ovxIP, ovxPort))
-			testActor_NRA.receive(ResourceRequest(resAlloc2, ovxIP, ovxPort))
+			tActorRefNRA.receive(ResourceRequest(tenant1, resAlloc1))
+			tActorRefNRA.receive(ResourceRequest(tenant1, resAlloc2))
 		}
 
 		"try to allocate Resources via a Federation, if ResourceRequests are NOT locally fulfillable" in{
 			//TODO: Write out Shortcut implementation:
-			testActor_NRA.receive(ResourceRequest(resAlloc3, ovxIP, ovxPort))
+			tActorRefNRA.receive(ResourceRequest(tenant1, resAlloc3))
 		}
 	}
+
 
 
 

@@ -12,7 +12,7 @@ import scala.util.control.Breaks._
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
-class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
+class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: List[Host],
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
@@ -24,13 +24,14 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
 
 /* Variables: */
 /* ========== */
-
+		var _cloudTopology: List[Host] = cloudHosts
+		var _switchTopology: List[OFSwitch] = List()
 		var _tenantNetMap: Map[Tenant, Network] = Map()
 		var _hostSwitchesMap: Map[Host, List[OFSwitch]] = Map()
 
 	//TODO: delete
 // 	var cloudSwitches = _cloudSwitches
-//	var cloudHosts = _cloudHosts
+//	var cloudHosts = _cloudTopology
 
 //		private var _ovxSubnetID: Int = 1
 //		private var _ovxSubnetAddress: InetAddress = InetAddress.getByName("10.10.1.0")
@@ -49,7 +50,12 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
 			case ResourceFederationReply(resourcesAllocated)
 						=> recvResourceFederationReply(resourcesAllocated)
 		}
-		case _														=> log.error("Unknown message received!")
+			case message: NRANetworkDest => message match{
+				case TopologyDiscovery(switchList)
+						=> recvTopologyDiscovery(switchList)
+				
+			}
+		case _	=> log.error("Unknown message received!")
 	}
 
 
@@ -137,6 +143,11 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
 		}
 	}
+	
+	private def recvTopologyDiscovery(switchTopology: List[OFSwitch]) = {
+		log.info("Received new Switch-Topology from {}, including {} switches.", sender(), switchTopology.length)
+		this._switchTopology = switchTopology
+	}
 
 
 /* Private Helper Methods: */
@@ -147,7 +158,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
 		var allocationPerHost: Map[Host, ResourceAlloc] = Map()
 
 		// Sort the potentialHosts as well as the resourceToAlloc by their resources in descending Order:
-		val sortedHosts			= _cloudHosts.sorted(RelativeHostByResOrdering)
+		val sortedHosts			= _cloudTopology.sorted(RelativeHostByResOrdering)
 		val sortedResAlloc	= ResourceAlloc(resourceAlloc.tenantID,
 			resourceAlloc.resources.sorted(RelativeResOrdering),
 			resourceAlloc.requestedHostSLA)
@@ -202,7 +213,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
 		// Once all Switches in this allocation are discovered,
 		for (actPhysSwitch <- physSwitches) {
 			// Create the virtual Switch as a direct mapping from phys -> virt
-			val vSwitch = _ovxConn.createSwitch(tenant.tenantId, List(actPhysSwitch.dpid))
+			val vSwitch = _ovxConn.createSwitch(tenant.tenantId, List(actPhysSwitch.dpid.toString))
 
 			// Add all known physical Ports to the virtual Switch:
 			//TODO: add Ports to vSwitch
@@ -282,11 +293,13 @@ object NetworkResourceAgent
 	/**
 	 * props-method is used in the AKKA-Context, spawning a new Agent.
 	 * In this case, to generate a new NetworkResource Agent, call
-	 * 	val ccfmProps = Props(classOf[NetworkResourceAgent], args = ovxIP)
+	 * 	val ccfmProps = Props(classOf[NetworkResourceAgent],
+														ovxIP, ovxApiPort,
+														mmaActorRef)
 	 * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkResourceAgent-x")
 	 * @param ovxIp The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(ovxIp: InetAddress, ovxApiPort: Int, matchMakingAgent: ActorRef):
-	Props = Props(new NetworkResourceAgent(ovxIp, ovxApiPort, matchMakingAgent))
+	def props(ovxIp: InetAddress, ovxApiPort: Int, cloudHosts: List[Host], matchMakingAgent: ActorRef):
+	Props = Props(new NetworkResourceAgent(ovxIp, ovxApiPort, cloudHosts, matchMakingAgent))
 }

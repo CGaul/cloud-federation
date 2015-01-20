@@ -18,16 +18,62 @@ case class Tenant(tenantId: Int, subnet: (String, Short), ofcIp: InetAddress, of
 sealed trait NetworkComponent
 
 case class DPID(dpid: String) {
+  // Catch an IllegalArgumentException here, if DPID is badly defined:
+  require(dpid.split(":").length > 1 && dpid.split(":").forall(_.length == 2),  
+    "Bad DPID: Need to define n Hex-Code Pairs, separated by a colon (e.g. \"xx:xx:xx:xx\")")
+  
   override def toString: String = dpid
 }
+
+case class Endpoint(dpid: DPID, port: Short) {
+  def this(dpid: String, port: Short) = this(DPID(dpid), port)
+}
+
+object Endpoint{
+  // Additional Apply Methods:
+  def apply(dpid: String): OFSwitch = new OFSwitch(dpid)
+
+
+  /* Serialization: */
+  /* ============== */
+
+  def toXML(endpoint: Endpoint): Node =
+    <Endpoint>
+      <DPID>{endpoint.dpid.toString}</DPID>
+      <Port>{endpoint.port.toString}</Port>
+    </Endpoint>
+
+
+  def saveToXML(file: File, endpoint: Endpoint) = {
+    val xmlNode = toXML(endpoint)
+    xml.XML.save(file.getAbsolutePath, xmlNode)
+  }
+
+  /* De-Serialization: */
+  /* ================= */
+
+  def fromXML(node: Node): Endpoint = {
+    val dpid: DPID = DPID((node \ "DPID").text)
+    val port: Short = (node \ "Port").text.toShort
+
+    return Endpoint(dpid, port)
+  }
+
+  def loadFromXML(file: File): Endpoint = {
+    val xmlNode = xml.XML.loadFile(file)
+    return fromXML(xmlNode)
+  }
+}
+
 
 /**
  * The representative data class of an OpenFlow-Switch.
  * @param dpid The OpenFlow "data path id" that uniquely describes this OpenFlow-Switch
  * @param portMap A mapping from Port-Number (as Short) to the connected Network-Component (Host or other Switch)
  */
-case class OFSwitch(dpid: DPID, portMap: Map[Short, DPID])
+case class OFSwitch(dpid: DPID, portMap: Map[Short, Endpoint])
   extends NetworkComponent{
+  def this(dpid: String) = this(DPID(dpid), portMap = Map())
 
   /* Basic Overrides: */
   /* ---------------- */
@@ -45,14 +91,17 @@ case class OFSwitch(dpid: DPID, portMap: Map[Short, DPID])
  * Companion Object for Switch
  */
 object OFSwitch {
+// Additional Apply Methods:
+  def apply(dpid: String): OFSwitch = new OFSwitch(dpid)
 
+  
   /* Serialization: */
   /* ============== */
 
   def toXML(switch: OFSwitch): Node =
     <Switch>
       <DPID>{switch.dpid.toString}</DPID>
-      <Links>{switch.portMap.map(l => l._1.toString +":"+ l._2.toString).mkString(", ")}</Links>
+      <Links>{switch.portMap.map(l => l._1.toString +":"+ l._2).mkString(", ")}</Links>
     </Switch>
 
 
@@ -105,7 +154,7 @@ case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
   /* Getters: */
   /* -------- */
 
-  def compID = hardwareSpec.compID
+  def compID = hardwareSpec.resId
 
 
   /* Public Methods: */

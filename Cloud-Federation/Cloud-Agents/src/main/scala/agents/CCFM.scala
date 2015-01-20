@@ -19,7 +19,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		def certFile 			= _certFile
 		def ovxIp 				= _ovxIP
 		def ovxApiPort		= _ovxApiPort
-		def cloudSwitches = _cloudSwitches
+//		def cloudSwitches = _cloudSwitches TODO: delete.
 		def cloudHosts 		= _cloudHosts
 		def cloudSLA 			= _cloudSLA
 
@@ -30,15 +30,15 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
 		val _ovxApiPort: Int			= 8080
 
-
+	//TODO: delete. Was replaced by direct OVXConnector.getPhysicalTopology call in NRA:
 		// Define the Cloud-Switches from all files in the cloudConfDir/switches/ directory
-		var _cloudSwitches: Vector[OFSwitch] = Vector()
-		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
-		if(_cloudSwitchesDir.listFiles() == null)
-			log.error("Switches need at least one defined .xml file in {}/switches/ !", cloudConfDir.getAbsolutePath)
-		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
-			_cloudSwitches = _cloudSwitches :+ OFSwitch.loadFromXML(actSwitchFile)
-		}
+//		var _cloudSwitches: Vector[OFSwitch] = Vector()
+//		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
+//		if(_cloudSwitchesDir.listFiles() == null)
+//			log.error("Switches need at least one defined .xml file in {}/switches/ !", cloudConfDir.getAbsolutePath)
+//		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
+//			_cloudSwitches = _cloudSwitches :+ OFSwitch.loadFromXML(actSwitchFile)
+//		}
 
 		// Define the Cloud-Hosts from all files in the cloudConfDir/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
@@ -73,7 +73,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 
 	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
-																								CCFMConfig.ovxIp, CCFMConfig.ovxApiPort,
+																								CCFMConfig.ovxIp, CCFMConfig.ovxApiPort, 
+																								CCFMConfig.cloudHosts.toList,
 																								matchMakingAgent)
 	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 	log.info("NetworkResourceAgent started at path: {}.", networkResourceAgent.path)

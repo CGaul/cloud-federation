@@ -32,7 +32,7 @@ object ResId {
 
 /**
  *
- * @param compID The ComponentID that is representing this resource. For VMs, this is the compID of the hypervising host
+ * @param resId The Resource-Id that is representing this resource. For VMs, this is the resId of the hypervising host
  *               (which is also represented as a Resource). May be None for Resource Requests.
  * @param cpu CPU Speed on Node [CPUUnit]
  * @param ram Amount of RAM on Node [ByteSize]
@@ -40,7 +40,7 @@ object ResId {
  * @param bandwidth Bandwidth, relatively monitored from GW to Node [ByteSize]
  * @param latency Latency, relatively monitored from GW to Node [ms]
  */
-case class Resource(compID: ResId,
+case class Resource(resId: ResId,
 						  cpu: CPUUnit,
 						  ram: ByteSize,
 						  storage: ByteSize,
@@ -73,7 +73,7 @@ object Resource {
 
 	def toXML(resource: Resource): Node =
 		<Resource>
-			<ID>{resource.compID.toString}</ID>
+			<ID>{resource.resId.toString}</ID>
 			<CPU>{resource.cpu.toString}</CPU>
 			<RAM>{ByteSize.toXML(resource.ram)}</RAM>
 			<Storage>{ByteSize.toXML(resource.storage)}</Storage>
@@ -110,7 +110,7 @@ object Resource {
 }
 
 
-
+//TODO: is tenantID really needed in ResourceAlloc?
 case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHostSLA: HostSLA)
 {
 	/* Public Methods: */
