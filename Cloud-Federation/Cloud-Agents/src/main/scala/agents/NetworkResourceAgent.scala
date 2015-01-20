@@ -1,22 +1,11 @@
 package agents
 
-import java.io._
 import java.net._
-import java.util
 
 import akka.actor._
-import connectors.{OVXConnector, Network}
+import connectors.{Network, OVXConnector}
 import datatypes._
 import messages._
-import org.apache.http.client.entity.UrlEncodedFormEntity
-import org.apache.http.client.utils.URIBuilder
-import org.apache.http.entity.StringEntity
-import org.apache.http.message.BasicNameValuePair
-import org.apache.http.{NameValuePair, HttpEntity}
-import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
-import org.apache.http.impl.client.{HttpClients, CloseableHttpClient}
-import org.apache.http.util.EntityUtils
-import play.api.libs.json.{JsValue, Json}
 
 import scala.util.control.Breaks._
 

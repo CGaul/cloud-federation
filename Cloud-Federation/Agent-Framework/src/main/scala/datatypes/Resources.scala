@@ -1,10 +1,8 @@
 package datatypes
 
 import java.io.File
-import java.net.{InetAddress, UnknownHostException}
 
 import datatypes.CPUUnit._
-import play.api.libs.json.JsNumber
 
 import scala.xml.Node
 

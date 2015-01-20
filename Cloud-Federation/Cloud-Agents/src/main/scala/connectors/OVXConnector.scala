@@ -1,19 +1,16 @@
 package connectors
 
 import java.io.IOException
-import java.net.{ConnectException, InetAddress, NoRouteToHostException, URI}
+import java.net.{InetAddress, URI}
 
-import akka.event.{Logging, LoggingAdapter}
-import com.fasterxml.jackson.annotation.JsonValue
 import org.apache.http.HttpEntity
 import org.apache.http.client.methods.{CloseableHttpResponse, HttpPost}
 import org.apache.http.client.utils.URIBuilder
 import org.apache.http.entity.StringEntity
 import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
 import org.apache.http.util.EntityUtils
-import org.slf4j.{LoggerFactory, Logger}
+import org.slf4j.LoggerFactory
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
 
 import scala.collection.Set
 

@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{OFSwitch}
+import datatypes.OFSwitch
 
 /**
  * Created by costa on 1/20/15.

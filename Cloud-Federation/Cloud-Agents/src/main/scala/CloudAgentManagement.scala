@@ -5,8 +5,7 @@ import agents.CCFM
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 import datatypes.ByteUnit._
-import datatypes.CPUUnit.CPUUnit
-import datatypes.CPUUnit._
+import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
 import messages.ResourceRequest

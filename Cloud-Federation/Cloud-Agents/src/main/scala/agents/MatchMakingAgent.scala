@@ -1,7 +1,5 @@
 package agents
 
-import java.net.InetAddress
-
 import akka.actor._
 import datatypes._
 import messages._

@@ -2,11 +2,9 @@ package agents
 
 import java.net.InetAddress
 
-import akka.actor.Actor.Receive
 import akka.actor.ActorRef
-import connectors.{OVXConnector, Network}
-import datatypes.{Host, OFSwitch$, Tenant}
-import messages.{ResourceFederationReply, ResourceFederationRequest, ResourceRequest, NRAResourceDest}
+import connectors.OVXConnector
+import datatypes.Host
 
 /**
  * Created by costa on 1/20/15.

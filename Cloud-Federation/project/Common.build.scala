@@ -1,5 +1,4 @@
 import sbt._
-import Keys._
 
 object Common {
   def prjVersion = "0.2-SNAPSHOT"

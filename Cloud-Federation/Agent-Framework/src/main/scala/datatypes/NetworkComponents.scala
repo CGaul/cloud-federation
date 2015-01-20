@@ -1,7 +1,7 @@
 package datatypes
 
 import java.io.File
-import java.net.{UnknownHostException, InetAddress}
+import java.net.{InetAddress, UnknownHostException}
 
 import datatypes.CPUUnit._
 

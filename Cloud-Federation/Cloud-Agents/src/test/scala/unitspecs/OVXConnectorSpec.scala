@@ -3,7 +3,7 @@ package unitspecs
 import java.net.InetAddress
 
 import connectors.OVXConnector
-import org.scalatest.{GivenWhenThen, Matchers, FlatSpec}
+import org.scalatest.{FlatSpec, GivenWhenThen, Matchers}
 
 /**
  * @author Constantin Gaul, created on 1/15/15.

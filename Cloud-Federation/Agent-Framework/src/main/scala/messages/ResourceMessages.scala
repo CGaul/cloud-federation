@@ -1,9 +1,7 @@
 package messages
 
-import java.net.InetAddress
-
 import akka.actor.ActorRef
-import datatypes.{Tenant, ResourceAlloc}
+import datatypes.{ResourceAlloc, Tenant}
 
 /**
  * @author Constantin Gaul, created on 10/16/14.
