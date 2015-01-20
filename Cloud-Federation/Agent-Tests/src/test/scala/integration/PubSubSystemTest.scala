@@ -32,12 +32,12 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 									Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 10)))
 
 	//General Medium Node
-	val res1 = Resource(CompID(1), MEDIUM,
+	val res1 = Resource(ResId(1), MEDIUM,
 							ByteSize(16, GiB), ByteSize(320, GiB),
 							ByteSize(50, MB), 10, Vector())
 
 	//General Large Node
-	val res2= Resource(CompID(2), LARGE,
+	val res2= Resource(ResId(2), LARGE,
 							ByteSize(32, GiB), ByteSize(500, GiB),
 							ByteSize(50, MB), 10, Vector())
 	

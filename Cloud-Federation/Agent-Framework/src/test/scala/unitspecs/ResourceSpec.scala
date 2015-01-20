@@ -30,22 +30,22 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	behavior of "A Resource"
 
 	//General Small Node
-	val res1 = new Resource(CompID(1), SMALL,
+	val res1 = new Resource(ResId(1), SMALL,
 									ByteSize(8, GiB), ByteSize(50, GiB),
 									ByteSize(10, MB), 10, Vector())
 
 	//General Medium Node
-	val res2= new Resource(CompID(2), MEDIUM,
+	val res2= new Resource(ResId(2), MEDIUM,
 									ByteSize(16, GiB), ByteSize(100, GiB),
 									ByteSize(10, MB), 10, Vector())
 
 	//Equals res2, but with lower latency
-	val res3 = new Resource(CompID(3), MEDIUM,
+	val res3 = new Resource(ResId(3), MEDIUM,
 									ByteSize(16, GiB), ByteSize(100, GiB),
 									ByteSize(10, MB), 5, Vector())
 
 	//General Large Node
-	val res4 = new Resource(CompID(3), LARGE,
+	val res4 = new Resource(ResId(3), LARGE,
 									ByteSize(24, GiB), ByteSize(200, GiB),
 									ByteSize(50, MB), 10, Vector())
 
@@ -61,7 +61,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 
 		Given("A Resource with the res1 footprint, instantiated statically via apply()")
-		val staticRes1 = Resource(CompID(1), SMALL,
+		val staticRes1 = Resource(ResId(1), SMALL,
 			ByteSize(8, GiB), ByteSize(50, GiB),
 			ByteSize(10, MB), 10, Vector())
 
@@ -76,9 +76,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should  "be equal to another Resource with the same Resource footprint (even with different IDs and Neighbours)" in{
 
 		Given("A Respource with the res1 footprint, with additional link descriptions")
-		val equalRes1 		= Resource(CompID(1), SMALL,
+		val equalRes1 		= Resource(ResId(1), SMALL,
 											ByteSize(8, GiB), ByteSize(50, GiB),
-											ByteSize(10, MB), 10, Vector(CompID(2), CompID(3)))
+											ByteSize(10, MB), 10, Vector(ResId(2), ResId(3)))
 
 
 		When("res1 is compared with the link-different equalRes1")
@@ -156,9 +156,6 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		res3 should equal (loadedResource3)
 	}
 
-
-
-
 /* Switch-Class Unit-Spec */
 /* ====================== */
 
@@ -166,31 +163,35 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 	// All Hosts are starting with SLAs that allow 10 SMALL, 5 MEDIUM and 2 LARGE VMs at the beginning:
 
-	val switch1 	= new Switch(CompID(1), "00:00:00:00:00:00:01:00", Map(1->CompID(2), 2->CompID(3)))
-	val switch2 	= new Switch(CompID(2), "00:00:00:00:00:00:02:00", Map(1->CompID(1), 2->CompID(3)))
-	val switch3 	= new Switch(CompID(3), "00:00:00:00:00:00:03:00", Map(1->CompID(1), 2->CompID(2)))
+	val switchDPID1 = DPID("00:00:00:00:00:00:01:00")
+	val switchDPID2 = DPID("00:00:00:00:00:00:02:00")
+	val switchDPID3 = DPID("00:00:00:00:00:00:03:00")
+	
+	val switch1 	= new OFSwitch(switchDPID1, Map(1.toShort->switchDPID2, 2.toShort->switchDPID3))
+	val switch2 	= new OFSwitch(switchDPID2, Map(1.toShort->switchDPID1, 2.toShort->switchDPID3))
+	val switch3 	= new OFSwitch(switchDPID3, Map(1.toShort->switchDPID1, 2.toShort->switchDPID2))
 
 	it should "be equal equal to itself" in{
 		switch1 should equal(switch1)
 	}
 	
 	it should "be equal to another Switch with the same values" in{
-		val switch1Comp = new Switch(CompID(1), "00:00:00:00:00:00:01:00", Map(1->CompID(1), 2->CompID(2)))
+		val switch1Comp = new OFSwitch(switchDPID1, Map(1.toShort->switchDPID1, 2.toShort->switchDPID2))
 		switch1 should equal(switch1Comp)
 	}
 	
 	it should "be fully serializable to and deserializable from XML" in{
-		val xmlSerialSwitch1 = Switch.toXML(switch1)
-		val xmlSerialSwitch2 = Switch.toXML(switch2)
-		val xmlSerialSwitch3 = Switch.toXML(switch3)
+		val xmlSerialSwitch1 = OFSwitch.toXML(switch1)
+		val xmlSerialSwitch2 = OFSwitch.toXML(switch2)
+		val xmlSerialSwitch3 = OFSwitch.toXML(switch3)
 
 		println("serialized Switch1 = " + xmlSerialSwitch1)
 		println("serialized Switch2 = " + xmlSerialSwitch2)
 		println("serialized Switch3 = " + xmlSerialSwitch3)
 
-		val xmlDeserialRes1 = Switch.fromXML(xmlSerialSwitch1)
-		val xmlDeserialRes2 = Switch.fromXML(xmlSerialSwitch2)
-		val xmlDeserialRes3 = Switch.fromXML(xmlSerialSwitch3)
+		val xmlDeserialRes1 = OFSwitch.fromXML(xmlSerialSwitch1)
+		val xmlDeserialRes2 = OFSwitch.fromXML(xmlSerialSwitch2)
+		val xmlDeserialRes3 = OFSwitch.fromXML(xmlSerialSwitch3)
 
 		switch1 shouldEqual xmlDeserialRes1
 		switch2 shouldEqual xmlDeserialRes2
@@ -202,13 +203,13 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		val xmlFile1 = new File(resDir.getAbsolutePath +"/Switch1.xml")
 		val xmlFile2 = new File(resDir.getAbsolutePath +"/Switch2.xml")
 		val xmlFile3 = new File(resDir.getAbsolutePath +"/Switch3.xml")
-		Switch.saveToXML(xmlFile1, switch1)
-		Switch.saveToXML(xmlFile2, switch2)
-		Switch.saveToXML(xmlFile3, switch3)
+		OFSwitch.saveToXML(xmlFile1, switch1)
+		OFSwitch.saveToXML(xmlFile2, switch2)
+		OFSwitch.saveToXML(xmlFile3, switch3)
 
-		val loadedSwitch1 = Switch.loadFromXML(xmlFile1)
-		val loadedSwitch2 = Switch.loadFromXML(xmlFile2)
-		val loadedSwitch3 = Switch.loadFromXML(xmlFile3)
+		val loadedSwitch1 = OFSwitch.loadFromXML(xmlFile1)
+		val loadedSwitch2 = OFSwitch.loadFromXML(xmlFile2)
+		val loadedSwitch3 = OFSwitch.loadFromXML(xmlFile3)
 
 		println("switch1 = " + loadedSwitch1)
 		println("switch2 = " + loadedSwitch2)

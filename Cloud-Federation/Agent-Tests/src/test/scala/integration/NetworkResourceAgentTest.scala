@@ -31,33 +31,33 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 									Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 10)))
 
 	//General Medium Node
-	val hwspec1 = Resource(CompID(11), MEDIUM,
+	val hwspec1 = Resource(ResId(11), MEDIUM,
 							ByteSize(16, GiB), ByteSize(320, GiB),
 							ByteSize(50, MB), 10, Vector())
 
 	//General Large Node
-	val hwspec2= Resource(CompID(12), LARGE,
+	val hwspec2= Resource(ResId(12), LARGE,
 							ByteSize(32, GiB), ByteSize(500, GiB),
 							ByteSize(50, MB), 10, Vector())
 
 	val host1 : Host = Host(hwspec1, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
 	val host2 : Host = Host(hwspec2, InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA)
 
-	val res1 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
+	val res1 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-														20.0f, Vector[CompID]())
-	val res2 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
+														20.0f, Vector[ResId]())
+	val res2 : Resource = Resource(	ResId(2), MEDIUM, ByteSize(8.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-														20.0f, Vector[CompID]())
-	val res3 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
+														20.0f, Vector[ResId]())
+	val res3 : Resource = Resource(	ResId(2), MEDIUM, ByteSize(8.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-														20.0f, Vector[CompID]())
-	val res4 : Resource = Resource(	CompID(1), SMALL, ByteSize(8.0, GiB),
+														20.0f, Vector[ResId]())
+	val res4 : Resource = Resource(	ResId(1), SMALL, ByteSize(8.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-														20.0f, Vector[CompID]())
-	val res5 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
+														20.0f, Vector[ResId]())
+	val res5 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-														20.0f, Vector[CompID]())
+														20.0f, Vector[ResId]())
 
 	val reqHostSLA1 = new HostSLA(0.90f, Vector(IMG, COW),
 											Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 3)))
@@ -72,7 +72,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 
-	val cloudSwitches: Vector[Switch] = Vector(Switch(CompID(1), "00:00:10:00", Map(1->CompID(11), 2->CompID(12))))
+	val cloudSwitches: Vector[OFSwitch] = Vector(OFSwitch(ResId(1), "00:00:10:00", Map(1->ResId(11), 2->ResId(12))))
 
 	val ovxIP = InetAddress.getLocalHost
 	val ovxPort = 10000

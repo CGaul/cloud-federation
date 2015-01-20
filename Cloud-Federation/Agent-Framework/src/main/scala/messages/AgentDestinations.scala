@@ -7,4 +7,5 @@ trait PubSubDest extends MessageDestination
 
 trait CCFMDest extends MessageDestination
 trait NRADest extends MessageDestination
+trait NDADest extends MessageDestination
 trait MMADest extends MessageDestination

@@ -17,10 +17,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	object CCFMConfig
 	{
 		def certFile 			= _certFile
-		def ovxIP 				= _ovxIP
-		def ovxPort				= _ovxPort
-		def embedderIP 		= _embedderIP
-		def embedderPort	= _embedderPort
+		def ovxIp 				= _ovxIP
+		def ovxApiPort		= _ovxApiPort
 		def cloudSwitches = _cloudSwitches
 		def cloudHosts 		= _cloudHosts
 		def cloudSLA 			= _cloudSLA
@@ -30,19 +28,16 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		val _certFile: File			= new File(cloudConfDir.getAbsolutePath +"/cloud1.key")
 
 		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
-		val _ovxPort: Int					= 10000
-
-		val _embedderIP: InetAddress = InetAddress.getLocalHost
-		val _embedderPort: Int 			 = 8000
+		val _ovxApiPort: Int			= 8080
 
 
 		// Define the Cloud-Switches from all files in the cloudConfDir/switches/ directory
-		var _cloudSwitches: Vector[Switch] = Vector()
+		var _cloudSwitches: Vector[OFSwitch] = Vector()
 		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
 		if(_cloudSwitchesDir.listFiles() == null)
 			log.error("Switches need at least one defined .xml file in {}/switches/ !", cloudConfDir.getAbsolutePath)
 		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
-			_cloudSwitches = _cloudSwitches :+ Switch.loadFromXML(actSwitchFile)
+			_cloudSwitches = _cloudSwitches :+ OFSwitch.loadFromXML(actSwitchFile)
 		}
 
 		// Define the Cloud-Hosts from all files in the cloudConfDir/hosts/ directory
@@ -78,9 +73,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 
 	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
-																								CCFMConfig.cloudSwitches, CCFMConfig.cloudHosts,
-																								CCFMConfig.ovxIP, CCFMConfig.ovxPort,
-																								CCFMConfig.embedderIP, CCFMConfig.embedderPort,
+																								CCFMConfig.ovxIp, CCFMConfig.ovxApiPort,
 																								matchMakingAgent)
 	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 	log.info("NetworkResourceAgent started at path: {}.", networkResourceAgent.path)

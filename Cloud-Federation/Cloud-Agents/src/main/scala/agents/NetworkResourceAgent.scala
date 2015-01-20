@@ -23,23 +23,21 @@ import scala.util.control.Breaks._
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
-class NetworkResourceAgent(var _cloudSwitches: Vector[Switch], var _cloudHosts: Vector[Host],
-													 ovxIP: InetAddress, ovxPort: Int,
-													 ovxApiAddr: InetAddress, ovxApiPort: Int,
+class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int,
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
 /* Values: */
 /* ======= */
 	
-		val _ovxConn = OVXConnector(ovxApiAddr, ovxApiPort)
+		val _ovxConn = OVXConnector(ovxIp, ovxApiPort)
 	
 
 /* Variables: */
 /* ========== */
 
 		var _tenantNetMap: Map[Tenant, Network] = Map()
-		var _hostSwitchesMap: Map[Host, List[Switch]] = Map()
+		var _hostSwitchesMap: Map[Host, List[OFSwitch]] = Map()
 
 	//TODO: delete
 // 	var cloudSwitches = _cloudSwitches
@@ -297,12 +295,9 @@ object NetworkResourceAgent
 	 * In this case, to generate a new NetworkResource Agent, call
 	 * 	val ccfmProps = Props(classOf[NetworkResourceAgent], args = ovxIP)
 	 * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkResourceAgent-x")
-	 * @param ovxIP The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
+	 * @param ovxIp The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(cloudSwitches: Vector[Switch], cloudHosts: Vector[Host],
-						ovxIP: InetAddress, ovxPort: Int,
-						embedderIP: InetAddress, embedderPort: Int,
-						matchMakingAgent: ActorRef):
-	Props = Props(new NetworkResourceAgent(cloudSwitches, cloudHosts, ovxIP, ovxPort, embedderIP, embedderPort, matchMakingAgent))
+	def props(ovxIp: InetAddress, ovxApiPort: Int, matchMakingAgent: ActorRef):
+	Props = Props(new NetworkResourceAgent(ovxIp, ovxApiPort, matchMakingAgent))
 }

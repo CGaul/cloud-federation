@@ -34,21 +34,21 @@ object CloudAgentManagement extends App
 	// Lightweight Tenant Allocation Testing for 0.2 Integrated Controllers Milestone:
 	// Copied from NetworkResourceAgentTest:
 
-	val res1 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
+	val res1 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
 		ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-		20.0f, Vector[CompID]())
-	val res2 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
+		20.0f, Vector[ResId]())
+	val res2 : Resource = Resource(	ResId(2), MEDIUM, ByteSize(8.0, GiB),
 		ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-		20.0f, Vector[CompID]())
-	val res3 : Resource = Resource(	CompID(2), MEDIUM, ByteSize(8.0, GiB),
+		20.0f, Vector[ResId]())
+	val res3 : Resource = Resource(	ResId(2), MEDIUM, ByteSize(8.0, GiB),
 		ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-		20.0f, Vector[CompID]())
-	val res4 : Resource = Resource(	CompID(1), SMALL, ByteSize(8.0, GiB),
+		20.0f, Vector[ResId]())
+	val res4 : Resource = Resource(	ResId(1), SMALL, ByteSize(8.0, GiB),
 		ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-		20.0f, Vector[CompID]())
-	val res5 : Resource = Resource(	CompID(1), SMALL, ByteSize(4.0, GiB),
+		20.0f, Vector[ResId]())
+	val res5 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
 		ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-		20.0f, Vector[CompID]())
+		20.0f, Vector[ResId]())
 
 	val reqHostSLA1 = new HostSLA(0.90f, Vector(IMG, COW),
 		Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 3)))
