@@ -4,8 +4,8 @@ import java.net.InetAddress
 
 import akka.actor.Actor.Receive
 import akka.actor._
-import connectors.{Link, Endpoint, OVXConnector}
-import datatypes.{DPID, OFSwitch, Host}
+import connectors.{Link, OVXConnector}
+import datatypes.{DPID, OFSwitch, Host, Endpoint}
 
 /**
  * Created by costa on 1/20/15.
@@ -63,9 +63,11 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
     for (actSwitch <- _discoveredSwitches) {
       //Get all Links, whose src is pointing to the actSwitch:
       val actSrcLinks: List[Link] = phTopo._2.filter(link => topoSrcLinkMap(actSwitch.dpid).contains(link.linkId))
-      
+
       // With info on all links, map srcPort -> (dstDPID, dstPort) in actSwitch:
-      
+      // TODO: fix really ugly connectors.Endpoint -> datatypes.Endpoint transformation:
+      val srcPortRemap = actSrcLinks.map(link => link.src.port -> Endpoint(DPID(link.dst.dpid), link.dst.port)).toMap
+      actSwitch.remapPorts(srcPortRemap)
     }
   }
 

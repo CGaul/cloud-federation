@@ -20,7 +20,7 @@ import scala.collection.Set
 class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int, 
                    userName: String, userPW: String)
 {
-  
+
 /* Values: */
 /* ======= */
   

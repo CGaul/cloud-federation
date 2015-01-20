@@ -167,16 +167,16 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	val switchDPID2 = DPID("00:00:00:00:00:00:02:00")
 	val switchDPID3 = DPID("00:00:00:00:00:00:03:00")
 	
-	val switch1 	= new OFSwitch(switchDPID1, Map(1.toShort->switchDPID2, 2.toShort->switchDPID3))
-	val switch2 	= new OFSwitch(switchDPID2, Map(1.toShort->switchDPID1, 2.toShort->switchDPID3))
-	val switch3 	= new OFSwitch(switchDPID3, Map(1.toShort->switchDPID1, 2.toShort->switchDPID2))
+	val switch1 	= new OFSwitch(switchDPID1, Map(1.toShort->Endpoint(switchDPID2, 1), 2.toShort->Endpoint(switchDPID3, 2)))
+	val switch2 	= new OFSwitch(switchDPID2, Map(1.toShort->Endpoint(switchDPID1, 1), 2.toShort->Endpoint(switchDPID3, 2)))
+	val switch3 	= new OFSwitch(switchDPID3, Map(1.toShort->Endpoint(switchDPID1, 1), 2.toShort->Endpoint(switchDPID2, 2)))
 
 	it should "be equal equal to itself" in{
 		switch1 should equal(switch1)
 	}
 	
 	it should "be equal to another Switch with the same values" in{
-		val switch1Comp = new OFSwitch(switchDPID1, Map(1.toShort->switchDPID1, 2.toShort->switchDPID2))
+		val switch1Comp = new OFSwitch(switchDPID1, Map(1.toShort->Endpoint(switchDPID1, 1), 2.toShort->Endpoint(switchDPID2, 2)))
 		switch1 should equal(switch1Comp)
 	}
 	

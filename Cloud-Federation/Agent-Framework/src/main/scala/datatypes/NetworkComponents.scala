@@ -37,6 +37,10 @@ object Endpoint{
   /* Serialization: */
   /* ============== */
 
+  def toString(endpoint: Endpoint): String = {
+    return s"Endpoint(${endpoint.port.toString},${endpoint.dpid.toString})"
+  }
+
   def toXML(endpoint: Endpoint): Node =
     <Endpoint>
       <DPID>{endpoint.dpid.toString}</DPID>
@@ -51,6 +55,14 @@ object Endpoint{
 
   /* De-Serialization: */
   /* ================= */
+
+  def fromString(epStr: String): Endpoint = {
+    require(epStr.contains("Endpoint(") && epStr.endsWith(")"), s"Bad String format for Endpoint-String $epStr!")
+    val valList: Array[String] = epStr.split("Endpoint")(1).substring(0, epStr.lastIndexOf(')')).split(",")
+    assert(valList.length == 2, s"Parameters of Endpoint were not extracted correctly fromString $epStr")
+
+    return Endpoint(DPID(valList(0)), valList(1).toShort)
+  }
 
   def fromXML(node: Node): Endpoint = {
     val dpid: DPID = DPID((node \ "DPID").text)
@@ -69,11 +81,23 @@ object Endpoint{
 /**
  * The representative data class of an OpenFlow-Switch.
  * @param dpid The OpenFlow "data path id" that uniquely describes this OpenFlow-Switch
- * @param portMap A mapping from Port-Number (as Short) to the connected Network-Component (Host or other Switch)
+ * @param _portMap A mapping from Port-Number (as Short) to the connected Network-Component (Host or other Switch)
  */
-case class OFSwitch(dpid: DPID, portMap: Map[Short, Endpoint])
+case class OFSwitch(dpid: DPID, var _portMap: Map[Short, Endpoint])
   extends NetworkComponent{
-  def this(dpid: String) = this(DPID(dpid), portMap = Map())
+
+//  def this(dpid: DPID, portMap: Map[Short, Endpoint]) = this(dpid, portMap)
+  def this(dpid: String) = this(DPID(dpid), _portMap = Map())
+
+  def remapPorts(portMap: Map[Short, Endpoint]): Unit ={
+    this._portMap = portMap
+  }
+
+  def remapPort(port: Short, endpoint: Endpoint) = {
+    this._portMap = _portMap + (port -> endpoint)
+  }
+
+  def portMap = _portMap
 
   /* Basic Overrides: */
   /* ---------------- */
@@ -101,7 +125,7 @@ object OFSwitch {
   def toXML(switch: OFSwitch): Node =
     <Switch>
       <DPID>{switch.dpid.toString}</DPID>
-      <Links>{switch.portMap.map(l => l._1.toString +":"+ l._2).mkString(", ")}</Links>
+      <Links>{switch.portMap.map(l => l._1.toString +":"+ Endpoint.toString(l._2)).mkString(", ")}</Links>
     </Switch>
 
 
@@ -115,9 +139,9 @@ object OFSwitch {
 
   def fromXML(node: Node): OFSwitch = {
     val dpid: DPID = DPID((node \ "DPID").text)
-    val linkIter: Iterable[(Short, DPID)] = (node \ "Links").text.trim.split(", ").map(
-      l => (l.split(":")(0).trim.toShort, DPID(l.split(":")(1).trim)))
-    var links: Map[Short, DPID] = Map()
+    val linkIter: Iterable[(Short, Endpoint)] = (node \ "Links").text.trim.split(", ").map(
+      l => (l.split(":")(0).trim.toShort, Endpoint.fromString(l.split(":")(1).trim)))
+    var links: Map[Short, Endpoint] = Map()
 
     for (actLink <- linkIter) {
       links = links + (actLink._1 -> actLink._2)
