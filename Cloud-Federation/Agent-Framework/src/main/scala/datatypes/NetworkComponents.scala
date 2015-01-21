@@ -40,7 +40,7 @@ object Endpoint{
   /* ============== */
 
   def toString(endpoint: Endpoint): String = {
-    return s"Endpoint(${endpoint.port.toString},${endpoint.dpid.toString})"
+    return s"Endpoint(${endpoint.dpid.toString},${endpoint.port.toString})"
   }
 
   def toXML(endpoint: Endpoint): Node =
@@ -60,15 +60,19 @@ object Endpoint{
 
   def fromString(epStr: String): Endpoint = {
     require(epStr.contains("Endpoint(") && epStr.endsWith(")"), s"Bad String format for Endpoint-String $epStr!")
-    val valList: Array[String] = epStr.split("Endpoint")(1).substring(0, epStr.lastIndexOf(')')).split(",")
+    val valList: Array[String] = epStr.split("Endpoint")(1).replace("(", "").replace(")", "").split(",")
     assert(valList.length == 2, s"Parameters of Endpoint were not extracted correctly fromString $epStr")
 
     return Endpoint(DPID(valList(0)), valList(1).toShort)
   }
 
   def fromXML(node: Node): Endpoint = {
-    val dpid: DPID = DPID((node \ "DPID").text)
-    val port: Short = (node \ "Port").text.toShort
+    var dpNode = node
+    if((node \ "Endpoint").text != "")
+      dpNode = (node \ "Endpoint")(0)
+    
+    val dpid: DPID = DPID((dpNode \ "DPID").text)
+    val port: Short = (dpNode \ "Port").text.toShort
 
     return Endpoint(dpid, port)
   }
@@ -127,7 +131,7 @@ object OFSwitch {
   def toXML(switch: OFSwitch): Node =
     <Switch>
       <DPID>{switch.dpid.toString}</DPID>
-      <Links>{switch.portMap.map(l => l._1.toString +":"+ Endpoint.toString(l._2)).mkString(", ")}</Links>
+      <Links>{switch.portMap.map(l => l._1.toString +" - "+ Endpoint.toString(l._2)).mkString(", ")}</Links>
     </Switch>
 
 
@@ -140,9 +144,13 @@ object OFSwitch {
   /* ================= */
 
   def fromXML(node: Node): OFSwitch = {
-    val dpid: DPID = DPID((node \ "DPID").text)
-    val linkIter: Iterable[(Short, Endpoint)] = (node \ "Links").text.trim.split(", ").map(
-      l => (l.split(":")(0).trim.toShort, Endpoint.fromString(l.split(":")(1).trim)))
+    var switchNode = node
+    if((node \ "Switch").text != "")
+      switchNode = (node \ "Switch")(0)
+    
+    val dpid: DPID = DPID((switchNode \ "DPID").text)
+    val linkIter: Iterable[(Short, Endpoint)] = (switchNode \ "Links").text.trim.split(", ").map(
+      l => (l.split(" - ")(0).trim.toShort, Endpoint.fromString(l.split(" - ")(1).trim)))
     var links: Map[Short, Endpoint] = Map()
 
     for (actLink <- linkIter) {
@@ -382,25 +390,30 @@ object Host {
   /* ================= */
 
   def fromXML(node: Node): Host = {
-    val hardwareSpec: Resource = Resource.fromXML((node \ "Hardware")(0))
-    val endpoint: Endpoint = Endpoint.fromXML(node)
+    var hostNode = node
+    // Check, whether Node is complete Host-XML or only inner values:
+    if((node \ "Host").text != "")
+      hostNode = (node \ "Host")(0)
+    
+    val hardwareSpec: Resource = Resource.fromXML((hostNode \ "Hardware")(0))
+    val endpoint: Endpoint = Endpoint.fromXML(hostNode)
     var hostIP: InetAddress = InetAddress.getLoopbackAddress
     try{
-      hostIP = InetAddress.getByName((node \\ "IP").text.trim)
+      hostIP = InetAddress.getByName((hostNode \\ "IP").text.trim)
     }
     catch{
       case e: UnknownHostException =>
-        System.err.println(s"Address: ${(node \\ "IP").text.trim} could not have been solved. Using Loopback Address")
+        System.err.println(s"Address: ${(hostNode \\ "IP").text.trim} could not have been solved. Using Loopback Address")
     }
-    val hostMAC: String = (node \\ "MAC").text
+    val hostMAC: String = (hostNode \\ "MAC").text
     var allocRes: Vector[ResourceAlloc] = Vector()
-    for (actResAlloc <- node \\ "ResourceAllocs") {
+    for (actResAlloc <- hostNode \\ "ResourceAllocs") {
       //Only parse, if the actual ResourceAlloc is existing.
       if(actResAlloc.text.trim != ""){
         allocRes = allocRes :+ ResourceAlloc.fromXML(actResAlloc)
       }
     }
-    val hostSLA: HostSLA = HostSLA.fromXML((node \ "HostSLA")(0))
+    val hostSLA: HostSLA = HostSLA.fromXML((hostNode \ "HostSLA")(0))
 
     return Host(hardwareSpec, endpoint, hostIP, hostMAC, allocRes, hostSLA)
   }

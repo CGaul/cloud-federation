@@ -91,14 +91,19 @@ object Resource {
 /* ================= */
 
 	def fromXML(node: Node): Resource = {
-		val compID: ResId 			= ResId.fromString((node \\ "ID").text)
-		val cpu: CPUUnit 	 			= CPUUnit.fromString((node \\ "CPU").text)
-		val ram: ByteSize	 			= ByteSize.fromString((node \\ "RAM").text)
-		val storage: ByteSize		= ByteSize.fromString((node \\ "Storage").text)
-		val bandwidth: ByteSize	= ByteSize.fromString((node \\ "Bandwidth").text)
-		val latency: Float			= (node \\ "Latency").text.toFloat
-		val links: Vector[ResId] = if((node \\ "Links").text.trim == "") {Vector()}
-																else {(node \\ "Links").text.trim.split(" ").map(str => ResId.fromString(str)).toVector}
+		var resNode = node
+		// Check, whether Node is complete Resource-XML or only inner values:
+		if((node \ "Resource").text != "")
+			resNode = (node \ "Resource")(0)
+		
+		val compID: ResId 			= ResId.fromString((resNode \\ "ID").text)
+		val cpu: CPUUnit 	 			= CPUUnit.fromString((resNode \\ "CPU").text)
+		val ram: ByteSize	 			= ByteSize.fromString((resNode \\ "RAM").text)
+		val storage: ByteSize		= ByteSize.fromString((resNode \\ "Storage").text)
+		val bandwidth: ByteSize	= ByteSize.fromString((resNode \\ "Bandwidth").text)
+		val latency: Float			= (resNode \\ "Latency").text.toFloat
+		val links: Vector[ResId] = if((resNode \\ "Links").text.trim == "") {Vector()}
+																else {(resNode \\ "Links").text.trim.split(" ").map(str => ResId.fromString(str)).toVector}
 
 		return Resource(compID, cpu, ram, storage, bandwidth, latency, links)
 	}
@@ -179,12 +184,18 @@ object ResourceAlloc {
 /* ================= */
 
 	def fromXML(node: Node): ResourceAlloc = {
-		val tenantID: Int 							= (node \\ "TenantID").text.toInt
+		var resAllocNode = node
+		// Check, whether Node is complete Resource-XML or only inner values:
+		if((node \ "ResourceAlloc").text != "")
+			resAllocNode = (node \ "ResourceAlloc")(0)
+		
+		val tenantID: Int = (resAllocNode \\ "TenantID").text.toInt
 		var resources: Vector[Resource] = Vector()
-		for (actResNode <- node \\ "Resources") {
+		
+		for (actResNode <- resAllocNode \\ "Resources") {
 			resources = resources :+ Resource.fromXML(actResNode)
 		}
-		val reqHostSLA: HostSLA 				= HostSLA.fromXML((node \\ "ReqHostSLA")(0))
+		val reqHostSLA: HostSLA = HostSLA.fromXML((resAllocNode \\ "ReqHostSLA")(0))
 
 		return ResourceAlloc(tenantID, resources, reqHostSLA)
 	}

@@ -424,9 +424,12 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		val host3 		= new Host(res4, Endpoint("00:00:00:00:00:01:13:00", 1), InetAddress.getByName("192.168.1.3"), "00:00:00:03", Vector(resAlloc2, resAlloc3), hostSLA3)
 
 		val xmlSerialHost1 = Host.toXML(host1)
-
 		val xmlSerialHost2 = Host.toXML(host2)
 		val xmlSerialHost3 = Host.toXML(host3)
+
+		println("serialized Host1 = " + xmlSerialHost1)
+		println("serialized Host2 = " + xmlSerialHost2)
+		println("serialized Host3 = " + xmlSerialHost2)
 
 		val xmlDeserialHost1 = Host.fromXML(xmlSerialHost1)
 		val xmlDeserialHost2 = Host.fromXML(xmlSerialHost2)
