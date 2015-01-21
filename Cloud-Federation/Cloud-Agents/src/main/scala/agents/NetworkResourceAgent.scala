@@ -16,28 +16,42 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
-	context.become(inactive())
 	
 /* Values: */
 /* ======= */
 	
 		val _ovxConn = OVXConnector(ovxIp, ovxApiPort)
-	
+		val _ndaActor: ActorRef = initChildActors()
 
-/* Variables: */
+
+	/* Variables: */
 /* ========== */
 		var _hostTopology: List[Host] = cloudHosts
 		var _switchTopology: List[OFSwitch] = List()
 		var _tenantNetMap: Map[Tenant, Network] = Map()
 		var _hostSwitchesMap: Map[Host, List[OFSwitch]] = Map()
 
-	//TODO: delete
-// 	var cloudSwitches = _cloudSwitches
-//	var cloudHosts = _cloudTopology
 
-//		private var _ovxSubnetID: Int = 1
-//		private var _ovxSubnetAddress: InetAddress = InetAddress.getByName("10.10.1.0")
-
+/* Initial Startup: */
+/* ================ */
+	initActor()
+	
+	def initActor() = {
+		// This NRA-Instance is inactive after boot-up:
+		context.become(inactive())
+		log.info("NetworkResourceAgent is started in INACTIVE mode, until NDA sends a TopologyDiscovery...")
+	}
+	
+	def initChildActors(): ActorRef = {
+		// Spawn a NetworkDiscoveryAgent (NDA) for Network-Topology-Discovery:
+		val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, context.self)
+		val ndaActor = context.actorOf(ndaProps, name="networkDiscoveryAgent")
+		log.info("NetworkDiscoveryAgent started at path: {}", ndaActor.path)
+		
+		return ndaActor
+	}
+	
+	
 /* Public Methods: */
 /* =============== */
 	
@@ -71,6 +85,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 			=> 	recvTopologyDiscovery(switchList)
 				unstashAll()
 				context.become(active())
+				log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
 
 		}
 		case _	=> log.error("Unknown message received!")
@@ -211,8 +226,8 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		}
 		return (allocationPerHost, remainResAlloc)
 	}
-
-	//TODO: Implement in 0.2 Integrated Controllers
+	
+	//TODO: Implement in 0.3 - Federated Agents
 	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
 
 		// If the tenant does not have an OVX tenant-network until now:
