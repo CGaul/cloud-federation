@@ -71,9 +71,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		case message: NRANetworkDest => message match{
 			case TopologyDiscovery(switchList)
 			=> 	recvTopologyDiscovery(switchList)
-				unstashAll()
-				context.become(active())
-				log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
+				log.info("New TopologyDiscovery received.")
 		}
 		case _	=> log.error("Unknown message received!")
 	}

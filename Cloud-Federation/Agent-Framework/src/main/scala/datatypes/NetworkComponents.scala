@@ -92,7 +92,7 @@ object Endpoint{
 case class OFSwitch(dpid: DPID, var _portMap: Map[Short, Endpoint])
   extends NetworkComponent{
 
-//  def this(dpid: DPID, portMap: Map[Short, Endpoint]) = this(dpid, portMap)
+  def this(dpid: DPID) = this(dpid, _portMap = Map())
   def this(dpid: String) = this(DPID(dpid), _portMap = Map())
 
   def remapPorts(portMap: Map[Short, Endpoint]): Unit ={
@@ -122,6 +122,7 @@ case class OFSwitch(dpid: DPID, var _portMap: Map[Short, Endpoint])
  */
 object OFSwitch {
 // Additional Apply Methods:
+  def apply(dpid: DPID): OFSwitch = new OFSwitch(dpid)
   def apply(dpid: String): OFSwitch = new OFSwitch(dpid)
 
   

@@ -108,7 +108,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 //	val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, tActorRefNRA)
 //	val tActorRefNDA 	= TestActorRef[NetworkDiscoveryAgent](ndaProps)
 	
-	Thread.sleep(10000) // Wait for 10 seconds (this should be enough for the first NDA TopologyDiscovery)
+	Thread.sleep(25000) // Wait for 25 seconds (this should be enough for the first two NDA TopologyDiscoveries)
 
 
 
