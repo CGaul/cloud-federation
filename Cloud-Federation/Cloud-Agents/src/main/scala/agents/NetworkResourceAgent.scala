@@ -3,7 +3,7 @@ package agents
 import java.net._
 
 import akka.actor._
-import connectors.{Network, OVXConnector}
+import connectors.{VirtualSwitch, VirtualNetwork, OVXConnector}
 import datatypes._
 import messages._
 
@@ -24,16 +24,24 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		val _ndaActor: ActorRef = initChildActors()
 
 
-	/* Variables: */
+/* Variables: */
 /* ========== */
+		// Physical Topologies, received from the CCFM (hosts) and the NDA (switches)
 		var _hostTopology: List[Host] = cloudHosts
 		var _switchTopology: List[OFSwitch] = List()
-		var _tenantNetMap: Map[Tenant, Network] = Map()
+	
+		// Physical Mappings:
 		var _hostSwitchesMap: Map[Host, List[OFSwitch]] = Map()
+		var _switchPortMap: Map[OFSwitch, List[(Short, Short, Option[NetworkComponent])]] = Map()
+	
+		// Virtual Mappings:
+		var _tenantNetMap: Map[Tenant, VirtualNetwork] = Map()
+		var _tenantSwitchMap: Map[Tenant, List[VirtualSwitch]] = Map()
 
 
 /* Initial Startup: */
 /* ================ */
+	
 	initActor()
 	
 	def initActor() = {
@@ -123,6 +131,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		// Prepare the locally fulfilled allocations that will be send to OVX via
 		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
+		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
 		mapAllocOnOVX(tenant, hostList)
 //		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
 
@@ -233,9 +242,11 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
 
 		// If the tenant does not have an OVX tenant-network until now:
-		if(! _tenantNetMap.keys.exists(_ == tenant)){
+		if (!_tenantNetMap.keys.exists(_ == tenant)) {
 			val net = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
-			if(net.isDefined)
+			if (net.isDefined)
+				log.info("Created Network for Tenant {} at OFC: {}:{}", 
+					tenant.id, tenant.ofcIp, tenant.ofcPort)
 				_tenantNetMap = _tenantNetMap + (tenant -> net.get)
 		}
 		// In general, this allocation includes all physical Switches, that are needed to connect all hosts with each other.
@@ -245,77 +256,72 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		// Afterwards, try to solve a path from each host to all other hosts, using all
 		// currently discovered physical Switches as direct gateway to them:
 		// TODO: path discovery
-		
-		// Once all Switches in this allocation are discovered,
-		for (actPhysSwitch <- physSwitches) {
-			// Create the virtual Switch as a direct mapping from phys -> virt
-			val vSwitch = _ovxConn.createSwitch(tenant.tenantId, List(actPhysSwitch.dpid.toString))
 
-			// Add all known physical Ports to the virtual Switch:
-			//TODO: add Ports to vSwitch
+		// Create virtual switches for all physical Switches that are not yet part of a virtual switch in the tenant's vNet:
+		for (actPhysSwitch <- physSwitches 
+				 if !_tenantSwitchMap.keys.exists(_ == tenant) ||
+						!_tenantSwitchMap(tenant).exists(_.dpids.contains(actPhysSwitch.dpid))) 
+		{
 
-			// Add each Host that is connected directly to the current physical Switch to the
-			// virtual Switch also:
-			for (actHost <- hosts) {
-				if(_hostSwitchesMap(actHost).contains(actPhysSwitch)){
-					// TODO: connect Host to vSwitch
+			// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch,
+			val vSwitch = _ovxConn.createSwitch(tenant.id, List(actPhysSwitch.dpid.toString))
+			if (vSwitch.isDefined) {
+				log.info("Created Switch (dpids: {} vdpid: {}) in Tenant-Network {}", 
+					vSwitch.get.vdpid, vSwitch.get.dpids, tenant.id)
+				_tenantSwitchMap.get(tenant) match {
+					case Some(list) => _tenantSwitchMap = _tenantSwitchMap + (tenant -> (list :+ vSwitch.get))
+					case None => _tenantSwitchMap = _tenantSwitchMap + (tenant -> List(vSwitch.get))
+				}
+			}
+
+			// Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
+			//TODO: add Ports to vSwitch, if other Switches from discovered Path need to be connected:
+			val physSrcPorts = actPhysSwitch.portMap.map(_._1)
+			for (actSrcPort <- physSrcPorts) {
+				val portMap = _ovxConn.createPort(tenant.id, actPhysSwitch.dpid.toString, actSrcPort)
+				if (portMap.isDefined) {
+					log.info("Created Port (phys: {} virt: {}) at Switch {} for other Switch in Tenant-Network {}",
+									 portMap.get._1, portMap.get._2, actPhysSwitch.dpid.toString, tenant.id)
+					_switchPortMap.get(actPhysSwitch) match {
+						case Some(list) => _switchPortMap = _switchPortMap + (actPhysSwitch -> (list :+(portMap.get._1, portMap.get._2, None)))
+						case None => _switchPortMap = _switchPortMap + (actPhysSwitch -> List((portMap.get._1, portMap.get._2, None)))
+					}
 				}
 			}
 		}
 
-		//TODO: delete:
-//		// Prepare the Host-List for the Json-Query.
-//		// Each Host entry is defined by connected Switch DPID, Host MAC and Switch Port
-//		var hostsList: Seq[JsValue] = Seq()
-//		for (actSwitch <- allocatedSwitches) {
-//			// Find all allocated hosts that are connected to the actual switch:
-//			val actHosts: Iterable[Host] = allocatedHosts.filter(h => actSwitch.links.values.exists(_ == h.compID))
-//
-//			for (actHost <- actHosts) {
-//				// Find the Port at the Switch that connects the actual Host:
-//				val port: Option[(Int, CompID)] = actSwitch.links.find(_._2 == actHost.compID)
-//				if(port.isDefined){
-//					hostsList = hostsList :+ Json.toJson(Map("dpid" -> Json.toJson(actSwitch.dpid), "mac" -> Json.toJson(actHost.mac), "port" -> Json.toJson(port.get._1)))
-//				}
-//				else{
-//					log.error("Host {} is not connected to a Port in the Switch {}! Aborting allocation into OVX-Network!",
-//										actHost, actSwitch)
+		// Add each Host in the hosts-List to the Host's Switch-Endpoint:
+		// TODO: create Ports for the Host's Endpoint and connect the Host to it
+		for (actHost <- hosts) {
+			val physSwitchToConnect = _switchTopology.find(_.dpid == actHost.endpoint.dpid)
+			if (physSwitchToConnect.isDefined) {
+				// If no virtual Port is available for the physSwitch + physPort that the Host should connect to, createPort:
+				if (! _switchPortMap(physSwitchToConnect.get).exists(_._1 == actHost.endpoint.port)) {
+					val hostPortMap = _ovxConn.createPort(tenant.id, actHost.endpoint.dpid.toString, actHost.endpoint.port)
+					if (hostPortMap.isDefined) {
+						log.info("Created Port (phys: {} virt: {}) at Switch {} for Host {} in Tenant-Network {}",
+										 hostPortMap.get._1, hostPortMap.get._2, physSwitchToConnect.get.dpid.toString, tenant.id)
+						_switchPortMap.get(physSwitchToConnect.get) match {
+							case Some(list) => _switchPortMap = _switchPortMap + (physSwitchToConnect.get -> (list :+(hostPortMap.get._1, hostPortMap.get._2, None)))
+							case None => _switchPortMap = _switchPortMap + (physSwitchToConnect.get -> List((hostPortMap.get._1, hostPortMap.get._2, None)))
+						}
+					}
+					
+				// TODO: Add the host to the virtual Port that existed before or was just created:
+				
+			}
+			
+			actHost.endpoint
+//			for (actPhysSwitch <- _hostSwitchesMap(actHost)) {
+//				val virtSwitches = _tenantSwitchMap(tenant).filter(_.dpids.contains(actPhysSwitch.dpid))
+//				for (actVirtSwitch <- virtSwitches) {
+//					val vports = _switchPortMap(actPhysSwitch).filter(_._3.isEmpty)
+//					val vHost = _ovxConn.connectHost(tenant.id, actVirtSwitch.vdpid, vports(0)._2, actHost.mac)
+//					//TODO: add vHost to SwitchPortMap:
+//					// _switchPortMap(actPhysSwitch) = (vports.)
 //				}
 //			}
-//		}
-//		val ofcQuery: JsValue = Json.toJson(Map(
-//			"ctrls" -> Json.toJson(Seq(Json.toJson(
-//				"tcp:"+ ofcIP.getHostAddress+":"+ofcPort))),
-//			"type" -> Json.toJson("custom")))
-//
-//		val jsonQuery: JsValue = Json.toJson(
-//			Map(
-//				"id" -> Json.toJson(_ovxSubnetID.toString),
-//				"jsonrpc" -> Json.toJson("2.0"),
-//				"method" -> Json.toJson("createNetwork"),
-//				"params" -> Json.toJson(Map(
-//					"network" -> Json.toJson(Map(
-//						"controller" -> ofcQuery,
-//						"hosts" -> Json.toJson(hostsList),
-//						"routing" -> Json.toJson(Map("algorithm" -> Json.toJson("spf"), "backup_num" -> Json.toJson(1))),
-//						"subnet" -> Json.toJson(_ovxSubnetAddress.getHostAddress +"/24"),
-//						"type" -> Json.toJson("physical")
-//					))
-//				))
-//			)
-//		)
-//		// Save the jsonQuery to file:
-//		val out: FileWriter = new FileWriter(new File("ovx_subnet-"+_ovxSubnetID+".json"))
-//		out.write(Json.stringify(jsonQuery))
-//		out.close()
-//
-//		// Prepare (increase) SubnetID and SubnetAddress for the next OVX-Network allocation:
-//		_ovxSubnetID += 1
-//		val newSubnetRange: Int = _ovxSubnetAddress.getHostAddress.substring(3,5).toInt + 1
-//		val newAddress: String = _ovxSubnetAddress.getHostAddress.substring(0,3) +
-//														 newSubnetRange + _ovxSubnetAddress.getHostAddress.substring(5)
-//		_ovxSubnetAddress = InetAddress.getByName(newAddress)
-
+		}
 	}
 }
 

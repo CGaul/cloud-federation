@@ -28,13 +28,13 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
       log.info("NetworkDiscoveryAgent stopped discovery-loop.")
     }
   })
-  var _shouldRun = false
-  
+
+
   /* Variables: */
   /* ========== */
 
+  var _shouldRun = false
   var _discoveredSwitches: List[OFSwitch] = List()
-//  var _discoveredHosts: List[Host] = List()
 
 
 /* Initial Startup: */
@@ -89,7 +89,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
     for (actLink <- topoSrcLinkIds) {
       val actSrcLink = topoSrcLinkMap.get(actLink._1)
       actSrcLink match{
-        case Some(srcLink)  => topoSrcLinkMap = topoSrcLinkMap + (actLink._1 -> (srcLink :+ actLink._2))
+        case Some(linkList) => topoSrcLinkMap = topoSrcLinkMap + (actLink._1 -> (linkList :+ actLink._2))
         case None           => topoSrcLinkMap = topoSrcLinkMap + (actLink._1 -> List(actLink._2))
       }
     }
@@ -122,7 +122,6 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
       log.info("NetworkDiscoveryAgent received \"start\" command, becoming ACTIVE now!")
       _shouldRun = true
       _workingThread.start()
-
   }
 
   override def receive: Receive = inactive()

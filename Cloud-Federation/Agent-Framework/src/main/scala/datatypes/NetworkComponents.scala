@@ -9,7 +9,7 @@ import scala.xml.Node
 
 
 
-case class Tenant(tenantId: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short)
+case class Tenant(id: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short)
 
 
 /**
@@ -87,7 +87,8 @@ object Endpoint{
 /**
  * The representative data class of an OpenFlow-Switch.
  * @param dpid The OpenFlow "data path id" that uniquely describes this OpenFlow-Switch
- * @param _portMap A mapping from Port-Number (as Short) to the connected Network-Component (Host or other Switch)
+ * @param _portMap A mapping from the src Port-Number (as Short) 
+ *                 to the connected Network-Component (Host or other Switch)
  */
 case class OFSwitch(dpid: DPID, var _portMap: Map[Short, Endpoint])
   extends NetworkComponent{
