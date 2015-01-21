@@ -16,6 +16,10 @@
 			<Links>3</Links>
 		</Resource>
 	</Hardware>
+	<Endpoint>
+		<DPID>00:00:00:00:00:01:13:00</DPID>
+		<Port>1</Port>
+	</Endpoint>
 	<IP>10.1.0.14</IP>
 	<MAC>0:00:00:00:01:14</MAC>
 	<ResourceAllocs>
