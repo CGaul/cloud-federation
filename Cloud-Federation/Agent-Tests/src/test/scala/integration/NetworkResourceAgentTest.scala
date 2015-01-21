@@ -105,20 +105,21 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 															tActorRefMMA)
 	val tActorRefNRA 	= TestActorRef[NetworkResourceAgent](nraProps)
 	
-	val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, tActorRefNRA)
-	val tActorRefNDA 	= TestActorRef[NetworkDiscoveryAgent](ndaProps)
+//	val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, tActorRefNRA)
+//	val tActorRefNDA 	= TestActorRef[NetworkDiscoveryAgent](ndaProps)
 	
+	Thread.sleep(10000) // Wait for 10 seconds (this should be enough for the first NDA TopologyDiscovery)
 
 
 
 	/* Test Specifications: */
 	/* ==================== */
 
-	"A NetworkDiscoveryAgent" should {
-		"be able to discover the physical Topology" in{
-			tActorRefNDA.receive("start")
-		}
-	}
+//	"A NetworkDiscoveryAgent" should {
+//		"be able to discover the physical Topology" in{
+//			tActorRefNDA.receive("start")
+//		}
+//	}
 	"A NetworkResourceAgent" should {
 		"answer with a ResourceReply, if ResourceRequests are locally fulfillable" in {
 			//TODO: Write out Shortcut implementation:

@@ -13,16 +13,19 @@ import messages.TopologyDiscovery
  */
 class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResourceAgent: ActorRef) 
                            extends Actor with ActorLogging{
-  import context._
-  become(inactive)
   
   val _workingThread = new Thread(new Runnable{
     override def run(): Unit = {
+      log.info("NetworkDiscoveryAgent begins its discovery-loop...")
       while(_shouldRun) {
-        discoverPhysicalTopology()
-        networkResourceAgent ! TopologyDiscovery(_discoveredSwitches)
+        val topologyChanged = discoverPhysicalTopology()
+        if(topologyChanged) {
+          log.info("Updated Network-Topology discovered, sending TopologyDiscovery to NRA.")
+          networkResourceAgent ! TopologyDiscovery(_discoveredSwitches)
+        }
         Thread.sleep(10000) //sleep 10 seconds between each discovery
       }
+      log.info("NetworkDiscoveryAgent stopped its discovery-loop.")
     }
   })
   var _shouldRun = false
@@ -32,12 +35,26 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
 
   var _discoveredSwitches: List[OFSwitch] = List()
 //  var _discoveredHosts: List[Host] = List()
-  
-  
+
+
+/* Initial Startup: */
+/* ================ */
+  initActor()
+
+  def initActor() = {
+    // This NRA-Instance is inactive after boot-up:
+    context.become(inactive())
+    log.info("NetworkDiscoveryAgent will be INACTIVE, until NRA sends the \"start\" command...")
+  }
+
+
+
   /* Public Methods: */
   /* =============== */
   
-  def discoverPhysicalTopology() = {
+  def discoverPhysicalTopology(): Boolean = {
+    var topologyChanged = false
+    
     val ovxConn = OVXConnector(ovxIp, ovxApiPort)
     val phTopo  = ovxConn.getPhysicalTopology
 
@@ -49,10 +66,14 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
     val remSwitches: List[OFSwitch] = for (actDPID <- _discoveredSwitches.map(_.dpid.toString) if ! phTopo._1.contains(actDPID))
                                         yield OFSwitch(actDPID)
     
-    if(newSwitches.length > 0)
+    if(newSwitches.length > 0) {
       this.log.info("Discovered new switches in the physical Topology: {}", newSwitches.map(_.dpid))
-    if(remSwitches.length > 0)
+      topologyChanged = true
+    }
+    if(remSwitches.length > 0) {
       this.log.info("Discovered removal of switches in the physical Topology: {}", remSwitches.map(_.dpid))
+      topologyChanged = true
+    }
     
     
     // Update _discoveredSwitches by deleting remSwitches and adding newSwitches:
@@ -80,24 +101,28 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
       val srcPortRemap = actSrcLinks.map(link => link.src.port -> Endpoint(DPID(link.dst.dpid), link.dst.port)).toMap
       actSwitch.remapPorts(srcPortRemap)
     }
+    
+    return topologyChanged
   }
 
-  def active: Receive ={
+  def active(): Receive ={
     case "stop" => 
-      become(inactive)
+      context.become(inactive())
+      log.info("NetworkDiscoveryAgent received \"stop\" command, becoming INACTIVE now!")
       _shouldRun = false
   }
   
   
-  def inactive: Receive = {
+  def inactive(): Receive = {
     case "start" => 
-      become(active)
+      context.become(active())
+      log.info("NetworkDiscoveryAgent received \"start\" command, becoming ACTIVE now!")
       _shouldRun = true
       _workingThread.start()
-    
+
   }
 
-  override def receive: Receive = inactive
+  override def receive: Receive = inactive()
 }
 
 

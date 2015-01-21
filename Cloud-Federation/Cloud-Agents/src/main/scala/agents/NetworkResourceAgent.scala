@@ -39,7 +39,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	def initActor() = {
 		// This NRA-Instance is inactive after boot-up:
 		context.become(inactive())
-		log.info("NetworkResourceAgent is started in INACTIVE mode, until NDA sends a TopologyDiscovery...")
+		log.info("NetworkResourceAgent will be INACTIVE, until NDA sends a TopologyDiscovery...")
 	}
 	
 	def initChildActors(): ActorRef = {
@@ -47,6 +47,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, context.self)
 		val ndaActor = context.actorOf(ndaProps, name="networkDiscoveryAgent")
 		log.info("NetworkDiscoveryAgent started at path: {}", ndaActor.path)
+		ndaActor ! "start"
 		
 		return ndaActor
 	}
