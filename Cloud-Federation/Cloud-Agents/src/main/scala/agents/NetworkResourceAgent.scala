@@ -67,8 +67,15 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 			case ResourceFederationReply(resourcesAllocated)
 			=> recvResourceFederationReply(resourcesAllocated)
 		}
-		// Call regular receive-Method for NRANetworkDest messages or anything else:
-		case _ => receive()
+			
+		case message: NRANetworkDest => message match{
+			case TopologyDiscovery(switchList)
+			=> 	recvTopologyDiscovery(switchList)
+				unstashAll()
+				context.become(active())
+				log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
+		}
+		case _	=> log.error("Unknown message received!")
 	}
 	
 	def inactive(): Receive = {
@@ -76,23 +83,19 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 			case _ => stash()
 		}
 			
-		// Call regular receive-Method for NRANetworkDest messages or anything else:
-		case _ => receive()
-	}
-
-	def receive(): Receive = {
 		case message: NRANetworkDest => message match{
 			case TopologyDiscovery(switchList)
 			=> 	recvTopologyDiscovery(switchList)
 				unstashAll()
 				context.become(active())
 				log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
-
 		}
 		case _	=> log.error("Unknown message received!")
 	}
 
+	def receive: Receive = inactive()
 
+	
 /* Private Receiving Methods: */
 /* ========================== */
 

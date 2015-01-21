@@ -16,7 +16,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
   
   val _workingThread = new Thread(new Runnable{
     override def run(): Unit = {
-      log.info("NetworkDiscoveryAgent begins its discovery-loop...")
+      log.info("NetworkDiscoveryAgent begins discovery-loop...")
       while(_shouldRun) {
         val topologyChanged = discoverPhysicalTopology()
         if(topologyChanged) {
@@ -25,7 +25,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
         }
         Thread.sleep(10000) //sleep 10 seconds between each discovery
       }
-      log.info("NetworkDiscoveryAgent stopped its discovery-loop.")
+      log.info("NetworkDiscoveryAgent stopped discovery-loop.")
     }
   })
   var _shouldRun = false
@@ -59,7 +59,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
     val phTopo  = ovxConn.getPhysicalTopology
 
     // Add new Switches that are discovered in the physical Topology, but are currently not inside _discoveredSwitches:
-    val newSwitches: List[OFSwitch] = for (actDPID <- phTopo._1 if ! _discoveredSwitches.contains(actDPID)) 
+    val newSwitches: List[OFSwitch] = for (actDPID <- phTopo._1 if ! _discoveredSwitches.exists(_.dpid == actDPID))
                                         yield OFSwitch(actDPID)
     
     // Find removed Switches, that were in the _discoveredSwitches List, but are not in the physical Topology anymore:
