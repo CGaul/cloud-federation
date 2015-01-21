@@ -6,6 +6,7 @@ import akka.actor.Actor.Receive
 import akka.actor._
 import connectors.{Link, OVXConnector}
 import datatypes.{DPID, OFSwitch, Host, Endpoint}
+import messages.TopologyDiscovery
 
 /**
  * Created by costa on 1/20/15.
@@ -15,12 +16,22 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
   import context._
   become(inactive)
   
+  val _workingThread = new Thread(new Runnable{
+    override def run(): Unit = {
+      while(_shouldRun) {
+        discoverPhysicalTopology()
+        networkResourceAgent ! TopologyDiscovery(_discoveredSwitches)
+        Thread.sleep(10000) //sleep 10 seconds between each discovery
+      }
+    }
+  })
+  var _shouldRun = false
   
   /* Variables: */
   /* ========== */
 
   var _discoveredSwitches: List[OFSwitch] = List()
-  var _discoveredHosts: List[Host] = List()
+//  var _discoveredHosts: List[Host] = List()
   
   
   /* Public Methods: */
@@ -72,12 +83,17 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
   }
 
   def active: Receive ={
-    case "stop" => become(inactive)
-    
+    case "stop" => 
+      become(inactive)
+      _shouldRun = false
   }
   
+  
   def inactive: Receive = {
-    case "start" => become(active)
+    case "start" => 
+      become(active)
+      _shouldRun = true
+      _workingThread.start()
     
   }
 

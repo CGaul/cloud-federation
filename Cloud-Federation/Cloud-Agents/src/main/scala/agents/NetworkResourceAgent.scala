@@ -16,6 +16,8 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
+	context.become(inactive())
+	
 /* Values: */
 /* ======= */
 	
@@ -24,7 +26,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 
 /* Variables: */
 /* ========== */
-		var _cloudTopology: List[Host] = cloudHosts
+		var _hostTopology: List[Host] = cloudHosts
 		var _switchTopology: List[OFSwitch] = List()
 		var _tenantNetMap: Map[Tenant, Network] = Map()
 		var _hostSwitchesMap: Map[Host, List[OFSwitch]] = Map()
@@ -38,23 +40,39 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 
 /* Public Methods: */
 /* =============== */
-
-	def receive(): Receive = {
+	
+	def active(): Receive = {
 		case message: NRAResourceDest	=> message match {
 			case ResourceRequest(tenant, resourcesToAlloc)
-						=> recvResourceRequest(tenant, resourcesToAlloc)
+			=> recvResourceRequest(tenant, resourcesToAlloc)
 
 			case ResourceFederationRequest(tenant, resourcesToAlloc)
-						=> recvResourceFederationRequest(tenant, resourcesToAlloc)
+			=> recvResourceFederationRequest(tenant, resourcesToAlloc)
 
 			case ResourceFederationReply(resourcesAllocated)
-						=> recvResourceFederationReply(resourcesAllocated)
+			=> recvResourceFederationReply(resourcesAllocated)
 		}
-			case message: NRANetworkDest => message match{
-				case TopologyDiscovery(switchList)
-						=> recvTopologyDiscovery(switchList)
-				
-			}
+		// Call regular receive-Method for NRANetworkDest messages or anything else:
+		case _ => receive()
+	}
+	
+	def inactive(): Receive = {
+		case message: NRAResourceDest	=> message match {
+			case _ => stash()
+		}
+			
+		// Call regular receive-Method for NRANetworkDest messages or anything else:
+		case _ => receive()
+	}
+
+	def receive(): Receive = {
+		case message: NRANetworkDest => message match{
+			case TopologyDiscovery(switchList)
+			=> 	recvTopologyDiscovery(switchList)
+				unstashAll()
+				context.become(active())
+
+		}
 		case _	=> log.error("Unknown message received!")
 	}
 
@@ -147,6 +165,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	private def recvTopologyDiscovery(switchTopology: List[OFSwitch]) = {
 		log.info("Received new Switch-Topology from {}, including {} switches.", sender(), switchTopology.length)
 		this._switchTopology = switchTopology
+		this._hostSwitchesMap = _hostSwitchesMap ++ _hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
 	}
 
 
@@ -158,7 +177,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		var allocationPerHost: Map[Host, ResourceAlloc] = Map()
 
 		// Sort the potentialHosts as well as the resourceToAlloc by their resources in descending Order:
-		val sortedHosts			= _cloudTopology.sorted(RelativeHostByResOrdering)
+		val sortedHosts			= _hostTopology.sorted(RelativeHostByResOrdering)
 		val sortedResAlloc	= ResourceAlloc(resourceAlloc.tenantID,
 			resourceAlloc.resources.sorted(RelativeResOrdering),
 			resourceAlloc.requestedHostSLA)

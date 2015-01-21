@@ -40,8 +40,10 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 							ByteSize(32, GiB), ByteSize(500, GiB),
 							ByteSize(50, MB), 10, Vector())
 
-	val host1 : Host = Host(hwspec1, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
-	val host2 : Host = Host(hwspec2, InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA)
+	val host1 : Host = Host(hwspec1, Endpoint("00:00:00:00:00:01:11:00", 1),
+													InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
+	val host2 : Host = Host(hwspec2, Endpoint("00:00:00:00:00:02:11:00", 1),
+													InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA)
 
 	val res1 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
 														ByteSize(50.0, GiB), ByteSize(50.0, MiB),
@@ -114,8 +116,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 	"A NetworkDiscoveryAgent" should {
 		"be able to discover the physical Topology" in{
-			tActorRefNDA.underlyingActor.discoverPhysicalTopology()
-
+			tActorRefNDA.receive("start")
 		}
 	}
 	"A NetworkResourceAgent" should {

@@ -31,7 +31,9 @@ case class Endpoint(dpid: DPID, port: Short) {
 
 object Endpoint{
   // Additional Apply Methods:
-  def apply(dpid: String): OFSwitch = new OFSwitch(dpid)
+  def apply(dpid: DPID, port: Int): Endpoint = new Endpoint(dpid, port.toShort)
+  def apply(dpid: String, port: Int): Endpoint = new Endpoint(dpid, port.toShort)
+  def apply(dpid: String, port: Short): Endpoint = new Endpoint(dpid, port)
 
 
   /* Serialization: */
@@ -166,11 +168,8 @@ object OFSwitch {
  *  }}}
  * @constructor create a new Host, specifying the Host's Hardware Spec, the initial Allocation (if any)
  *             and the Host's SLA
- * @param hardwareSpec
- * @param allocatedResources
- * @param sla bla
  */
-case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
+case class Host(hardwareSpec: Resource, endpoint: Endpoint, ip: InetAddress, mac: String,
                 var allocatedResources: Vector[ResourceAlloc] = Vector(),
                 var sla: HostSLA)
   extends NetworkComponent{
@@ -178,7 +177,7 @@ case class Host(hardwareSpec: Resource, ip: InetAddress, mac: String,
   /* Getters: */
   /* -------- */
 
-  def compID = hardwareSpec.resId
+  def hostId = hardwareSpec.resId
 
 
   /* Public Methods: */
@@ -363,6 +362,7 @@ object Host {
   def toXML(host: Host): Node =
     <Host>
       <Hardware>{Resource.toXML(host.hardwareSpec)}</Hardware>
+      {Endpoint.toXML(host.endpoint)}
       <IP>{host.ip.getHostAddress}</IP>
       <MAC>{host.mac}</MAC>
       <ResourceAllocs>{host.allocatedResources.map(resAlloc => ResourceAlloc.toXML(resAlloc))}</ResourceAllocs>
@@ -383,6 +383,7 @@ object Host {
 
   def fromXML(node: Node): Host = {
     val hardwareSpec: Resource = Resource.fromXML((node \ "Hardware")(0))
+    val endpoint: Endpoint = Endpoint.fromXML(node)
     var hostIP: InetAddress = InetAddress.getLoopbackAddress
     try{
       hostIP = InetAddress.getByName((node \\ "IP").text.trim)
@@ -401,7 +402,7 @@ object Host {
     }
     val hostSLA: HostSLA = HostSLA.fromXML((node \ "HostSLA")(0))
 
-    return Host(hardwareSpec, hostIP, hostMAC, allocRes, hostSLA)
+    return Host(hardwareSpec, endpoint, hostIP, hostMAC, allocRes, hostSLA)
   }
 
   def loadFromXML(file: File): Host = {

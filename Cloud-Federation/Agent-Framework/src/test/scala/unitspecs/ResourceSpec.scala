@@ -255,9 +255,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	val resAlloc3 = new ResourceAlloc(1, Vector(res3), reqSLA3)
 
 
-	val host1 		= new Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
-	val host2 		= new Host(res3, InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA2)
-	val host3 		= new Host(res4, InetAddress.getByName("192.168.1.3"), "00:00:00:03", Vector(), hostSLA3)
+	val host1 		= new Host(res2, Endpoint("00:00:00:00:00:01:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
+	val host2 		= new Host(res3, Endpoint("00:00:00:00:00:01:12:00", 1), InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(), hostSLA2)
+	val host3 		= new Host(res4, Endpoint("00:00:00:00:00:01:13:00", 1), InetAddress.getByName("192.168.1.3"), "00:00:00:03", Vector(), hostSLA3)
 
 
 
@@ -271,7 +271,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 		host1 == host1 should be (right = true)
 
 		Given("A Host with the host1 footprint, instantiated statically via apply()")
-		val staticHost1 = Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
+		val staticHost1 = Host(res2, Endpoint("00:00:00:00:00:01:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
 
 		When("host1 is compared with the statically applied staticHost1 copy")
 		Then("host1.equals(staticHost1) should be true")
@@ -284,7 +284,7 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 	it should "be equal to another Host with the same Host footprint (even with different Resource Allocations)" in{
 
 		Given("A Respource with the host1 footprint, with additional link descriptions")
-		val equalHost1 = Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(resAlloc1), hostSLA1)
+		val equalHost1 = Host(res2, Endpoint("00:00:00:00:00:01:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(resAlloc1), hostSLA1)
 
 
 		When("host1 is compared with the resourceAlloc-different equalHost1")
@@ -419,9 +419,9 @@ class ResourceSpec extends FlatSpec with Matchers with GivenWhenThen with Inspec
 
 	it should "be fully serializable to and deserializable from XML" in{
 
-		val host1 		= new Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
-		val host2 		= new Host(res3, InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(resAlloc1), hostSLA2)
-		val host3 		= new Host(res4, InetAddress.getByName("192.168.1.3"), "00:00:00:03", Vector(resAlloc2, resAlloc3), hostSLA3)
+		val host1 		= new Host(res2, Endpoint("00:00:00:00:00:01:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA1)
+		val host2 		= new Host(res3, Endpoint("00:00:00:00:00:01:12:00", 1), InetAddress.getByName("192.168.1.2"), "00:00:00:02", Vector(resAlloc1), hostSLA2)
+		val host3 		= new Host(res4, Endpoint("00:00:00:00:00:01:13:00", 1), InetAddress.getByName("192.168.1.3"), "00:00:00:03", Vector(resAlloc2, resAlloc3), hostSLA3)
 
 		val xmlSerialHost1 = Host.toXML(host1)
 

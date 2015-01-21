@@ -41,8 +41,8 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 							ByteSize(32, GiB), ByteSize(500, GiB),
 							ByteSize(50, MB), 10, Vector())
 	
-	val host1 : Host = Host(res1, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
-	val host2 : Host = Host(res2, InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
+	val host1 : Host = Host(res1, Endpoint("00:00:00:00:00:01:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
+	val host2 : Host = Host(res2, Endpoint("00:00:00:00:00:02:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:02", Vector(), hostSLA)
 
 	val cloudHosts: Vector[Host] = Vector(host1, host2)
 
