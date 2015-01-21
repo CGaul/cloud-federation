@@ -131,8 +131,4 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 			tActorRefNRA.receive(ResourceRequest(tenant1, resAlloc3))
 		}
 	}
-
-
-
-
 }
