@@ -2,7 +2,7 @@ package unitspecs
 
 import java.net.InetAddress
 
-import connectors.{VirtualSwitch, OVXConnector}
+import connectors.{OVXConnector, VirtualSwitch}
 import org.scalatest.{FlatSpec, GivenWhenThen, Matchers}
 
 /**

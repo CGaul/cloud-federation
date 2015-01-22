@@ -1,5 +1,4 @@
 import java.io.File
-import java.net.InetAddress
 
 import agents.CCFM
 import akka.actor.{ActorSystem, Props}
@@ -8,7 +7,7 @@ import datatypes.ByteUnit._
 import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
-import messages.{TenantRequest, ResourceRequest}
+import messages.TenantRequest
 
 
 object CloudAgentManagement extends App

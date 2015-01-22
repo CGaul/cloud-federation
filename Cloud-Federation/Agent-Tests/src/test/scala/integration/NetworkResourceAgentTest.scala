@@ -2,7 +2,7 @@ package integration
 
 import java.net.InetAddress
 
-import agents.{NetworkDiscoveryAgent, MatchMakingAgent, NetworkResourceAgent}
+import agents.{MatchMakingAgent, NetworkResourceAgent}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory

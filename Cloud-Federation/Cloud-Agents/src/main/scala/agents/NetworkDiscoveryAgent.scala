@@ -2,10 +2,9 @@ package agents
 
 import java.net.InetAddress
 
-import akka.actor.Actor.Receive
 import akka.actor._
 import connectors.{Link, OVXConnector}
-import datatypes.{DPID, OFSwitch, Host, Endpoint}
+import datatypes.{DPID, Endpoint, OFSwitch}
 import messages.TopologyDiscovery
 
 /**

@@ -3,7 +3,7 @@ package agents
 import java.net._
 
 import akka.actor._
-import connectors.{VirtualSwitch, VirtualNetwork, OVXConnector}
+import connectors.{OVXConnector, VirtualNetwork, VirtualSwitch}
 import datatypes._
 import messages._
 

@@ -4,11 +4,10 @@ import java.io.File
 import java.net.InetAddress
 
 import datatypes.ByteUnit._
-import datatypes.CPUUnit.CPUUnit
-import datatypes.CPUUnit._
+import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
-import org.scalatest.{Inspectors, GivenWhenThen, Matchers, FlatSpec}
+import org.scalatest.{FlatSpec, GivenWhenThen, Inspectors, Matchers}
 
 /**
  * @author Constantin Gaul, created on 1/22/15.

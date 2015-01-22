@@ -1,11 +1,9 @@
 package unitspecs
 
 import java.io.File
-import java.net.InetAddress
 
 import datatypes.ByteUnit.{GiB, MB}
 import datatypes.CPUUnit._
-import datatypes.ImgFormat._
 import datatypes._
 import org.scalatest.{FlatSpec, GivenWhenThen, Inspectors, Matchers}
 
