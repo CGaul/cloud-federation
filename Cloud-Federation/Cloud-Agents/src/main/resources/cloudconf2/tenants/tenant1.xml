@@ -1,7 +1,7 @@
 <Tenant>
     <ID>1</ID>
-    <Subnet_IP>"10.0.2.1"</Subnet_IP>
+    <Subnet_IP>10.0.2.1</Subnet_IP>
     <Subnet_Mask>16</Subnet_Mask>
-    <OFC_IP>"192.168.1.43"</OFC_IP>
+    <OFC_IP>192.168.1.43</OFC_IP>
     <OFC_Port>10000</OFC_Port>
 </Tenant>

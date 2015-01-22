@@ -43,9 +43,9 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		// Define the Cloud-Tenants from all files in the cloudConfDir/hosts/ directory
 		var _cloudTenants: Vector[Tenant] = Vector()
 		val _tenantFiles: File = new File(cloudConfDir.getAbsolutePath +"/tenants")
-		if(_hostFiles.listFiles() == null)
+		if(_tenantFiles.listFiles() == null)
 			log.error("Tenants need at least one defined .xml file in {}/tenants/ !", cloudConfDir.getAbsolutePath)
-		for (actTenantFile <- _hostFiles.listFiles) {
+		for (actTenantFile <- _tenantFiles.listFiles) {
 			_cloudTenants = _cloudTenants :+ Tenant.loadFromXML(actTenantFile)
 		}
 		// Define the Cloud-SLA from the CloudSLA.xml file in the cloudConfDir/ directory
