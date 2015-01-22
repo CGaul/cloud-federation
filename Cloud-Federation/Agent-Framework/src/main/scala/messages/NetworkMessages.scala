@@ -3,7 +3,7 @@ package messages
 import datatypes.OFSwitch
 
 /**
- * Created by costa on 1/20/15.
+ * @author Constantin Gaul, created on 1/20/15.
  */
 sealed trait NetworkMessages
 

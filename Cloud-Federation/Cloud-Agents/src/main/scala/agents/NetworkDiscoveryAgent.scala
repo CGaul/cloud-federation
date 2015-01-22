@@ -9,7 +9,7 @@ import datatypes.{DPID, OFSwitch, Host, Endpoint}
 import messages.TopologyDiscovery
 
 /**
- * Created by costa on 1/20/15.
+ * @author Constantin Gaul, created on 1/20/15.
  */
 class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResourceAgent: ActorRef) 
                            extends Actor with ActorLogging{
