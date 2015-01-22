@@ -21,6 +21,8 @@ case class DPID(dpid: String) {
   // Catch an IllegalArgumentException here, if DPID is badly defined:
   require(dpid.split(":").length > 1 && dpid.split(":").forall(_.length == 2),  
     "Bad DPID in \""+dpid+"\": Need to define n Hex-Code Pairs, separated by a colon (e.g. \"xx:xx:xx:xx\")")
+
+  def convertToHexLong: Long = java.lang.Long.parseLong(dpid.replace(":",""), 16)
   
   override def toString: String = dpid
 }

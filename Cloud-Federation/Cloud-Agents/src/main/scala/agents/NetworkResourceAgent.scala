@@ -244,10 +244,11 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		// If the tenant does not have an OVX tenant-network until now:
 		if (!_tenantNetMap.keys.exists(_ == tenant)) {
 			val net = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
-			if (net.isDefined)
-				log.info("Created Network for Tenant {} at OFC: {}:{}", 
+			if (net.isDefined) {
+				log.info("Created Network for Tenant {} at OFC: {}:{}",
 					tenant.id, tenant.ofcIp, tenant.ofcPort)
 				_tenantNetMap = _tenantNetMap + (tenant -> net.get)
+			}
 		}
 		// In general, this allocation includes all physical Switches, that are needed to connect all hosts with each other.
 		// first only get the physical Switches, directly connected to the hosts:
@@ -260,7 +261,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		// Create virtual switches for all physical Switches that are not yet part of a virtual switch in the tenant's vNet:
 		for (actPhysSwitch <- physSwitches 
 				 if !_tenantSwitchMap.keys.exists(_ == tenant) ||
-						!_tenantSwitchMap(tenant).exists(_.dpids.contains(actPhysSwitch.dpid))) 
+						!_tenantSwitchMap(tenant).exists(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong)))
 		{
 
 			// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch,
@@ -299,31 +300,23 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 				if (! _switchPortMap(physSwitchToConnect.get).exists(_._1 == actHost.endpoint.port)) {
 					val hostPortMap = _ovxConn.createPort(tenant.id, actHost.endpoint.dpid.toString, actHost.endpoint.port)
 					if (hostPortMap.isDefined) {
-						log.info("Created Port (phys: {} virt: {}) at Switch {} for Host {} in Tenant-Network {}",
-										 hostPortMap.get._1, hostPortMap.get._2, physSwitchToConnect.get.dpid.toString, tenant.id)
+						log.info(s"Created Port (phys: ${hostPortMap.get._1} virt: ${hostPortMap.get._2}) " +
+									   s"at Switch ${physSwitchToConnect.get.dpid.toString} for Host ${actHost.mac} " +
+										 s"in Tenant-Network ${tenant.id}")
 						_switchPortMap.get(physSwitchToConnect.get) match {
 							case Some(list) => _switchPortMap = _switchPortMap + (physSwitchToConnect.get -> (list :+(hostPortMap.get._1, hostPortMap.get._2, None)))
 							case None => _switchPortMap = _switchPortMap + (physSwitchToConnect.get -> List((hostPortMap.get._1, hostPortMap.get._2, None)))
 						}
 					}
-					
-				// TODO: Add the host to the virtual Port that existed before or was just created:
-				
+
+					// TODO: Add the host to the virtual Port that existed before or was just created:
+				}
 			}
-			
-			actHost.endpoint
-//			for (actPhysSwitch <- _hostSwitchesMap(actHost)) {
-//				val virtSwitches = _tenantSwitchMap(tenant).filter(_.dpids.contains(actPhysSwitch.dpid))
-//				for (actVirtSwitch <- virtSwitches) {
-//					val vports = _switchPortMap(actPhysSwitch).filter(_._3.isEmpty)
-//					val vHost = _ovxConn.connectHost(tenant.id, actVirtSwitch.vdpid, vports(0)._2, actHost.mac)
-//					//TODO: add vHost to SwitchPortMap:
-//					// _switchPortMap(actPhysSwitch) = (vports.)
-//				}
-//			}
 		}
 	}
-}
+	
+	
+} // end of class NRA
 
 
 /**
