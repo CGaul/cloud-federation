@@ -14,6 +14,9 @@ sealed trait NRAResourceDest extends NRADest
 sealed trait CCFMResourceDest extends CCFMDest
 
 
+case class TenantRequest(resourcesToAlloc: ResourceAlloc)
+  extends ResourceMessage with CCFMResourceDest
+
 case class ResourceRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest with NRAResourceDest with MMAResourceDest
 

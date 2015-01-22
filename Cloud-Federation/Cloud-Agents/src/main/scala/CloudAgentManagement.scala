@@ -8,7 +8,7 @@ import datatypes.ByteUnit._
 import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
-import messages.ResourceRequest
+import messages.{TenantRequest, ResourceRequest}
 
 
 object CloudAgentManagement extends App
@@ -58,16 +58,14 @@ object CloudAgentManagement extends App
 
 	val resAlloc1 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res1, res2), 	reqHostSLA1)
 	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res3), 				reqHostSLA2)
-	val resAlloc3 : ResourceAlloc = ResourceAlloc(2, Vector[Resource](res4, res5), 	reqHostSLA3)
-	
-	val tenant1: Tenant = Tenant(1, ("10.1.1.1", 16), InetAddress.getLocalHost, 10000)
+	val resAlloc3 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res4, res5), 	reqHostSLA3)
 
 	Thread.sleep(10000)
-	ccfmActor ! ResourceRequest(tenant1, resAlloc1)
+	ccfmActor ! TenantRequest(resAlloc1)
 	Thread.sleep(5000)
-	ccfmActor ! ResourceRequest(tenant1, resAlloc1)
+	ccfmActor ! TenantRequest(resAlloc2)
 	Thread.sleep(5000)
-	ccfmActor ! ResourceRequest(tenant1, resAlloc1)
+	ccfmActor ! TenantRequest(resAlloc3)
 
 
 /* Private Methods: */

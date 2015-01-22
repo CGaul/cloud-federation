@@ -1,5 +1,0 @@
-<Switch>
-	<ID>1</ID>
-	<DPID>00:00:00:00:00:02:11:00</DPID>
-	<Links>1:2, 2:11, 3:12</Links>
-</Switch>

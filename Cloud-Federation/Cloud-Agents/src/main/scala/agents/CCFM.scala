@@ -19,8 +19,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		def certFile 			= _certFile
 		def ovxIp 				= _ovxIP
 		def ovxApiPort		= _ovxApiPort
-//		def cloudSwitches = _cloudSwitches TODO: delete.
 		def cloudHosts 		= _cloudHosts
+		def cloudTenants  = _cloudTenants
 		def cloudSLA 			= _cloudSLA
 
 
@@ -30,25 +30,24 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
 		val _ovxApiPort: Int			= 8080
 
-	//TODO: delete. Was replaced by direct OVXConnector.getPhysicalTopology call in NRA:
-		// Define the Cloud-Switches from all files in the cloudConfDir/switches/ directory
-//		var _cloudSwitches: Vector[OFSwitch] = Vector()
-//		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
-//		if(_cloudSwitchesDir.listFiles() == null)
-//			log.error("Switches need at least one defined .xml file in {}/switches/ !", cloudConfDir.getAbsolutePath)
-//		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
-//			_cloudSwitches = _cloudSwitches :+ OFSwitch.loadFromXML(actSwitchFile)
-//		}
 
 		// Define the Cloud-Hosts from all files in the cloudConfDir/hosts/ directory
 		var _cloudHosts: Vector[Host] = Vector()
-		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
-		if(_cloudHostDir.listFiles() == null)
+		val _hostFiles: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
+		if(_hostFiles.listFiles() == null)
 			log.error("Hosts need at least one defined .xml file in {}/hosts/ !", cloudConfDir.getAbsolutePath)
-		for (actHostFile <- _cloudHostDir.listFiles) {
+		for (actHostFile <- _hostFiles.listFiles) {
 			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
 		}
 
+		// Define the Cloud-Tenants from all files in the cloudConfDir/hosts/ directory
+		var _cloudTenants: Vector[Tenant] = Vector()
+		val _tenantFiles: File = new File(cloudConfDir.getAbsolutePath +"/tenants")
+		if(_hostFiles.listFiles() == null)
+			log.error("Tenants need at least one defined .xml file in {}/tenants/ !", cloudConfDir.getAbsolutePath)
+		for (actTenantFile <- _hostFiles.listFiles) {
+			_cloudTenants = _cloudTenants :+ Tenant.loadFromXML(actTenantFile)
+		}
 		// Define the Cloud-SLA from the CloudSLA.xml file in the cloudConfDir/ directory
 		val _cloudSLA  = CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
 	}
@@ -108,6 +107,19 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
+	def recvTenantRequest(resToAlloc: ResourceAlloc): Unit = {
+		log.info("CCFM Received TenantRequest from Tenant-ID {}. Forwarding to NRA, after Tenant is resolved...",
+			resToAlloc.tenantID)
+
+		log.info("Fetching Tenant from internal Config file...")
+		val tenantOpt = CCFMConfig.cloudTenants.find(_.id == resToAlloc.tenantID)
+		tenantOpt match{
+			case Some(tenant) =>
+					log.info("Successfully resolved tenant {}. Forwarding TenantRequest to NRA as ResourceRequest...", tenant)
+					networkResourceAgent ! ResourceRequest(tenant, resToAlloc)
+			case None => log.error("Tenant was not resolved for Tenant-ID {} in TenantRequest!", resToAlloc.tenantID)
+		}
+	}
 
 	def recvResourceRequest(tenant: Tenant, resToAlloc: ResourceAlloc): Unit = {
 		log.info("CCFM Received ResourceRequest from Tenant {}. Forwarding to NRA...",
@@ -123,6 +135,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case message: CCFMResourceDest	=> message match {
+			case TenantRequest(resToAlloc)						=> recvTenantRequest(resToAlloc)
 			case ResourceRequest(tenant, resToAlloc) 	=> recvResourceRequest(tenant, resToAlloc)
 			case ResourceReply(allocResources)				=> recvResourceReply(allocResources)
 		}

@@ -8,8 +8,51 @@ import datatypes.CPUUnit._
 import scala.xml.Node
 
 
-
 case class Tenant(id: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short)
+
+object Tenant{
+
+  /* Serialization: */
+  /* ============== */
+
+  def toXML(tenant: Tenant): Node =
+    <Tenant>
+      <ID>{tenant.id.toString}</ID>
+      <Subnet_IP>{tenant.subnet._1}</Subnet_IP>
+      <Subnet_Mask>{tenant.subnet._2.toString}</Subnet_Mask>
+      <OFC_IP>{tenant.ofcIp.getHostAddress}</OFC_IP>
+      <OFC_Port>{tenant.ofcPort}</OFC_Port>
+    </Tenant>
+
+
+  def saveToXML(file: File, tenant: Tenant) = {
+    val xmlNode = toXML(tenant)
+    xml.XML.save(file.getAbsolutePath, xmlNode)
+  }
+
+  /* De-Serialization: */
+  /* ================= */
+
+  def fromXML(node: Node): Tenant = {
+    var tenantNode = node
+    if((node \ "Tenant").text != "")
+      tenantNode = (node \ "Tenant")(0)
+
+    val id: Int = (tenantNode \ "ID").text.toInt
+    val subnetIp: String = (tenantNode \ "Subnet_IP").text
+    val subnetMask: Short = (tenantNode \ "Subnet_Mask").text.toShort
+    val ofcIp: InetAddress = InetAddress.getByName((tenantNode \ "OFC_IP").text)
+    val ofcPort: Short = (tenantNode \ "OFC_Port").text.toShort
+
+    return Tenant(id, (subnetIp, subnetMask), ofcIp, ofcPort)
+  }
+
+  def loadFromXML(file: File): Tenant = {
+    val xmlNode = xml.XML.loadFile(file)
+    return fromXML(xmlNode)
+  }
+}
+
 
 
 /**
