@@ -244,7 +244,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 
 		// If the tenant does not have an OVX tenant-network until now:
 		if (!_tenantNetMap.keys.exists(_ == tenant)) {
-			val net = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
+			val net = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
 			if (net.isDefined) {
 				log.info("Created Network for Tenant {} at OFC: {}:{}",
 					tenant.id, tenant.ofcIp, tenant.ofcPort)
