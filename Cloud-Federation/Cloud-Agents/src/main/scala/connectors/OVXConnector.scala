@@ -863,6 +863,8 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     }
   }
 
+  implicit val connectionReads: Reads[Connection] = Json.reads[Connection]
+  
   implicit val pHostReads: Reads[PhysicalHost] = Json.reads[PhysicalHost]
   implicit val vHostReads: Reads[VirtualHost] = Json.reads[VirtualHost]
 
@@ -908,7 +910,7 @@ object OVXConnector
 /* Container Classes for OVXConnector: */
 /* =================================== */
 
-case class Path(route: List[Connection])  
+case class Path(route: List[Connection])
 
 case class Connection(srcDpid: Long, srcPort: Short,
                       dstDpid: Long, dstPort: Short){
@@ -925,8 +927,8 @@ case class VirtualHost(tenantId: Int, hostId: Int, vdpid: Long, vport: Short, ma
 
 case class Endpoint(dpid: String, port: Short)
 case class Link(linkId: Int, tenantId: Option[Int], src: Endpoint, dst: Endpoint)
-case class VirtualLink(tenantId: Int, linkId: Int, backup_num: Int, priority: Int, path: Option[List[String]], algorithm: String,
-                       srcDpid: Long, srcPort: Int, dstDpid: Long, dstPort: Int)
+case class VirtualLink(tenantId: Int, linkId: Int, backup_num: Int, priority: Int, path: List[Connection], algorithm: String,
+                       srcDpid: Long, srcPort: Short, dstDpid: Long, dstPort: Short)
 
 case class VirtualNetwork(tenantId: Option[Int], isBooted: Option[Boolean],
                    networkAddress: Int, mask: Short, controllerUrls: List[String])
