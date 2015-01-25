@@ -244,11 +244,16 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 
 		// If the tenant does not have an OVX tenant-network until now:
 		if (!_tenantNetMap.keys.exists(_ == tenant)) {
-			val net = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
-			if (net.isDefined) {
-				log.info("Created Network for Tenant {} at OFC: {}:{}",
-					tenant.id, tenant.ofcIp, tenant.ofcPort)
-				_tenantNetMap = _tenantNetMap + (tenant -> net.get)
+			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
+			netOpt match{
+				case Some(net)  =>
+					log.info("Created Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
+						tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+					_tenantNetMap = _tenantNetMap + (tenant -> net)
+
+				case None          =>
+					log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
+						tenant.id, tenant.ofcIp, tenant.ofcPort)
 			}
 		}
 		// In general, this allocation includes all physical Switches, that are needed to connect all hosts with each other.
@@ -342,12 +347,13 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		}
 		
 
-		// Add each Host in the hosts-List to the Host's Switch-Endpoint:
-		// TODO: create Ports for the Host's Endpoint and connect the Host to it
+		// Create Ports at the Host's Endpoint Switch:Port connect the Host to it
 		for (actHost <- hosts) {
 			val physSwitchToConnect = _switchTopology.find(_.dpid == actHost.endpoint.dpid)
-			if (physSwitchToConnect.isDefined) {
+			val virtSwitchToConnect = _tenantVirtSwitchMap(tenant).find(_.dpids.contains(actHost.endpoint.dpid.convertToHexLong))
+			if (physSwitchToConnect.isDefined && virtSwitchToConnect.isDefined) {
 				val physSwitch = physSwitchToConnect.get
+				val virtSwitch = virtSwitchToConnect.get
 				// If no virtual Port is available for the physSwitch + physPort that the Host should connect to, createPort:
 				if (! _switchPortMap(physSwitch).exists(_._1 == actHost.endpoint.port)) {
 					val hostPortMap = _ovxConn.createPort(tenant.id, actHost.endpoint.dpid.toString, actHost.endpoint.port)
@@ -360,13 +366,37 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 								//Append a new value to _switchPortMap, which is either a new list (if no value was found for key), or a new entry in the list:
 								_switchPortMap = _switchPortMap + (physSwitch -> (_switchPortMap.getOrElse(physSwitch, List()) :+(portMap._1, portMap._2, None)))
 								
+								val vHost = _ovxConn.connectHost(tenant.id, virtSwitch.vdpid, portMap._2, actHost.mac)
+								vHost match{
+								    case Some(result)  => 
+											log.info("Host {} connected to Switch {} at (physPort: {}, vPort {})",
+															 actHost.mac, physSwitch.dpid, portMap._1, portMap._2)
+											
+								    case None          => 
+											log.error("Host connection to Switch {} at (physPort: {}, vPort {}) failed!",
+															 actHost.mac, portMap._1, portMap._2)
+								}
+								
 					    case None          => 
 								log.error(s"Port creation failed for Switch {} on physical Port {}!",
 									physSwitch.dpid, actHost.endpoint.port)
 					}
-
-					// TODO: Add the host to the virtual Port that existed before or was just created:
 				}
+			}
+		}
+		
+		// Start the Tenant's OVX-Network, if not already started:
+		if (_tenantNetMap.keys.exists(_ == tenant) && !_tenantNetMap(tenant).isBooted.getOrElse(false)) {
+			val netOpt = _ovxConn.startNetwork(tenant.id)
+			netOpt match{
+			    case Some(net)  =>
+						log.info("Started Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
+										 tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+						_tenantNetMap = _tenantNetMap + (tenant -> net)
+						
+			    case None          => 
+						log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
+										  tenant.id, tenant.ofcIp, tenant.ofcPort)
 			}
 		}
 	}
