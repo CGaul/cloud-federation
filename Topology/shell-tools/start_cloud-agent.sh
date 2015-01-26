@@ -37,8 +37,8 @@ PASSWD=""
 while [ $# -gt 0 ]; do 	# Until you run out of parameters
 	case "$1" in
 	#Required Parameters:
-		-[uU]|--user)		USER=$2 ;;
-		-[pP]|--password)	PASSWD=$2 ;;
+        -[uU]|--user)		USER=$2 ;;
+        -[pP]|--password)	PASSWD=$2 ;;
 	#Optional Parameters:
         --logdir)         	LOGDIR=$2 ;;
 	#Printing the Help:
@@ -47,10 +47,11 @@ while [ $# -gt 0 ]; do 	# Until you run out of parameters
 	shift	# Check next set of parameters.
 done
 
-if [[ ${USER}=="" || {PASSWD}=="" ]]; then
+if [[ ${USER} == "" ]] || [[ ${PASSWD} == "" ]]; then
 	echo -e "\n\033[1mUser and Password need to be set!\033[0m:"
 	echo "See \"bash start_cloud-agent.sh --help\" for further details."
 	exit 1
+fi
 
 # Constants:
 JARNAME="cloud-agents_0.2-SNAPSHOT.fat.jar"
@@ -85,7 +86,7 @@ exec 2> >(tee -a ${LOGFILE} >&2)
 
 
 echo "Starting CCFM Cloud-Agent at ${NOW}..." 
-wget --auth-no-challenge --user='${USER}' --password='${PASSWD}' -N http://lab.is-by.us:8080/job/Cloud-Federation/lastSuccessfulBuild/artifact/Cloud-Federation/Cloud-Agents/target/scala-2.11/${JARNAME} -P ~/Development/
+wget --auth-no-challenge --user=${USER} --password=${PASSWD} -N http://lab.is-by.us:8080/job/Cloud-Federation/lastSuccessfulBuild/artifact/Cloud-Federation/Cloud-Agents/target/scala-2.11/${JARNAME} -P ~/Development/
 
 $JAVA8_EXEC -jar ~/Development/${JARNAME} --appconf ~/Development/cloudnet-1_application.conf --cloudconf ~/Development/cloudconf
 
