@@ -248,12 +248,12 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
 			netOpt match{
 				case Some(net)  =>
-					log.info("Created Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
+					log.info(s"Created virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{}. Is Booted: {}",
 						tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
 					_tenantNetMap = _tenantNetMap + (tenant -> net)
 
 				case None          =>
-					log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
+					log.error(s"Virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{} was not started correctly!",
 						tenant.id, tenant.ofcIp, tenant.ofcPort)
 			}
 		}
