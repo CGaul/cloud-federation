@@ -157,6 +157,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	 * 	All results are included in such ResourceFederationReply,
 	 * 	stating the allocated Resources per foreign Cloud
 	 * 	(the ActorRef is the foreign MatchMakingAgent)
+	 * 	*
 	 * </p>
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
 	 * @param federationResAllocs
@@ -392,19 +393,19 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		}
 		
 		// Start the Tenant's OVX-Network, if not already started:
-		if (_tenantNetMap.keys.exists(_ == tenant) && !_tenantNetMap(tenant).isBooted.getOrElse(false)) {
-			val netOpt = _ovxConn.startNetwork(tenant.id)
-			netOpt match{
-			    case Some(net)  =>
-						log.info("Started Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
-										 tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
-						_tenantNetMap = _tenantNetMap + (tenant -> net)
-						
-			    case None          => 
-						log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
-										  tenant.id, tenant.ofcIp, tenant.ofcPort)
-			}
-		}
+//		if (_tenantNetMap.keys.exists(_ == tenant) && !_tenantNetMap(tenant).isBooted.getOrElse(false)) {
+//			val netOpt = _ovxConn.startNetwork(tenant.id)
+//			netOpt match{
+//			    case Some(net)  =>
+//						log.info("Started Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
+//										 tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+//						_tenantNetMap = _tenantNetMap + (tenant -> net)
+//
+//			    case None          =>
+//						log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
+//										  tenant.id, tenant.ofcIp, tenant.ofcPort)
+//			}
+//		}
 	}
 	
 	
