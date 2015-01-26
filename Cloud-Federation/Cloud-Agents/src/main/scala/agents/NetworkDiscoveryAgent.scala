@@ -38,6 +38,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
 
 /* Initial Startup: */
 /* ================ */
+  
   initActor()
 
   def initActor() = {

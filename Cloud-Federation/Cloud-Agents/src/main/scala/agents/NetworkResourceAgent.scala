@@ -312,35 +312,42 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		for (actPhysSwitch <- _tenantPhysSwitchMap(tenant)) {
 			for ((srcPort, srcEndpoint) <- actPhysSwitch.portMap) {
 				val physSrcSwitch = actPhysSwitch
-				val physDstSwitch = _tenantPhysSwitchMap.getOrElse(tenant, List()).find(_.dpid == srcEndpoint.dpid)
+				val physDstSwitchOpt = _tenantPhysSwitchMap.getOrElse(tenant, List()).find(_.dpid == srcEndpoint.dpid)
 				// As the physical Destination Switch might not be in the tenant's switchMap, only continue connection if both
 				// src- and dstSwitch are known:
-				if(physDstSwitch.isDefined) {
+				if(physDstSwitchOpt.isDefined) {
+					val physDstSwitch = physDstSwitchOpt.get
 					// Find the srcPortMapping for the actual srcPort in the _switchPortMap's actPhysSwitch entry:
 					val srcPortMapping = _switchPortMap.getOrElse(physSrcSwitch, List()).find(_._1 == srcPort)
-					val dstPortMapping = _switchPortMap.getOrElse(physDstSwitch.get, List()).find(_._1 == srcEndpoint.port)
+					val dstPortMapping = _switchPortMap.getOrElse(physDstSwitch, List()).find(_._1 == srcEndpoint.port)
 					val vSrcSwitch = _tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))
 					val vDstSwitch = _tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(srcEndpoint.dpid.convertToHexLong))
 
 					if (srcPortMapping.isDefined && dstPortMapping.isDefined && vSrcSwitch.isDefined && vDstSwitch.isDefined) {
-						val vSrcPort = srcPortMapping.get._2
-						val vDstPort = dstPortMapping.get._2
+						val (physSrcPort, virtSrcPort, srcComponent) = srcPortMapping.get
+						val (physDstPort, virtDstPort, dstComponent) = dstPortMapping.get
+						
+						
+						// Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
+						val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
+						
+						if (! alreadyConnected) {
+							val vLink = _ovxConn.connectLink(tenant.id, vSrcSwitch.get.vdpid, virtSrcPort,
+								vDstSwitch.get.vdpid, virtDstPort, "spf", 1)
+							vLink match {
+								case Some(result) =>
+									log.info("Link connection between Switches ({}:{} - {}:{}) suceeded!",
+										physSrcSwitch.dpid, physSrcPort, physDstSwitch.dpid, physDstPort)
+									// If virtual link was established successfully, update srcPortMapping in _switchPortMap with physDstSwitch:
+									val newSrcPortMap = (physSrcPort, srcPortMapping.get._2, physDstSwitchOpt)
+									val srcPortMapIndex = _switchPortMap.get(physSrcSwitch).get.indexOf(srcPortMapping.get)
+									_switchPortMap = _switchPortMap +
+										(physSrcSwitch -> _switchPortMap.getOrElse(physSrcSwitch, List()).updated(srcPortMapIndex, newSrcPortMap))
 
-						val vLink = _ovxConn.connectLink(tenant.id, vSrcSwitch.get.vdpid, vSrcPort,
-							vDstSwitch.get.vdpid, vDstPort, "spf", 1)
-						vLink match {
-							case Some(result) =>
-								log.info("Link connection between Switches ({}:{} - {}:{}) suceeded!",
-									physSrcSwitch.dpid, srcPortMapping.get._1, physDstSwitch.get.dpid, dstPortMapping.get._1)
-								// If virtual link was established successfully, update srcPortMapping in _switchPortMap with physDstSwitch:
-								val newSrcPortMap = (srcPortMapping.get._1, srcPortMapping.get._2, physDstSwitch)
-								val srcPortMapIndex = _switchPortMap.get(physSrcSwitch).get.indexOf(srcPortMapping.get)
-								_switchPortMap = _switchPortMap + 
-									(physSrcSwitch -> _switchPortMap.getOrElse(physSrcSwitch, List()).updated(srcPortMapIndex, newSrcPortMap))
-
-							case None =>
-								log.error("Link connection between Switches ({}:{} - {}:{}) failed!",
-									physSrcSwitch.dpid, srcPortMapping.get._1, physDstSwitch.get.dpid, dstPortMapping.get._1)
+								case None =>
+									log.error("Link connection between Switches ({}:{} - {}:{}) failed!",
+										physSrcSwitch.dpid, physSrcPort, physDstSwitch.dpid, physDstPort)
+							}
 						}
 					}
 				}
@@ -393,19 +400,19 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		}
 		
 		// Start the Tenant's OVX-Network, if not already started:
-//		if (_tenantNetMap.keys.exists(_ == tenant) && !_tenantNetMap(tenant).isBooted.getOrElse(false)) {
-//			val netOpt = _ovxConn.startNetwork(tenant.id)
-//			netOpt match{
-//			    case Some(net)  =>
-//						log.info("Started Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
-//										 tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
-//						_tenantNetMap = _tenantNetMap + (tenant -> net)
-//
-//			    case None          =>
-//						log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
-//										  tenant.id, tenant.ofcIp, tenant.ofcPort)
-//			}
-//		}
+		if (_tenantNetMap.keys.exists(_ == tenant) && !_tenantNetMap(tenant).isBooted.getOrElse(false)) {
+			val netOpt = _ovxConn.startNetwork(tenant.id)
+			netOpt match{
+			    case Some(net)  =>
+						log.info("Started Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
+										 tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+						_tenantNetMap = _tenantNetMap + (tenant -> net)
+
+			    case None          =>
+						log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
+										  tenant.id, tenant.ofcIp, tenant.ofcPort)
+			}
+		}
 	}
 	
 	
