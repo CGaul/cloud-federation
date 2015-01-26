@@ -488,7 +488,7 @@ class OVXConnector(ovxApiAddr: InetAddress, ovxApiPort: Int,
     val jsonRequest: JsValue = this.buildJsonQuery("connectHost",
       Map(
         "tenantId"    -> Json.toJson(tenantId),
-        "vdpid"       -> Json.toJson(vport),
+        "vdpid"       -> Json.toJson(vdpid),
         "vport"       -> Json.toJson(vport),
         "mac"         -> Json.toJson(mac)
       ))

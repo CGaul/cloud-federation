@@ -332,10 +332,10 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 								log.info("Link connection between Switches ({}:{} - {}:{}) suceeded!",
 									physSrcSwitch.dpid, srcPortMapping.get._1, physDstSwitch.get.dpid, dstPortMapping.get._1)
 								// If virtual link was established successfully, update srcPortMapping in _switchPortMap with physDstSwitch:
-								val newSrcPortMapping = (srcPortMapping.get._1, srcPortMapping.get._2, physDstSwitch)
-								val indexSrcPortMapping = _switchPortMap.get(physSrcSwitch).get.indexOf(srcPortMapping.get)
+								val newSrcPortMap = (srcPortMapping.get._1, srcPortMapping.get._2, physDstSwitch)
+								val srcPortMapIndex = _switchPortMap.get(physSrcSwitch).get.indexOf(srcPortMapping.get)
 								_switchPortMap = _switchPortMap + 
-									(actPhysSwitch -> _switchPortMap.getOrElse(physSrcSwitch, List()).updated(indexSrcPortMapping, newSrcPortMapping))
+									(physSrcSwitch -> _switchPortMap.getOrElse(physSrcSwitch, List()).updated(srcPortMapIndex, newSrcPortMap))
 
 							case None =>
 								log.error("Link connection between Switches ({}:{} - {}:{}) failed!",
@@ -364,14 +364,20 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 									s"in Tenant-Network ${tenant.id}")
 
 								//Append a new value to _switchPortMap, which is either a new list (if no value was found for key), or a new entry in the list:
-								_switchPortMap = _switchPortMap + (physSwitch -> (_switchPortMap.getOrElse(physSwitch, List()) :+(portMap._1, portMap._2, None)))
+								val hostPortMap = (portMap._1, portMap._2, None)
+								_switchPortMap = _switchPortMap + (physSwitch -> (_switchPortMap.getOrElse(physSwitch, List()) :+ hostPortMap))
 								
 								val vHost = _ovxConn.connectHost(tenant.id, virtSwitch.vdpid, portMap._2, actHost.mac)
 								vHost match{
 								    case Some(result)  => 
 											log.info("Host {} connected to Switch {} at (physPort: {}, vPort {})",
 															 actHost.mac, physSwitch.dpid, portMap._1, portMap._2)
-											
+											//Update _switchPortMap's last portMap entry with the just established Host:
+											val newHostPortMap = (hostPortMap._1, hostPortMap._2, Some(actHost))
+											val portMapIndex = _switchPortMap.get(physSwitch).get.indexOf(hostPortMap)
+											_switchPortMap = _switchPortMap +
+												(physSwitch -> _switchPortMap.getOrElse(physSwitch, List()).updated(portMapIndex, newHostPortMap))
+
 								    case None          => 
 											log.error("Host connection to Switch {} at (physPort: {}, vPort {}) failed!",
 															 actHost.mac, portMap._1, portMap._2)
