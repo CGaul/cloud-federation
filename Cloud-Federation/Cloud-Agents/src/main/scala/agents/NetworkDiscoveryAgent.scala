@@ -43,7 +43,6 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
 
   def initActor() = {
     // This NRA-Instance is inactive after boot-up:
-    context.become(inactive())
     log.info("NetworkDiscoveryAgent will be INACTIVE, until NRA sends the \"start\" command...")
   }
 

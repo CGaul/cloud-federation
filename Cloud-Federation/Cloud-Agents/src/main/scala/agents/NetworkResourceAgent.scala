@@ -21,11 +21,11 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 /* ======= */
 	
 		val _ovxConn = OVXConnector(ovxIp, ovxApiPort)
-		val _ndaActor: ActorRef = initChildActors()
 
 
 /* Variables: */
 /* ========== */
+	
 		// Physical Topologies, received from the CCFM (hosts) and the NDA (switches)
 		var _hostTopology: List[Host] = cloudHosts
 		var _switchTopology: List[OFSwitch] = List()
@@ -33,6 +33,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		// Physical Mappings:
 		var _hostPhysSwitchMap: Map[Host, List[OFSwitch]] = Map()
 		var _tenantPhysSwitchMap: Map[Tenant, List[OFSwitch]] = Map()
+		var _tenantGatewayMap: Map[Tenant, List[OFSwitch]] = Map()
 		var _switchPortMap: Map[OFSwitch, List[(Short, Short, Option[NetworkComponent])]] = Map()
 	
 		// Virtual Mappings:
@@ -44,10 +45,10 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 /* ================ */
 	
 	initActor()
+	val _ndaActor: ActorRef = initChildActors()
 	
 	def initActor() = {
 		// This NRA-Instance is inactive after boot-up:
-		context.become(inactive())
 		log.info("NetworkResourceAgent will be INACTIVE, until NDA sends a TopologyDiscovery...")
 	}
 	
@@ -133,7 +134,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
-		mapAllocOnOVX(tenant, hostList)
+		mapAllocOnOVX(tenant, hostList, federated = false)
 //		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
 
 		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
@@ -178,12 +179,12 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, tenant.ofcIp)
 
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourcesToAlloc)
-		// Prepare the locally fulfilled allocations as a JSON-Message
-		// that will be send to the OVX embedder:
+		
+		// Prepare the locally fulfilled allocations that will be send to OVX via
+		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
-		mapAllocOnOVX(tenant, hostList)
-
-//		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
+		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
+		mapAllocOnOVX(tenant, hostList, federated = true)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
@@ -240,8 +241,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		return (allocationPerHost, remainResAlloc)
 	}
 	
-	//TODO: Implement in 0.3 - Federated Agents
-	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
+	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host], federated: Boolean) = {
 
 		// If the tenant does not have an OVX tenant-network until now, create one:
 		if (!_tenantNetMap.keys.exists(_ == tenant)) {
@@ -306,6 +306,11 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 					}
 				}
 			}
+		}
+		
+		if(federated){
+			//TODO: establish federation.
+			
 		}
 		
 
