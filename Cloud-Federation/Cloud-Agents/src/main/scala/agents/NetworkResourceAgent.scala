@@ -243,111 +243,65 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	//TODO: Implement in 0.3 - Federated Agents
 	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
 
-		// If the tenant does not have an OVX tenant-network until now:
+		// If the tenant does not have an OVX tenant-network until now, create one:
 		if (!_tenantNetMap.keys.exists(_ == tenant)) {
-			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
-			netOpt match{
-				case Some(net)  =>
-					log.info(s"Created virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{}. Is Booted: {}",
-						tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
-					_tenantNetMap = _tenantNetMap + (tenant -> net)
-
-				case None          =>
-					log.error(s"Virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{} was not started correctly!",
-						tenant.id, tenant.ofcIp, tenant.ofcPort)
-			}
+			_createOVXNetwork(tenant)
 		}
-		// In general, this allocation includes all physical Switches, that are needed to connect all hosts with each other.
-		// first only get the physical Switches, directly connected to the hosts:
+		
+		// The _hostPhysSwitchMap defines a mapping between each known host and all physical Switches, 
+		// that are connected to this host and discovered via a TopologyDiscovery earlier.
+		// To continue, get all physical Switches for the given host's allocation:
 		// (get a flat list of each host -> List[Switch] mapping)
 		val physSwitches = hosts.flatMap(_hostPhysSwitchMap).distinct
 		
 		// Afterwards, try to solve a path from each host to all other hosts, using all
 		// currently discovered physical Switches as direct gateway to them:
-		// TODO: path discovery
+		_discoverHostPaths()
 
-		// Create virtual switches for all physical Switches that are not yet part of a virtual switch in the tenant's vNet:
+		// Create virtual switches for all physical Switches that are not yet part of a virtual switch in the tenant's vNet
+		// and establish virtual Ports for all physical Ports that are outgoing to any other Switch:
 		for (actPhysSwitch <- physSwitches 
 				 if !(_tenantVirtSwitchMap.keys.exists(_ == tenant) &&
 						_tenantVirtSwitchMap(tenant).exists(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))))
 		{
-
-			// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch,
-			val vSwitch = _ovxConn.createSwitch(tenant.id, List(actPhysSwitch.dpid.toString))
-			if (vSwitch.isDefined) {
-				log.info("Created Switch (dpids: {} vdpid: {}) in Tenant-Network {}",
-					actPhysSwitch.dpid.toString, vSwitch.get.dpids, tenant.id)
-				
-				// After virtual Switch was successfully created, add physical and virtual Switch to respective tenantSwitchMap:
-				_tenantPhysSwitchMap = _tenantPhysSwitchMap + (tenant -> (_tenantPhysSwitchMap.getOrElse(tenant, List()) :+ actPhysSwitch))
-				_tenantVirtSwitchMap = _tenantVirtSwitchMap + (tenant -> (_tenantVirtSwitchMap.getOrElse(tenant, List()) :+ vSwitch.get))
-			}
+			// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
+			_createOVXSwitch(tenant, actPhysSwitch)
 
 			// Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-			val physSrcPorts = actPhysSwitch.portMap.map(_._1)
-			for (actSrcPort <- physSrcPorts) {
-				val portMap = _ovxConn.createPort(tenant.id, actPhysSwitch.dpid.toString, actSrcPort)
-				if (portMap.isDefined) {
-					val physPort = portMap.get._1
-					val virtPort = portMap.get._2
-					assert(physPort == actSrcPort, s"Associated Physical Port $physPort after Port creation " +
-						s"on Switch ${actPhysSwitch.dpid} ist not equal to requested physical Source Port $actSrcPort!")
-					
-					log.info("Created Port (phys: {} virt: {}) at Switch {} for other Switch in Tenant-Network {}",
-									 physPort, virtPort, actPhysSwitch.dpid.toString, tenant.id)
-					
-					//Append a new value to _switchPortMap, which is either a new list (if no value was found for key), or a new entry in the list:
-					_switchPortMap = _switchPortMap + (actPhysSwitch -> (_switchPortMap.getOrElse(actPhysSwitch, List()) :+ (physPort, virtPort, None)))
-//					_switchPortMap.get(actPhysSwitch) match {
-//						case Some(list) => _switchPortMap = _switchPortMap + (actPhysSwitch -> (list :+(physPort, virtPort, None)))
-//						case None => _switchPortMap = _switchPortMap + (actPhysSwitch -> List((physPort, virtPort, None)))
-//					}
-				}
-			}
+			_createOVXSwitchPorts(tenant, actPhysSwitch)
 		}
 		
 		
 		// Iterate over all physical Switches, get their Port-mapping from _switchPortMap
-		// and connect their virtual counterparts to each other on the correct vPorts (create all topology paths):
+		// and connect their virtual counterparts to each other on the correct virtPorts (create all topology paths):
 		for (actPhysSwitch <- _tenantPhysSwitchMap(tenant)) {
 			for ((srcPort, srcEndpoint) <- actPhysSwitch.portMap) {
 				val physSrcSwitch = actPhysSwitch
 				val physDstSwitchOpt = _tenantPhysSwitchMap.getOrElse(tenant, List()).find(_.dpid == srcEndpoint.dpid)
 				// As the physical Destination Switch might not be in the tenant's switchMap, only continue connection if both
-				// src- and dstSwitch are known:
+				// src- and dst-Switch are known:
 				if(physDstSwitchOpt.isDefined) {
 					val physDstSwitch = physDstSwitchOpt.get
 					// Find the srcPortMapping for the actual srcPort in the _switchPortMap's actPhysSwitch entry:
-					val srcPortMapping = _switchPortMap.getOrElse(physSrcSwitch, List()).find(_._1 == srcPort)
-					val dstPortMapping = _switchPortMap.getOrElse(physDstSwitch, List()).find(_._1 == srcEndpoint.port)
-					val vSrcSwitch = _tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))
-					val vDstSwitch = _tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(srcEndpoint.dpid.convertToHexLong))
+					val srcPortMapping = _switchPortMap.getOrElse(physSrcSwitch, List()).
+																find(_._1 == srcPort)
+					val dstPortMapping = _switchPortMap.getOrElse(physDstSwitch, List()).
+																find(_._1 == srcEndpoint.port)
+					val virtSrcSwitch = _tenantVirtSwitchMap.getOrElse(tenant, List()).
+																find(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))
+					val virtDstSwitch = _tenantVirtSwitchMap.getOrElse(tenant, List()).
+																find(_.dpids.contains(srcEndpoint.dpid.convertToHexLong))
 
-					if (srcPortMapping.isDefined && dstPortMapping.isDefined && vSrcSwitch.isDefined && vDstSwitch.isDefined) {
+					if (srcPortMapping.isDefined && dstPortMapping.isDefined && virtSrcSwitch.isDefined && virtDstSwitch.isDefined) {
 						val (physSrcPort, virtSrcPort, srcComponent) = srcPortMapping.get
 						val (physDstPort, virtDstPort, dstComponent) = dstPortMapping.get
 						
-						
 						// Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
 						val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
-						
 						if (! alreadyConnected) {
-							val vLink = _ovxConn.connectLink(tenant.id, vSrcSwitch.get.vdpid, virtSrcPort,
-								vDstSwitch.get.vdpid, virtDstPort, "spf", 1)
-							vLink match {
-								case Some(result) =>
-									log.info("Link connection between Switches ({}:{} - {}:{}) suceeded!",
-										physSrcSwitch.dpid, physSrcPort, physDstSwitch.dpid, physDstPort)
-									// If virtual link was established successfully, update srcPortMapping in _switchPortMap with physDstSwitch:
-									val newSrcPortMap = (physSrcPort, srcPortMapping.get._2, physDstSwitchOpt)
-									val srcPortMapIndex = _switchPortMap.get(physSrcSwitch).get.indexOf(srcPortMapping.get)
-									_switchPortMap = _switchPortMap +
-										(physSrcSwitch -> _switchPortMap.getOrElse(physSrcSwitch, List()).updated(srcPortMapIndex, newSrcPortMap))
-
-								case None =>
-									log.error("Link connection between Switches ({}:{} - {}:{}) failed!",
-										physSrcSwitch.dpid, physSrcPort, physDstSwitch.dpid, physDstPort)
-							}
+							
+							_connectOVXSwitches(tenant, physSrcSwitch, physSrcPort, virtSrcSwitch.get, virtSrcPort, 
+																	physDstSwitch, physDstPort, virtDstSwitch.get, virtDstPort)
 						}
 					}
 				}
@@ -415,6 +369,113 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		}
 	}
 	
+	
+	def _createOVXNetwork(tenant: Tenant) = {
+			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
+			netOpt match{
+				case Some(net)  =>
+					log.info(s"Created virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{}. Is Booted: {}",
+						tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+					_tenantNetMap = _tenantNetMap + (tenant -> net)
+
+				case None          =>
+					log.error(s"Virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{} was not started correctly!",
+						tenant.id, tenant.ofcIp, tenant.ofcPort)
+			}
+	}
+
+	/**
+	 * Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch
+	 * @param tenant
+	 * @param physSwitch
+	 */
+	def _createOVXSwitch(tenant: Tenant, physSwitch: OFSwitch): Boolean = {
+		// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch
+		val vSwitchOpt = _ovxConn.createSwitch(tenant.id, List(physSwitch.dpid.toString))
+		vSwitchOpt match{
+		    case Some(vSwitch) =>
+					log.info("Created Switch (dpids: {} vdpid: {}) in Tenant-Network {}",
+						physSwitch.dpid.toString, vSwitch.dpids, tenant.id)
+
+					// After virtual Switch was successfully created, add physical and virtual Switch to respective tenantSwitchMap:
+					_tenantPhysSwitchMap = _tenantPhysSwitchMap + (tenant -> (_tenantPhysSwitchMap.getOrElse(tenant, List()) :+ physSwitch))
+					_tenantVirtSwitchMap = _tenantVirtSwitchMap + (tenant -> (_tenantVirtSwitchMap.getOrElse(tenant, List()) :+ vSwitch))
+					return true
+					
+		    case None          =>
+					log.error("Switch Creation (dpids: {}) in Tenant-Network {} failed!",
+						physSwitch.dpid.toString, tenant.id)
+					return false
+		}
+	}
+
+	/**
+	 * Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch
+	 * @param tenant
+	 * @param physSwitch
+	 */
+	def _createOVXSwitchPorts(tenant: Tenant, physSwitch: OFSwitch): Boolean = {
+		// Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
+		val physSrcPorts = physSwitch.portMap.map(_._1)
+		var allPortsCreated: Boolean = true
+		
+		for (actSrcPort <- physSrcPorts) {
+			val portMapOpt = _ovxConn.createPort(tenant.id, physSwitch.dpid.toString, actSrcPort)
+			portMapOpt match{
+			    case Some(portMap)  =>
+						val physPort = portMapOpt.get._1
+						val virtPort = portMapOpt.get._2
+						assert(physPort == actSrcPort, s"Associated Physical Port $physPort after Port creation " +
+							s"on Switch ${physSwitch.dpid} ist not equal to requested physical Source Port $actSrcPort!")
+
+						log.info("Created Port (phys: {} virt: {}) at Switch {} for other Switch in Tenant-Network {}",
+							physPort, virtPort, physSwitch.dpid.toString, tenant.id)
+
+						//Append a new value to _switchPortMap, which is either a new list (if no value was found for key), or a new entry in the list:
+						_switchPortMap = _switchPortMap + (physSwitch -> (_switchPortMap.getOrElse(physSwitch, List()) :+ (physPort, virtPort, None)))
+						
+			    case None          	=>
+						allPortsCreated = false
+			}
+		}
+		return allPortsCreated
+	}
+	
+	def _connectOVXSwitches(tenant: Tenant, 
+													physSrcSwitch: OFSwitch, physSrcPort: Short, virtSrcSwitch: VirtualSwitch, virtSrcPort: Short,
+													physDstSwitch: OFSwitch, physDstPort: Short, virtDstSwitch: VirtualSwitch, virtDstPort: Short): 
+													Boolean = {
+		
+		val vLink = _ovxConn.connectLink(tenant.id, 
+																		 virtSrcSwitch.vdpid, virtSrcPort, 
+																		 virtDstSwitch.vdpid, virtDstPort, "spf", 1)
+		vLink match {
+			case Some(result) =>
+				log.info(s"Link connection between Switches " +
+					s"(${physSrcSwitch.dpid}:$physSrcPort(${virtSrcSwitch.vdpid}:$virtSrcPort) " +
+					s"- ${physDstSwitch.dpid}:$physDstPort(${virtDstSwitch.vdpid}:$virtDstPort)) suceeded!")
+				
+				// If virtual link was established successfully, update srcPortMapping in _switchPortMap with physDstSwitch:
+				val newSrcPortMap = (physSrcPort, virtSrcPort, Some(physDstSwitch))
+				val srcPortMapIndex = _switchPortMap.getOrElse(physSrcSwitch, List()).
+																indexWhere(t => t._1 == physSrcPort && t._2 == virtSrcPort)
+				
+				_switchPortMap = _switchPortMap +
+					(physSrcSwitch -> _switchPortMap.getOrElse(physSrcSwitch, List()).updated(srcPortMapIndex, newSrcPortMap))
+				return true
+
+			case None =>
+				log.info(s"Link connection between Switches " +
+					s"(${physSrcSwitch.dpid}:$physSrcPort(${virtSrcSwitch.vdpid}:$virtSrcPort) " +
+					s"- ${physDstSwitch.dpid}:$physDstPort(${virtDstSwitch.vdpid}:$virtDstPort)) failed!")
+				return false
+		}
+		
+	}
+	
+	def _discoverHostPaths() = {
+		//TODO: implement discovery
+	}
 	
 } // end of class NRA
 
