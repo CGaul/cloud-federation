@@ -167,7 +167,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	}
 
 
-	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
+	//FIXME: Shortcut Implementation in 0.2 Integrated Controllers
 	/**
 	 * Received from local MMA.
 	 *
