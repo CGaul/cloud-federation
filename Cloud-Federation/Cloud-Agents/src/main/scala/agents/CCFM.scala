@@ -155,7 +155,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
 
-	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
+	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.3 - Federation-Agents
 }
 
 

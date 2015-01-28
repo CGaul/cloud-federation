@@ -9,10 +9,10 @@ import messages._
  */
 class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends Actor with ActorLogging
 {
-	// TODO: Shortcut - Better handle in DB:
-	var cloudDiscoveries: Vector[Subscription] = Vector()
-	var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
-	var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
+	private var cloudDiscoveries: Vector[Subscription] = Vector()
+	private var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
+	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
+	private var outFederations: Map[ActorRef, ResourceAlloc] = Map()
 
 /* Methods: */
 /* ======== */
@@ -24,7 +24,6 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		cloudDiscovery.actorSelMMA ! FederationInfoSubscription(cloudSLA)
 	}
 
-	//TODO: Implement in 0.2 Integrated Controllers
 	/**
 	 * Received from NetworkResourceAgent.
 	 * <p>
@@ -53,7 +52,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		}
 	}
 
-	//TODO: Implement in 0.2 Integrated Controllers
+	//TODO: Implement in 0.3 - Federation-Agents
 	/**
 	 * Received from one of the foreign MatchMakingAgents
 	 * that this Agent queried before.
@@ -86,7 +85,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 				// TODO: possibility to only allocate resourcesToAlloc partially.
 				// If resourcesToAlloc are not completely allocateably locally, drop the FederationRequest,
 				// replying with an empty body in the ResourceFederationReply back to the foreign MMA.
-				sender ! ResourceFederationReply()
+				sender ! ResourceFederationReply(context.self, None)
 			}
 			else{
 				log.info("Federation queried by MMA {}, including ResToAlloc: {} will be allocated locally.", 
@@ -97,17 +96,18 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 				
 				// If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
 				// including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
-				sender ! ResourceFederationReply(Vector((context.self, resourcesToAlloc)))
+				sender ! ResourceFederationReply(context.self, Some(resourcesToAlloc))
 			}
 		}
 		// Shortcut: Forward ResourceFederationRequest to local NRA,
 		// TODO: implement.
 	}
 
-	def recvResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]): Unit = {
+	def recvResourceFederationReply(slaveMMA: ActorRef, slaveResources: Option[ResourceAlloc]): Unit = {
 		
-		if(allocatedResources.isEmpty){
-			log.warning("No federation was established")
+		if(slaveResources.isEmpty){
+			log.warning("No federation was established with MMA {}, as no resources were allocated on the foreign cloud!",
+								  slaveMMA)
 		}
 	}
 
@@ -139,8 +139,8 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 			case ResourceFederationRequest(tenant, resources)
 						=> recvResourceFederationRequest(tenant, resources)
 				
-			case ResourceFederationReply(allocatedResources)
-						=> recvResourceFederationReply(allocatedResources)
+			case ResourceFederationReply(slaveMMA, slaveResources)
+						=> recvResourceFederationReply(slaveMMA, slaveResources)
 
 		}
 		case _										=> log.error("Unknown message received!")
