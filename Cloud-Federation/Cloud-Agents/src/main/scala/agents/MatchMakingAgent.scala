@@ -21,14 +21,14 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		log.info("MatchMakingAgent received DiscoveryPublication. " +
 			"Subscribing on FederationInfo about that Cloud via other MMA...")
 		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
-		cloudDiscovery.cloudMMA ! FederationInfoSubscription(cloudSLA)
+		cloudDiscovery.actorSelMMA ! FederationInfoSubscription(cloudSLA)
 	}
 
 	//TODO: Implement in 0.2 Integrated Controllers
 	/**
 	 * Received from NetworkResourceAgent.
 	 * <p>
-	 *    When a ResourceReply arrives, the MatchMakingAgent has to gather
+	 *    When a ResourceRequest arrives, the MatchMakingAgent has to gather
 	 *    the requested resources from the currently known Federation-Clouds.
 	 *    Two possibilities here:
 	 *    <ul>
@@ -49,7 +49,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		// Shortcut: Forward ResourceRequest to previously published Cloud:
 		if(cloudDiscoveries.size > 0){
 			// Send a ResourceFederationRequest to the other Cloud's MMA immediately:
-			cloudDiscoveries(0).cloudMMA ! ResourceFederationRequest(tenant, resourcesToGather)
+			cloudDiscoveries(0).actorSelMMA ! ResourceFederationRequest(tenant, resourcesToGather)
 		}
 	}
 
@@ -62,30 +62,54 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
 
 
+	/**
+	 * Received from one of the foreign MMAs that want to start a Federation.
+	 * The Federation starter MMA will be the master MMA then, this MMA will be the slave (some for NRA).
+	 * @param tenant
+	 * @param resourcesToAlloc
+	 */
 	def recvResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc): Unit = {
 		log.info("Received ResourceFederationRequest (Tenant: {}, ResCount: {}) at MatchMakingAgent.",
 			tenant, resourcesToAlloc.resources.size)
-		// TODO: Shortcut - Implement more specific:
+
 		if(auctionedResources.contains(sender())){
+			//TODO: auctionedResources need to be set somewhere before..
 			val sendersAvailResources: ResourceAlloc = auctionedResources(sender())
 			// Are the requested resources a subset (or the whole set) of the sender's available Resources?
 			// This is fulfilled, if no resource is left in the resourceToAlloc, if filtered by its available Resources:
 			val leftResToAlloc: Iterable[Resource] = resourcesToAlloc.resources.filter(sendersAvailResources.resources.contains)
 			if(leftResToAlloc.size > 0){
-				log.error("More Resources should be allocated over the Federation than available from won auctions!" +
-									" ResToAlloc: %s, Sender's AuctionedResources: %s", resourcesToAlloc.resources, sendersAvailResources.resources)
+				log.warning("More Resources should be allocated over the Federation than available from won auctions!" +
+									" ResToAlloc: {}, MMA's AuctionedResources: {}", 
+									resourcesToAlloc.resources, sendersAvailResources.resources)
+				
+				// TODO: possibility to only allocate resourcesToAlloc partially.
+				// If resourcesToAlloc are not completely allocateably locally, drop the FederationRequest,
+				// replying with an empty body in the ResourceFederationReply back to the foreign MMA.
+				sender ! ResourceFederationReply()
 			}
 			else{
+				log.info("Federation queried by MMA {}, including ResToAlloc: {} will be allocated locally.", 
+								 sender(), resourcesToAlloc.resources)
 				// If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
 				// so that it will be mapped to the running OVX instance:
 				nraSelection ! ResourceFederationRequest(tenant, resourcesToAlloc)
+				
+				// If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
+				// including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
+				sender ! ResourceFederationReply(Vector((context.self, resourcesToAlloc)))
 			}
 		}
 		// Shortcut: Forward ResourceFederationRequest to local NRA,
 		// TODO: implement.
 	}
 
-	def recvResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]): Unit = ???
+	def recvResourceFederationReply(allocatedResources: Vector[(ActorRef, ResourceAlloc)]): Unit = {
+		
+		if(allocatedResources.isEmpty){
+			log.warning("No federation was established")
+		}
+	}
 
 
 	def recvFederationInfoSubscription(otherCloudSLA: CloudSLA): Unit = {

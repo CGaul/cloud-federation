@@ -40,13 +40,13 @@ class PubSubFederator extends Actor with ActorLogging
 	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
 		val newSubscriber = Subscriber(sender(), authenticated = false)
 		if(subscribers.contains(newSubscriber)){
-			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRef)
+			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRefDA)
 			return
 		}
 		log.debug("Subscribers before discovery update: "+ subscribers)
 		// Add the new, unauthenticated subscriber to the vector of all subscribers and the subscription Map:
 		subscribers = subscribers :+ newSubscriber
-		subscriptions = subscriptions + (newSubscriber.actorRef -> newSubscription)
+		subscriptions = subscriptions + (newSubscriber.actorRefDA -> newSubscription)
 
 		log.info("Received DiscoverySubscription. Pre-Registered {}.", newSubscriber)
 		//log.info("Subscriptions: "+ subscriptions)
@@ -56,13 +56,13 @@ class PubSubFederator extends Actor with ActorLogging
 		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
 		// Begin with the authentication of the new subscriber:
 		val authSubscriberQuestion = AuthenticationInquiry(encrSecCheck)
-		newSubscriber.actorRef ! authSubscriberQuestion
+		newSubscriber.actorRefDA ! authSubscriberQuestion
 	}
 
 	def recvAuthenticationAnswer(solvedKey: Long): Unit = {
 		log.info("Received AuthenticationAnswer from {}", sender())
 		val subscriberToAuth: ActorRef = sender()
-		val registeredSubscriber = subscribers.find(subscriber => subscriber.actorRef == subscriberToAuth)
+		val registeredSubscriber = subscribers.find(subscriber => subscriber.actorRefDA == subscriberToAuth)
 		log.info("Found Pre-Reg. Subscriber: {}", registeredSubscriber)
 		if(registeredSubscriber.isDefined){
 			//TODO: check if inquiry key is correct:
@@ -73,14 +73,14 @@ class PubSubFederator extends Actor with ActorLogging
 			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
-				val authSubscriber = Subscriber(subscribers(index).actorRef, authenticated = true)
+				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true)
 				log.debug("Subscribers before auth-update: "+ subscribers)
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
 				log.debug("Subscribers after auth-update: "+ subscribers)
 
 				// After successful authentication, publish new Subscription to all subscribers:
-				broadcastOneSubscription(authSubscriber, subscriptions(authSubscriber.actorRef))
+				broadcastOneSubscription(authSubscriber, subscriptions(authSubscriber.actorRefDA))
 				
 				//Publish all Subscriptions from every authenticated Subscriber to the 
 				// new initialized (and authenticated) Subscriber:
@@ -88,7 +88,7 @@ class PubSubFederator extends Actor with ActorLogging
 			}
 			else{
 				log.warning("Authentication for new {} was unsuccessful. " +
-					"Dropping temporary Subscriber from registered Subscribers.", registeredSubscriber.get.actorRef)
+					"Dropping temporary Subscriber from registered Subscribers.", registeredSubscriber.get.actorRefDA)
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				subscribers = subscribers.drop(index)
 			}
@@ -109,9 +109,9 @@ class PubSubFederator extends Actor with ActorLogging
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
 		if(authSubscribers.size > 0) {
-			log.info("Broadcasting Subscription of {} to {} authenticated Subscribers", originator.actorRef, authSubscribers.size)
+			log.info("Broadcasting Subscription of {} to {} authenticated Subscribers", originator.actorRefDA, authSubscribers.size)
 			for (actSubscriber <- authSubscribers) {
-				actSubscriber.actorRef ! DiscoveryPublication(subscription)
+				actSubscriber.actorRefDA ! DiscoveryPublication(subscription)
 			}
 		}
 	}
@@ -119,12 +119,12 @@ class PubSubFederator extends Actor with ActorLogging
 	def publishAllSubscriptions(receiver: Subscriber) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
-		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRef).contains).map(_._2)
+		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRefDA).contains).map(_._2)
 
 		if(authSubscriptions.size > 0){
-			log.info("Initial Publication to {}", receiver.actorRef)
+			log.info("Initial Publication to {}", receiver.actorRefDA)
 			for (actSubscription <-  authSubscriptions) {
-				receiver.actorRef ! DiscoveryPublication(actSubscription)
+				receiver.actorRefDA ! DiscoveryPublication(actSubscription)
 			}
 		}
 

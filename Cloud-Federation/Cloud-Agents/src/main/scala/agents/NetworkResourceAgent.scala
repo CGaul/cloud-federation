@@ -310,7 +310,13 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 		
 		if(federated){
 			//TODO: establish federation.
-			
+			for (actGateway <- _tenantGatewayMap.getOrElse(tenant, List())) {
+				// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
+				_createOVXSwitch(tenant, actGateway)
+
+				// Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
+				_createOVXSwitchPorts(tenant, actGateway)
+			}
 		}
 		
 

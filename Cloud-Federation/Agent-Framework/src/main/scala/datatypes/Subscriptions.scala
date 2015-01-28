@@ -6,5 +6,5 @@ import akka.actor.{ActorRef, ActorSelection}
 
 
 
-case class Subscriber(actorRef: ActorRef, authenticated: Boolean)
-case class Subscription(cloudMMA: ActorSelection, cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: File)
+case class Subscriber(actorRefDA: ActorRef, authenticated: Boolean)
+case class Subscription(actorSelMMA: ActorSelection, cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA], cert: File)
