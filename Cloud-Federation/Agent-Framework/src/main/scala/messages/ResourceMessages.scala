@@ -28,7 +28,7 @@ case class ResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceA
   extends ResourceMessage with NRAResourceDest with MMAResourceDest
 
 
-case class ResourceFederationReply(slaveMMA: ActorRef, slaveResources: Option[ResourceAlloc])
+case class ResourceFederationReply(slaveMMA: ActorRef, federatedResourcesOpt: Option[ResourceAlloc])
   extends ResourceMessage with MMAResourceDest
 
 case class ResourceFederationSummary(federatedResources: Map[ActorRef, ResourceAlloc])

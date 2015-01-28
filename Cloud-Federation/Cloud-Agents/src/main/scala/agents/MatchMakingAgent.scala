@@ -9,10 +9,17 @@ import messages._
  */
 class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends Actor with ActorLogging
 {
+/* Variables: */
+/* ========== */
+
 	private var cloudDiscoveries: Vector[Subscription] = Vector()
 	private var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
+
 	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
-	private var outFederations: Map[ActorRef, ResourceAlloc] = Map()
+
+	private var assignedFedResources: Map[ActorRef, ResourceAlloc] = Map()
+	private var outstandingFedAnswers: Map[ActorRef, Boolean] = Map()
+
 
 /* Methods: */
 /* ======== */
@@ -48,17 +55,20 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		// Shortcut: Forward ResourceRequest to previously published Cloud:
 		if(cloudDiscoveries.size > 0){
 			// Send a ResourceFederationRequest to the other Cloud's MMA immediately:
+			val lastMMA = cloudDiscoveries(0).actorSelMMA
 			cloudDiscoveries(0).actorSelMMA ! ResourceFederationRequest(tenant, resourcesToGather)
+			outstandingFedAnswers = outstandingFedAnswers + (lastMMA -> false)
 		}
 	}
 
-	//TODO: Implement in 0.3 - Federation-Agents
-	/**
-	 * Received from one of the foreign MatchMakingAgents
-	 * that this Agent queried before.
-	 * @param resourceAlloc
-	 */
-	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
+//
+//	//TODO: Implement or Delete in 0.3 - Federation-Agents
+//	/**
+//	 * Received from one of the foreign MatchMakingAgents
+//	 * that this Agent queried before.
+//	 * @param resourceAlloc
+//	 */
+//	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
 
 
 	/**
@@ -99,15 +109,34 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 				sender ! ResourceFederationReply(context.self, Some(resourcesToAlloc))
 			}
 		}
-		// Shortcut: Forward ResourceFederationRequest to local NRA,
-		// TODO: implement.
 	}
 
-	def recvResourceFederationReply(slaveMMA: ActorRef, slaveResources: Option[ResourceAlloc]): Unit = {
-		
-		if(slaveResources.isEmpty){
-			log.warning("No federation was established with MMA {}, as no resources were allocated on the foreign cloud!",
-								  slaveMMA)
+	def recvResourceFederationReply(slaveMMA: ActorRef, federatedResourcesOpt: Option[ResourceAlloc]): Unit = {
+
+		// If no resources were federated at the foreign cloud, simply log and return:
+		federatedResourcesOpt match{
+			case Some(fedResources)	=>
+				// If fedResources were federated, add the federatedResources to the assignedFedResources-Map and send a Federation
+				log.info("Received ResourceFederationReply:" +
+					"Successfully established a federation with MMA {}. FederatedResources: {}",
+					slaveMMA, fedResources)
+				assignedFedResources = assignedFedResources + (slaveMMA -> fedResources)
+				
+			case None								=>
+				log.warning("Received ResourceFederationReply: " +
+					"No federation was established with MMA {}, as no resources were allocated on the foreign cloud!",
+					slaveMMA)
+		}
+
+		// Update the outstandingFedAnswers (slaveMMA answered -> true) and send a FederationSummary back to the NRA,
+		// if all outstandingAnswers were answered by the foreign MMAs. If so, clear the outstandingFedAnswers-Map afterwards.
+		outstandingFedAnswers = outstandingFedAnswers + (slaveMMA -> true)
+
+		if(! outstandingFedAnswers.exists(_._2 == false)){
+			log.info("All outstanding Federation Answers were Replied. Sending FederationSummary back to NRA..")
+			nraSelection ! ResourceFederationSummary(assignedFedResources)
+
+			outstandingFedAnswers = outstandingFedAnswers.empty
 		}
 	}
 
@@ -132,9 +161,10 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		case message: MMAResourceDest	=> message match {
 			case ResourceRequest(tenant, resources)
 						=> recvResourceRequest(tenant, resources)
-				
-			case ResourceReply(allocResources)
-						=> recvResourceReply(allocResources)
+
+				//TODO: implement or delete
+//			case ResourceReply(allocResources)
+//						=> recvResourceReply(allocResources)
 				
 			case ResourceFederationRequest(tenant, resources)
 						=> recvResourceFederationRequest(tenant, resources)
