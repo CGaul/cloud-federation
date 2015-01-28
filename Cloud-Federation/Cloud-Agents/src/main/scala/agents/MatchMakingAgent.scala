@@ -16,9 +16,21 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	private var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
 
 	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
-
-	private var assignedFedResources: Map[ActorRef, ResourceAlloc] = Map()
-	private var outstandingFedAnswers: Map[ActorRef, Boolean] = Map()
+	
+	// Each ResourceAlloc has exactly one Cloud that manages it (locally or inside a federation):
+	/**
+	 * Outstanding Mapping of ResourceAlloc to a list of ActorSelections, that are tried one after the other
+	 * until a Cloud was found that is able to allocate the ResourceAlloc-Key in a federation with this cloud.
+	 * Once this happens, the Key -> Value Mapping can be deleted from fedResOutstanding, as the final
+	 * result will be found in fedResCloudAssigns then. 
+	 */
+	private var fedResOutstanding: Map[ResourceAlloc, List[ActorSelection]] = Map()
+	/**
+	 * Finally Assigned Mapping of ResourceAlloc to the foreign (slave) MMA that was willing to accept
+	 * the FederationRequest made from this MMA with the ResourceAlloc-Key.
+	 */
+	private var fedResCloudAssigns: Map[ResourceAlloc, ActorRef] = Map()
+	private var foreignToLocalTenants: Map[Tenant, Tenant] = Map()
 
 
 /* Methods: */
@@ -51,13 +63,12 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	def recvResourceRequest(tenant: Tenant, resourcesToGather: ResourceAlloc): Unit = {
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) at MatchMakingAgent.",
 						 tenant, resourcesToGather.resources.size)
-		// TODO: Shortcut - Implement more specific:
-		// Shortcut: Forward ResourceRequest to previously published Cloud:
+		
 		if(cloudDiscoveries.size > 0){
-			// Send a ResourceFederationRequest to the other Cloud's MMA immediately:
-			val lastMMA = cloudDiscoveries(0).actorSelMMA
-			cloudDiscoveries(0).actorSelMMA ! ResourceFederationRequest(tenant, resourcesToGather)
-			outstandingFedAnswers = outstandingFedAnswers + (lastMMA -> false)
+			// First, add all previously discovered foreign MMAs into the list of outstanding requests for the
+			// current ResourceAlloc that should be solved in a federation from the foreign cloud:
+			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorSelMMA).toList)
+			sendFederationRequestToNextMMA(tenant, resourcesToGather)
 		}
 	}
 
@@ -70,6 +81,15 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 //	 */
 //	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
 
+
+	def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
+		// Use a random ID for the local mapping of the foreign Tenant
+		// TODO: test if Tenant-ID already exists:
+		val localTenant = Tenant((Math.random * Int.MaxValue).toInt, foreignTenant.subnet, 
+														 foreignTenant.ofcIp, foreignTenant.ofcPort)
+		foreignToLocalTenants = foreignToLocalTenants + (foreignTenant -> localTenant)
+		return localTenant
+	}
 
 	/**
 	 * Received from one of the foreign MMAs that want to start a Federation.
@@ -95,48 +115,51 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 				// TODO: possibility to only allocate resourcesToAlloc partially.
 				// If resourcesToAlloc are not completely allocateably locally, drop the FederationRequest,
 				// replying with an empty body in the ResourceFederationReply back to the foreign MMA.
-				sender ! ResourceFederationReply(context.self, None)
+				sender ! ResourceFederationReply(tenant, None)
 			}
 			else{
 				log.info("Federation queried by MMA {}, including ResToAlloc: {} will be allocated locally.", 
 								 sender(), resourcesToAlloc.resources)
 				// If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
 				// so that it will be mapped to the running OVX instance:
-				nraSelection ! ResourceFederationRequest(tenant, resourcesToAlloc)
+				nraSelection ! ResourceFederationRequest(mapForeignToLocal(tenant), resourcesToAlloc)
 				
 				// If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
 				// including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
-				sender ! ResourceFederationReply(context.self, Some(resourcesToAlloc))
+				sender ! ResourceFederationReply(tenant, Some(resourcesToAlloc))
 			}
 		}
 	}
 
-	def recvResourceFederationReply(slaveMMA: ActorRef, federatedResourcesOpt: Option[ResourceAlloc]): Unit = {
+	def recvResourceFederationReply(tenant: Tenant, federatedResourcesOpt: Option[ResourceAlloc]): Unit = {
 
 		// If no resources were federated at the foreign cloud, simply log and return:
 		federatedResourcesOpt match{
 			case Some(fedResources)	=>
-				// If fedResources were federated, add the federatedResources to the assignedFedResources-Map and send a Federation
+				// If fedResources were federated, add the federatedResources to the fedResCloudAssigns-Map and send a Federation
 				log.info("Received ResourceFederationReply:" +
 					"Successfully established a federation with MMA {}. FederatedResources: {}",
-					slaveMMA, fedResources)
-				assignedFedResources = assignedFedResources + (slaveMMA -> fedResources)
+					sender(), fedResources)
+				// IMPLICIT: fedResources is the same ResourceAlloc that was forwarded from this MMA to the foreign MMA before:
+				fedResCloudAssigns = fedResCloudAssigns + (fedResources -> sender())
+				nraSelection ! ResourceFederationResult(tenant, fedResources)
 				
 			case None								=>
 				log.warning("Received ResourceFederationReply: " +
 					"No federation was established with MMA {}, as no resources were allocated on the foreign cloud!",
-					slaveMMA)
+					sender())
 		}
 
-		// Update the outstandingFedAnswers (slaveMMA answered -> true) and send a FederationSummary back to the NRA,
-		// if all outstandingAnswers were answered by the foreign MMAs. If so, clear the outstandingFedAnswers-Map afterwards.
-		outstandingFedAnswers = outstandingFedAnswers + (slaveMMA -> true)
+		// Update the fedResOutstanding (slaveMMA answered -> true) and send a FederationSummary back to the NRA,
+		// if all outstandingAnswers were answered by the foreign MMAs. If so, clear the fedResOutstanding-Map afterwards.
+//		if(fedResOutstanding.exists(_._1 == ))
+//		fedResOutstanding = fedResOutstanding + (slaveMMA -> true)
 
-		if(! outstandingFedAnswers.exists(_._2 == false)){
+		if(! fedResOutstanding.exists(_._2 == false)){
 			log.info("All outstanding Federation Answers were Replied. Sending FederationSummary back to NRA..")
-			nraSelection ! ResourceFederationSummary(assignedFedResources)
+			nraSelection ! ResourceFederationResult(fedResCloudAssigns)
 
-			outstandingFedAnswers = outstandingFedAnswers.empty
+			fedResOutstanding = fedResOutstanding.empty
 		}
 	}
 
@@ -169,11 +192,30 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 			case ResourceFederationRequest(tenant, resources)
 						=> recvResourceFederationRequest(tenant, resources)
 				
-			case ResourceFederationReply(slaveMMA, slaveResources)
-						=> recvResourceFederationReply(slaveMMA, slaveResources)
+			case ResourceFederationReply(tenant, slaveResources)
+						=> recvResourceFederationReply(tenant, slaveResources)
 
 		}
 		case _										=> log.error("Unknown message received!")
+	}
+	
+	private def sendFederationRequestToNextMMA(tenant: Tenant, resourcesToGather: ResourceAlloc) = {
+		// Find the next MMA from the local MMA's mapping:
+		val outstandingMMAList = fedResOutstanding.getOrElse(resourcesToGather, List())
+		val nextMMAOpt = outstandingMMAList.headOption
+		
+		nextMMAOpt match{
+		    case Some(nextMMA) => 
+					log.info("Sending Federation Request to next MMA in outstanding List. MMA: {}", nextMMA)
+									 nextMMA !  ResourceFederationRequest(tenant, resourcesToGather)
+					// Remove the nextMMA that was just requested from the outstanding list:
+					fedResOutstanding = fedResOutstanding + (resourcesToGather -> outstandingMMAList.filter(_ != nextMMA))
+					
+		    case None          =>  
+					log.warning("No next MMA is outstanding for the ResourceFederationRequest ({}, {}). " +
+											"No FederationRequest will be send!",
+											tenant, resourcesToGather.resources)
+		}
 	}
 }
 
