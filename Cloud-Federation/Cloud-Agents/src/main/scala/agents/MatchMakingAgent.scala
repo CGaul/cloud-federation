@@ -72,15 +72,6 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		}
 	}
 
-//
-//	//TODO: Implement or Delete in 0.3 - Federation-Agents
-//	/**
-//	 * Received from one of the foreign MatchMakingAgents
-//	 * that this Agent queried before.
-//	 * @param resourceAlloc
-//	 */
-//	def recvResourceReply(resourceAlloc: ResourceAlloc): Unit = ???
-
 
 	def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
 		// Use a random ID for the local mapping of the foreign Tenant
@@ -184,10 +175,6 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		case message: MMAResourceDest	=> message match {
 			case ResourceRequest(tenant, resources)
 						=> recvResourceRequest(tenant, resources)
-
-				//TODO: implement or delete
-//			case ResourceReply(allocResources)
-//						=> recvResourceReply(allocResources)
 				
 			case ResourceFederationRequest(tenant, resources)
 						=> recvResourceFederationRequest(tenant, resources)

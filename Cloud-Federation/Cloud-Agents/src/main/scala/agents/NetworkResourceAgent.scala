@@ -115,7 +115,7 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 	 * 	assigned to local resources only. If the local Resources are insufficient,
 	 * 	split the Request, using all locally available resources and forward the
 	 * 	federation part of the splitted Request to the MatchMakingAgent,
-	 * 	who should then send a ResourceReply back to this NetworkResourceAgent,
+	 * 	who should then send a ResourceFederationSummary back to this NetworkResourceAgent,
 	 * 	if all Federation attempts are finished,
 	 * 	or all Resources could have been allocated.
 	 * </p>

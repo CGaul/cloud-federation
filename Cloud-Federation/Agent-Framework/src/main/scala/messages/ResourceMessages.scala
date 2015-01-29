@@ -1,6 +1,5 @@
 package messages
 
-import akka.actor.ActorRef
 import datatypes.{ResourceAlloc, Tenant}
 
 /**
