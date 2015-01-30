@@ -15,7 +15,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	private var cloudDiscoveries: Vector[Subscription] = Vector()
 	private var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
 
-	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
+	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map() //TODO: use
 	
 	// Each ResourceAlloc has exactly one Cloud that manages it (locally or inside a federation):
 	/**
@@ -99,14 +99,14 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 			// This is fulfilled, if no resource is left in the resourceToAlloc, if filtered by its available Resources:
 			val leftResToAlloc: Iterable[Resource] = resourcesToAlloc.resources.filter(sendersAvailResources.resources.contains)
 			if(leftResToAlloc.size > 0){
-				log.warning("More Resources should be allocated over the Federation than available from won auctions!" +
-									" ResToAlloc: {}, MMA's AuctionedResources: {}", 
+				log.warning("More Resources should be allocated over the Federation than available from won auctions! " +
+                    "ResToAlloc: {}, MMA's AuctionedResources: {}", 
 									resourcesToAlloc.resources, sendersAvailResources.resources)
 				
 				// TODO: possibility to only allocate resourcesToAlloc partially.
 				// If resourcesToAlloc are not completely allocateably locally, drop the FederationRequest,
 				// replying with an empty body in the ResourceFederationReply back to the foreign MMA.
-				sender ! ResourceFederationReply(tenant, None)
+				sender ! ResourceFederationReply(tenant, resourcesToAlloc, wasFederated = false)
 			}
 			else{
 				log.info("Federation queried by MMA {}, including ResToAlloc: {} will be allocated locally.", 
@@ -117,41 +117,38 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 				
 				// If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
 				// including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
-				sender ! ResourceFederationReply(tenant, Some(resourcesToAlloc))
+				sender ! ResourceFederationReply(tenant, resourcesToAlloc, wasFederated = true)
 			}
 		}
 	}
 
-	def recvResourceFederationReply(tenant: Tenant, federatedResourcesOpt: Option[ResourceAlloc]): Unit = {
+  /**
+   * Received from the previously requested foreign (slave) MMA in a possible federation scenario.
+   * If federatedResOpt is None, then no federation may be esablished with the foreign MMA.
+   * If federatedResOpt is Some(ResourceAlloc), then the foreign MMA is the new slave MMA for the federated ResAlloc.
+   * @param tenant
+   * @param federatedResources The same resources that were sent as a Request to the foreign MMA
+   *                           are included in the Reply for correct answer remapping.
+   */
+	def recvResourceFederationReply(tenant: Tenant, federatedResources: ResourceAlloc, wasFederated: Boolean): Unit = {
 
 		// If no resources were federated at the foreign cloud, simply log and return:
-		federatedResourcesOpt match{
-			case Some(fedResources)	=>
-				// If fedResources were federated, add the federatedResources to the fedResCloudAssigns-Map and send a Federation
-				log.info("Received ResourceFederationReply:" +
-					"Successfully established a federation with MMA {}. FederatedResources: {}",
-					sender(), fedResources)
-				// IMPLICIT: fedResources is the same ResourceAlloc that was forwarded from this MMA to the foreign MMA before:
-				fedResCloudAssigns = fedResCloudAssigns + (fedResources -> sender())
-				nraSelection ! ResourceFederationResult(tenant, fedResources)
-				
-			case None								=>
-				log.warning("Received ResourceFederationReply: " +
-					"No federation was established with MMA {}, as no resources were allocated on the foreign cloud!",
-					sender())
-		}
-
-		// Update the fedResOutstanding (slaveMMA answered -> true) and send a FederationSummary back to the NRA,
-		// if all outstandingAnswers were answered by the foreign MMAs. If so, clear the fedResOutstanding-Map afterwards.
-//		if(fedResOutstanding.exists(_._1 == ))
-//		fedResOutstanding = fedResOutstanding + (slaveMMA -> true)
-
-		if(! fedResOutstanding.exists(_._2 == false)){
-			log.info("All outstanding Federation Answers were Replied. Sending FederationSummary back to NRA..")
-			nraSelection ! ResourceFederationResult(fedResCloudAssigns)
-
-			fedResOutstanding = fedResOutstanding.empty
-		}
+    if(wasFederated){
+      // If fedResources were federated, add the federatedResources to the fedResCloudAssigns-Map and send a Federation
+      log.info("Received ResourceFederationReply. " +
+        "Successfully established a federation with MMA {}. FederatedResources: {}",
+        sender(), federatedResources)
+      // IMPLICIT: federatedResources is the same ResourceAlloc that was forwarded from this MMA to the foreign MMA before:
+      fedResCloudAssigns = fedResCloudAssigns + (federatedResources -> sender())
+      nraSelection ! ResourceFederationResult(tenant, federatedResources)
+    }
+    else{
+      log.warning("Received ResourceFederationReply. " +
+        "No federation was established with MMA {}, as no resources were allocated on the foreign cloud!",
+        sender())
+      log.info("Trying to send ResourceFederationRquest to next foreign MMA in outstanding MMA list...")
+      sendFederationRequestToNextMMA(tenant, federatedResources)
+    }
 	}
 
 
@@ -179,8 +176,8 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 			case ResourceFederationRequest(tenant, resources)
 						=> recvResourceFederationRequest(tenant, resources)
 				
-			case ResourceFederationReply(tenant, slaveResources)
-						=> recvResourceFederationReply(tenant, slaveResources)
+			case ResourceFederationReply(tenant, federatedResources, wasFederated)
+						=> recvResourceFederationReply(tenant, federatedResources, wasFederated)
 
 		}
 		case _										=> log.error("Unknown message received!")
