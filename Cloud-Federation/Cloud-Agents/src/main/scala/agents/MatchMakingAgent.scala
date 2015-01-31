@@ -1,13 +1,14 @@
 package agents
 
 import akka.actor._
+import connectors.CloudConfigurator
 import datatypes._
 import messages._
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends Actor with ActorLogging
+class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelection) extends Actor with ActorLogging
 {
 /* Variables: */
 /* ========== */
@@ -40,7 +41,7 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 		log.info("MatchMakingAgent received DiscoveryPublication. " +
 			"Subscribing on FederationInfo about that Cloud via other MMA...")
 		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
-		cloudDiscovery.actorSelMMA ! FederationInfoSubscription(cloudSLA)
+		cloudDiscovery.actorSelMMA ! FederationInfoSubscription(cloudConfig.cloudSLA)
 	}
 
 	/**
@@ -152,22 +153,22 @@ class MatchMakingAgent(cloudSLA: CloudSLA, nraSelection: ActorSelection) extends
 	}
 
 
-	def recvFederationInfoSubscription(otherCloudSLA: CloudSLA): Unit = {
+	def recvFederationInfoSubscription(foreignCloudSLA: CloudSLA): Unit = {
 		log.info("Received FederationInfoSubscription from {}", sender())
-		federationSubscriptions = federationSubscriptions :+ (sender(), otherCloudSLA)
+		federationSubscriptions = federationSubscriptions :+ (sender(), foreignCloudSLA)
 	}
 
 	def recvFederationInfoPublication(possibleFederatedAllocs: Vector[(Host, Vector[ResourceAlloc])]): Unit = {
 		log.info("Received FederationInfoPublication from {}", sender())
 	}
 
-	override def receive(): Receive = {
+	override def receive: Receive = {
 		case message: MMADiscoveryDest => message match {
 			case DiscoveryPublication(cloudDiscovery) => recvDiscoveryPublication(cloudDiscovery)
 		}
 		case message: MMAFederationDest => message match{
-			case FederationInfoSubscription(cloudSLA) 			=> recvFederationInfoSubscription(cloudSLA)
-			case FederationInfoPublication(possibleAllocs) 	=> recvFederationInfoPublication(possibleAllocs)
+			case FederationInfoSubscription(foreignCloudSLA) 	=> recvFederationInfoSubscription(foreignCloudSLA)
+			case FederationInfoPublication(possibleAllocs) 		=> recvFederationInfoPublication(possibleAllocs)
 		}
 		case message: MMAResourceDest	=> message match {
 			case ResourceRequest(tenant, resources)
@@ -214,10 +215,10 @@ object MatchMakingAgent
 	 * In this case, to generate a new NetworkResource Agent, call
 	 * 	val ccfmProps = Props(classOf[NetworkResourceAgent], args = ovxIP)
 	 * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkResourceAgent-x")
-	 * @param cloudSLA The CloudSLA that is managed by the Cloud's CCFM.
+	 * @param cloudConfig The CloudConfigurator that manages all XML-configs for the local Cloud
 	 * @return An Akka Properties-Object
 	 */
-	def props(cloudSLA: CloudSLA, nraSelection: ActorSelection):
-		Props = Props(new MatchMakingAgent(cloudSLA, nraSelection))
+	def props(cloudConfig: CloudConfigurator, nraSelection: ActorSelection):
+		Props = Props(new MatchMakingAgent(cloudConfig, nraSelection))
 }
 

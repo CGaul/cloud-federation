@@ -1,0 +1,38 @@
+<Host>
+	<Hardware>
+		<Resource>
+			<ID>13</ID>
+			<CPU>MEDIUM</CPU>
+			<RAM>
+				<ByteSize>16.0 GiB</ByteSize>
+			</RAM>
+			<Storage>
+				<ByteSize>320.0 GiB</ByteSize>
+			</Storage>
+			<Bandwidth>
+				<ByteSize>100.0 MB</ByteSize>
+			</Bandwidth>
+			<Latency>10.0</Latency>
+			<Links>2</Links>
+		</Resource>
+	</Hardware>
+	<Endpoint>
+		<DPID>00:00:00:00:00:01:12:00</DPID>
+		<Port>1</Port>
+	</Endpoint>
+	<IP>10.1.0.13</IP>
+	<MAC>0:00:00:00:01:13</MAC>
+	<ResourceAllocs>
+
+	</ResourceAllocs>
+
+	<HostSLA>
+		<HostSLA>
+			<RelOnlineTime>0.95</RelOnlineTime>
+			<ImgFormats>BOCHS CLOOP COW DMG IMG QCOW QCOW2 RAW</ImgFormats>
+			<maxResPerCPU>
+				<t2>SMALL,10</t2><t2>MEDIUM,5</t2><t2>LARGE,2</t2>
+			</maxResPerCPU>
+		</HostSLA>
+	</HostSLA>
+</Host>

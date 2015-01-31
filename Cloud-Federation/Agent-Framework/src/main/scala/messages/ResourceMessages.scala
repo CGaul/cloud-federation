@@ -20,7 +20,7 @@ case class ResourceRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest with NRAResourceDest with MMAResourceDest
 
 case class ResourceReply(allocatedResources: ResourceAlloc)
-  extends ResourceMessage with CCFMResourceDest with MMAResourceDest
+  extends ResourceMessage with CCFMResourceDest
 
 
 case class ResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc)

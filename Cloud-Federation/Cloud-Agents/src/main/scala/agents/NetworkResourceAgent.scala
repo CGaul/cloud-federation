@@ -12,7 +12,7 @@ import scala.util.control.Breaks._
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
-class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: List[Host],
+class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
@@ -20,14 +20,14 @@ class NetworkResourceAgent(ovxIp: InetAddress, ovxApiPort: Int, val cloudHosts: 
 /* Values: */
 /* ======= */
 	
-		private val _ovxConn = OVXConnector(ovxIp, ovxApiPort)
+		private val _ovxConn = OVXConnector(cloudConfig.ovxIp, cloudConfig.ovxApiPort)
 
 
 /* Variables: */
 /* ========== */
 	
 		// Physical Topologies, received from the CCFM (hosts) and the NDA (switches)
-		private val hostTopology: List[Host] = cloudHosts
+		private val hostTopology: List[Host] = cloudConfig.cloudHosts.toList
 		private var switchTopology: List[OFSwitch] = List()
 	
 		// Physical Mappings:
@@ -539,9 +539,8 @@ object NetworkResourceAgent
 														ovxIP, ovxApiPort,
 														mmaActorRef)
 	 * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkResourceAgent-x")
-	 * @param ovxIp The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(ovxIp: InetAddress, ovxApiPort: Int, cloudHosts: List[Host], matchMakingAgent: ActorRef):
-	Props = Props(new NetworkResourceAgent(ovxIp, ovxApiPort, cloudHosts, matchMakingAgent))
+	def props(cloudConfig: CloudConfigurator, matchMakingAgent: ActorRef):
+	Props = Props(new NetworkResourceAgent(cloudConfig, matchMakingAgent))
 }

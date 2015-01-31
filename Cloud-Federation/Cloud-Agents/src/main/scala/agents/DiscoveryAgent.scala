@@ -3,6 +3,7 @@ package agents
 import java.io.File
 
 import akka.actor._
+import connectors.CloudConfigurator
 import datatypes.{CloudSLA, HostSLA, Subscription}
 import messages._
 
@@ -12,8 +13,9 @@ import messages._
  * and establishes a communication with the CCFM as its Supervisor.
  * @author Constantin Gaul created on 5/27/14.
  */
-class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelection: ActorSelection,
-										 cert: File) extends Actor with ActorLogging
+class DiscoveryAgent(cloudConfig: CloudConfigurator, 
+										 pubSubActorSelection: ActorSelection, matchMakingActorSelection: ActorSelection) 
+									extends Actor with ActorLogging
 									//TODO: change cert type to "Certificate"
 									//extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
 									//with ActorLogging
@@ -92,6 +94,6 @@ class DiscoveryAgent(pubSubActorSelection: ActorSelection, matchMakingActorSelec
 object DiscoveryAgent
 {
 	//TODO: change cert type to "Certificate"
-	def props(pubSubActorSelection: ActorSelection, matchMakingAgentSelection: ActorSelection, cert: File):
-		Props = Props(new DiscoveryAgent(pubSubActorSelection, matchMakingAgentSelection, cert))
+	def props(cloudConfig: CloudConfigurator, pubSubActorSelection: ActorSelection, matchMakingAgentSelection: ActorSelection):
+		Props = Props(new DiscoveryAgent(cloudConfig, pubSubActorSelection, matchMakingAgentSelection))
 }
