@@ -1,7 +1,5 @@
 package agents
 
-import java.io.File
-
 import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
 import connectors.CloudConfigurator

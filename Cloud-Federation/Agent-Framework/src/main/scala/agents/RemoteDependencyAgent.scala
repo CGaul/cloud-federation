@@ -1,7 +1,6 @@
 package agents.cloudfederation
 
 import akka.actor._
-import messages.TopologyDiscovery
 
 import scala.collection.mutable.ArrayBuffer
 

@@ -1,13 +1,14 @@
 package integration
 
 import java.io.File
-import agents.{MatchMakingAgent, NetworkResourceAgent}
+
+import agents.MatchMakingAgent
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
 import datatypes.Subscription
-import messages.{DiscoveryPublication}
+import messages.DiscoveryPublication
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 /**

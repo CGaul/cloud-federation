@@ -1,17 +1,12 @@
 package integration
 
 import java.io.File
-import java.net.InetAddress
 
-import agents.{MatchMakingAgent, DiscoveryAgent, PubSubFederator}
+import agents.{DiscoveryAgent, MatchMakingAgent, PubSubFederator}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
-import datatypes.ByteUnit._
-import datatypes.CPUUnit._
-import datatypes.CloudCurrency._
-import datatypes.ImgFormat._
 import datatypes._
 import messages.{AuthenticationAnswer, AuthenticationInquiry, DiscoveryPublication, DiscoverySubscription}
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}

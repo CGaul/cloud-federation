@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{Subscription, CloudSLA, Host, ResourceAlloc}
+import datatypes.{Host, ResourceAlloc, Subscription}
 
 /**
  * @author Constantin Gaul, created on 11/16/14.

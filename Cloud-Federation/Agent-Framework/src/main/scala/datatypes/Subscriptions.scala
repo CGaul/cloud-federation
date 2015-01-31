@@ -2,7 +2,7 @@ package datatypes
 
 import java.io.File
 
-import akka.actor.{ActorRef, ActorSelection}
+import akka.actor.ActorRef
 
 
 

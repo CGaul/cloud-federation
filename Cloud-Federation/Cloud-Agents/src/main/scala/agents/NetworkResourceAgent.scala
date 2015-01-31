@@ -1,7 +1,5 @@
 package agents
 
-import java.net._
-
 import akka.actor._
 import connectors._
 import datatypes._

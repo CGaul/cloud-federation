@@ -3,7 +3,7 @@ package connectors
 import java.io.File
 import java.net.InetAddress
 
-import datatypes.{CloudSLA, Tenant, Host}
+import datatypes.{CloudSLA, Host, Tenant}
 import org.slf4j.LoggerFactory
 
 /**

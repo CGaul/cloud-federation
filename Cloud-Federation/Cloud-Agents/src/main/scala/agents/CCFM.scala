@@ -1,7 +1,6 @@
 package agents
 
 import java.io.File
-import java.net.InetAddress
 
 import akka.actor._
 import connectors.CloudConfigurator
