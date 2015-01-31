@@ -22,7 +22,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResource
           log.info("Updated Network-Topology discovered, sending TopologyDiscovery to NRA.")
           networkResourceAgent ! TopologyDiscovery(_discoveredSwitches)
         }
-        Thread.sleep(10000) //sleep 10 seconds between each discovery
+        Thread.sleep(10 * 1000) //sleep 10 seconds between each discovery
       }
       log.info("NetworkDiscoveryAgent stopped discovery-loop.")
     }

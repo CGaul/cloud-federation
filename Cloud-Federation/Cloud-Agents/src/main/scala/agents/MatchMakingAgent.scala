@@ -1,5 +1,6 @@
 package agents
 
+import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
 import connectors.CloudConfigurator
 import datatypes._
@@ -8,13 +9,18 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelection) extends Actor with ActorLogging
+class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelection) 
+	extends Actor with ActorLogging
 {
+	
+/* Values: */
+/* ======= */
+	
 /* Variables: */
 /* ========== */
 
 	private var cloudDiscoveries: Vector[Subscription] = Vector()
-	private var federationSubscriptions: Vector[(ActorRef, CloudSLA)] = Vector()
+	private var federationSubscriptions: Vector[Subscription] = Vector()
 
 	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map() //TODO: use
 	
@@ -25,7 +31,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 	 * Once this happens, the Key -> Value Mapping can be deleted from fedResOutstanding, as the final
 	 * result will be found in fedResCloudAssigns then. 
 	 */
-	private var fedResOutstanding: Map[ResourceAlloc, List[ActorSelection]] = Map()
+	private var fedResOutstanding: Map[ResourceAlloc, List[ActorRef]] = Map()
 	/**
 	 * Finally Assigned Mapping of ResourceAlloc to the foreign (slave) MMA that was willing to accept
 	 * the FederationRequest made from this MMA with the ResourceAlloc-Key.
@@ -38,10 +44,13 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 /* ======== */
 
 	def recvDiscoveryPublication(cloudDiscovery: Subscription): Unit = {
-		log.info("MatchMakingAgent received DiscoveryPublication. " +
-			"Subscribing on FederationInfo about that Cloud via other MMA...")
+		log.info("MatchMakingAgent received DiscoveryPublication from {}. " +
+			"Adding CloudDiscovery to known Clouds...")
 		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
-		cloudDiscovery.actorSelMMA ! FederationInfoSubscription(cloudConfig.cloudSLA)
+		log.info("Sending own FederationInfoSubscription to foreign MMA...")
+		val ownSubscription = Subscription(context.self, cloudConfig.cloudSLA,
+																			 cloudConfig.cloudHosts.map(_.sla).toVector, cloudConfig.certFile)
+		cloudDiscovery.actorRefMMA ! FederationInfoSubscription(ownSubscription)
 	}
 
 	/**
@@ -68,7 +77,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 		if(cloudDiscoveries.size > 0){
 			// First, add all previously discovered foreign MMAs into the list of outstanding requests for the
 			// current ResourceAlloc that should be solved in a federation from the foreign cloud:
-			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorSelMMA).toList)
+			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorRefMMA).toList)
 			sendFederationRequestToNextMMA(tenant, resourcesToGather)
 		}
 	}
@@ -153,9 +162,9 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 	}
 
 
-	def recvFederationInfoSubscription(foreignCloudSLA: CloudSLA): Unit = {
+	def recvFederationInfoSubscription(subscription: Subscription): Unit = {
 		log.info("Received FederationInfoSubscription from {}", sender())
-		federationSubscriptions = federationSubscriptions :+ (sender(), foreignCloudSLA)
+		federationSubscriptions = federationSubscriptions :+ subscription
 	}
 
 	def recvFederationInfoPublication(possibleFederatedAllocs: Vector[(Host, Vector[ResourceAlloc])]): Unit = {

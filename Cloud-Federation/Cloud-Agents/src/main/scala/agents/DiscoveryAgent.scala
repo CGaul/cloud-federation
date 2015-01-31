@@ -2,6 +2,7 @@ package agents
 
 import java.io.File
 
+import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
 import connectors.CloudConfigurator
 import datatypes.{CloudSLA, HostSLA, Subscription}
@@ -15,7 +16,7 @@ import messages._
  */
 class DiscoveryAgent(cloudConfig: CloudConfigurator, 
 										 pubSubActorSelection: ActorSelection, matchMakingActorSelection: ActorSelection) 
-									extends Actor with ActorLogging
+								extends RemoteDependencyAgent(List(pubSubActorSelection, matchMakingActorSelection)) with ActorLogging
 									//TODO: change cert type to "Certificate"
 									//extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
 									//with ActorLogging
@@ -23,12 +24,15 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 
 /* Values: */
 /* ======= */
-
+	
+	val pubsubActorOpt = dependentActors(0)
+	val mmaActorOpt = dependentActors(1)
+	
 
 /* Variables: */
-/* ========== */
-
-  	var discoveryActors: Vector[ActorPath] = Vector()
+/* ========== */ 
+	
+	var discoveryActors: Vector[ActorPath] = Vector()
 
 
 /* Execution: */
@@ -41,7 +45,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def receive(): Receive = {
+	override def receive: Receive = {
 	  	//case KillNotifier()						=> super.recv_offlineNotifier()
 
 		case message: DDADiscoveryDest	=> message match {
@@ -56,12 +60,20 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 	private def revcFederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
-		pubSubActorSelection ! DiscoverySubscription(Subscription(matchMakingActorSelection, cloudSLA, possibleHostSLAs, cert))
-		log.info("Sended subscription request to PubSub-Federator.")
+		matchMakingActorSelection ! Identify
+		mmaActorOpt match{
+		    case Some(mmaActor)	=>
+					pubSubActorSelection ! DiscoverySubscription(Subscription(mmaActor, cloudSLA, possibleHostSLAs, cert))
+					log.info("Sended subscription request to Federator.")
+					
+		    case None          	=> 
+					log.error("Subscription request can't be send to Federator, as no mmaActor-Ref was resolved!")
+		}
+		
 	}
 
 	def recvAuthenticationInquiry(hashKey: Long) = {
-		log.info("Received AuthenticationInquiry from PubSub-Federator.")
+		log.info("Received AuthenticationInquiry from Federator.")
 		//TODO: decrypt hashKey with own private key:
 		val solvedKey = 0
 
@@ -72,7 +84,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 
 	//TODO: change cert type to "Certificate"
 	def recvDiscoveryPublication(cloudDiscovery: Subscription) = {
-		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.actorSelMMA)
+		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.actorRefMMA)
 		// Forward this Publication to the MMA:
 		log.info("Trying to contact MMA at {}", matchMakingActorSelection)
 		matchMakingActorSelection ! DiscoveryPublication(cloudDiscovery)
