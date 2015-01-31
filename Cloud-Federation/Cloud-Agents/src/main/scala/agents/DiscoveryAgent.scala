@@ -45,9 +45,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
-	override def receive: Receive = {
-	  	//case KillNotifier()						=> super.recv_offlineNotifier()
-
+	override def receiveOnline: Receive = {
 		case message: DDADiscoveryDest	=> message match {
 			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> revcFederationSLAs(cloudSLA, possibleHostSLAs)
 			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
@@ -63,7 +61,8 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 		matchMakingActorSelection ! Identify
 		mmaActorOpt match{
 		    case Some(mmaActor)	=>
-					pubSubActorSelection ! DiscoverySubscription(Subscription(mmaActor, cloudSLA, possibleHostSLAs, cert))
+					pubSubActorSelection ! DiscoverySubscription(Subscription(mmaActor, cloudSLA, 
+																																		possibleHostSLAs, cloudConfig.certFile))
 					log.info("Sended subscription request to Federator.")
 					
 		    case None          	=> 

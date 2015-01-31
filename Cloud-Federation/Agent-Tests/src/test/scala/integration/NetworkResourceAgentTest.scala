@@ -71,12 +71,10 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	//val mmaSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/matchMakingAgent")
 	val nraSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/networkResourceAgent")
 
-	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudConfig1.cloudSLA, nraSelection)
+	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraSelection)
 	val tActorRefMMA 	= TestActorRef[MatchMakingAgent](mmaProps)
 
-	val nraProps:	Props = Props(classOf[NetworkResourceAgent],
-															cloudConfig1.ovxIp, cloudConfig1.ovxApiPort, cloudHosts.toList,
-															tActorRefMMA)
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudConfig1, tActorRefMMA)
 	val tActorRefNRA 	= TestActorRef[NetworkResourceAgent](nraProps)
 	
 //	val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, tActorRefNRA)

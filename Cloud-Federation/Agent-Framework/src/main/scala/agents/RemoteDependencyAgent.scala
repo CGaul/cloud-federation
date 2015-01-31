@@ -108,7 +108,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		if(unresolved == 0){
 		 	unstashAll()
 			_shouldRun = false
-			context.become(receiveOnline(())
+			context.become(receiveOnline)
 			log.debug("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {

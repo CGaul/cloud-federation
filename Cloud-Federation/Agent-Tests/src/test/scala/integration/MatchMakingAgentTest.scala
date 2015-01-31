@@ -35,25 +35,31 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 	}
 
 	
-// The MMA Actor Generation:
-// -------------------------
+// ActorSelections and Naming
+// --------------------------
+	
 	val mmaName1 = "matchMakingAgent_1"
 	val mmaName2 = "matchMakingAgent_2"
 	val mmaSelection1: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName1)
 	val mmaSelection2: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName2)
-	
-	val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1.cloudSLA, mmaSelection1)
-	val tActorRefMMA1 	= TestActorRef[MatchMakingAgent](mmaProps1, name = mmaName1)
-
-	val mmaProps2: Props = Props(classOf[MatchMakingAgent], cloudConfig2.cloudSLA, mmaSelection2)
-	val tActorRefMMA2 	= TestActorRef[MatchMakingAgent](mmaProps2, name = mmaName2)
-	
-// The NRA Actor Generation:
-// -------------------------
 	val nraName1 = "networkResourceAgent_1"
 	val nraName2 = "networkResourceAgent_2"
 	val nraSelection1: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName1)
 	val nraSelection2: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName2)
+	
+	
+// The MMA Actor Generation:
+// -------------------------
+	
+	val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraSelection1)
+	val tActorRefMMA1 	= TestActorRef[MatchMakingAgent](mmaProps1, name = mmaName1)
+
+	val mmaProps2: Props = Props(classOf[MatchMakingAgent], cloudConfig2, nraSelection2)
+	val tActorRefMMA2 	= TestActorRef[MatchMakingAgent](mmaProps2, name = mmaName2)
+	
+	
+// The NRA Actor Generation:
+// -------------------------	
 	
 //	val nraProps1:	Props = Props(classOf[NetworkResourceAgent], cloudConfig1.ovxIp, cloudConfig1.ovxApiPort,
 //																cloudConfig1.cloudHosts.toList, tActorRefMMA1)
@@ -72,10 +78,10 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 	"A MatchMakingAgent" should {
 		"be able to receive a DiscoveryPublication from its local DA and subscribe with the foreign MMA afterwards" in {
-			val subscription = Subscription(mmaSelection2, cloudConfig2.cloudSLA, 
+			val subscription = Subscription(tActorRefMMA2, cloudConfig2.cloudSLA,
 																			cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
 			tActorRefMMA1.receive(DiscoveryPublication(subscription))
-			
+
 		}
 	}
 }

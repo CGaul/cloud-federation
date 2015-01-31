@@ -3,10 +3,11 @@ package integration
 import java.io.File
 import java.net.InetAddress
 
-import agents.{DiscoveryAgent, PubSubFederator}
+import agents.{MatchMakingAgent, DiscoveryAgent, PubSubFederator}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
+import connectors.CloudConfigurator
 import datatypes.ByteUnit._
 import datatypes.CPUUnit._
 import datatypes.CloudCurrency._
@@ -24,29 +25,7 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 /* Global Values: */
 /* ============== */
 
-	val cloudSLA = new CloudSLA(Vector((SMALL, Price(1, CLOUD_CREDIT), Price(3, CLOUD_CREDIT))),
-		(ByteSize(1, GB), Price(0.3f, CLOUD_CREDIT), Price(0.8f, CLOUD_CREDIT)),
-		(ByteSize(1, GB), Price(0.3f, CLOUD_CREDIT), Price(0.8f, CLOUD_CREDIT)))
-
-	val hostSLA = new HostSLA(0.95f, Vector(IMG, COW, CLOOP, BOCHS, QCOW2),
-									Vector[(CPUUnit, Int)]((SMALL, 10), (MEDIUM, 10)))
-
-	//General Medium Node
-	val res1 = Resource(ResId(1), MEDIUM,
-							ByteSize(16, GiB), ByteSize(320, GiB),
-							ByteSize(50, MB), 10, Vector())
-
-	//General Large Node
-	val res2= Resource(ResId(2), LARGE,
-							ByteSize(32, GiB), ByteSize(500, GiB),
-							ByteSize(50, MB), 10, Vector())
-	
-	val host1 : Host = Host(res1, Endpoint("00:00:00:00:00:01:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:01", Vector(), hostSLA)
-	val host2 : Host = Host(res2, Endpoint("00:00:00:00:00:02:11:00", 1), InetAddress.getByName("192.168.1.1"), "00:00:00:02", Vector(), hostSLA)
-
-	val cloudHosts: Vector[Host] = Vector(host1, host2)
-
-	val ovxIP = InetAddress.getLocalHost
+	val cloudConfig = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf1"))
 
 
 
@@ -61,23 +40,52 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 	}
 
 
-	val testMMAActorSel0: ActorSelection = system.actorSelection("/user/testMMA0")
-	val testMMAActorSel1: ActorSelection = system.actorSelection("/user/testMMA1")
-	val testMMAActorSel2: ActorSelection = system.actorSelection("/user/testMMA2")
+//	val testMMAActorSel0: ActorSelection = system.actorSelection("/user/testMMA0")
+//	val testMMAActorSel1: ActorSelection = system.actorSelection("/user/testMMA1")
+//	val testMMAActorSel2: ActorSelection = system.actorSelection("/user/testMMA2")
+
+// ActorSelections and Naming
+// --------------------------
+	
+	val mmaName1 = "matchMakingAgent_1"
+	val mmaName2 = "matchMakingAgent_2"
+	val mmaName3 = "matchMakingAgent_3"
+	val mmaSelection1: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName1)
+	val mmaSelection2: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName2)
+	val mmaSelection3: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName3)
+
+	val nraName1 = "networkResourceAgent_1"
+	val nraName2 = "networkResourceAgent_2"
+	val nraName3 = "networkResourceAgent_3"
+	val nraSelection1: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName1)
+	val nraSelection2: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName2)
+	val nraSelection3: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName3)
+	
+	
+// The MMA Actor Generation:
+// -------------------------
+	
+	val mmaProps1 = Props(classOf[MatchMakingAgent], cloudConfig, nraSelection1)
+	val mmaProps2 = Props(classOf[MatchMakingAgent], cloudConfig, nraSelection2)
+	val mmaProps3 = Props(classOf[MatchMakingAgent], cloudConfig, nraSelection3)
+	val mmaActor1 = TestActorRef[MatchMakingAgent](mmaProps1, name = mmaName1)
+	val mmaActor2 = TestActorRef[MatchMakingAgent](mmaProps2, name = mmaName2)
+	val mmaActor3 = TestActorRef[MatchMakingAgent](mmaProps3, name = mmaName3)
+	
 	val discoveryAgent1Props: Props 		 = Props(classOf[DiscoveryAgent],
 																								system.actorSelection("/user/remoteFederator"),
-																								testMMAActorSel1, new File("Certificate1"))
+																								mmaSelection1, new File("Certificate1"))
 	val discoveryAgent2Props: Props 		 = Props(classOf[DiscoveryAgent],
 																								system.actorSelection("/user/remoteFederator"),
-																								testMMAActorSel2, new File("Certificate2"))
+																								mmaSelection2, new File("Certificate2"))
 
 	val testActor_PubSub 	= TestActorRef[PubSubFederator](Props[PubSubFederator], name="remoteFederator")
 	val testActor_DA1 		= TestActorRef[DiscoveryAgent](discoveryAgent1Props, name="discoveryAgent1")
 	val testActor_DA2 		= TestActorRef[DiscoveryAgent](discoveryAgent2Props, name="discoveryAgent2")
 
-	val subscription0 = Subscription(testMMAActorSel0, cloudSLA, cloudHosts.map(_.sla).distinct, new File("Certificate0"))
-	val subscription1 = Subscription(testMMAActorSel1, cloudSLA, cloudHosts.map(_.sla).distinct, new File("Certificate1"))
-	val subscription2 = Subscription(testMMAActorSel2, cloudSLA, cloudHosts.map(_.sla).distinct, new File("Certificate2"))
+	val subscription0 = Subscription(mmaActor1, cloudConfig.cloudSLA, cloudConfig.cloudHosts.map(_.sla).distinct, new File("Certificate0"))
+	val subscription1 = Subscription(mmaActor2, cloudConfig.cloudSLA, cloudConfig.cloudHosts.map(_.sla).distinct, new File("Certificate1"))
+	val subscription2 = Subscription(mmaActor3, cloudConfig.cloudSLA, cloudConfig.cloudHosts.map(_.sla).distinct, new File("Certificate2"))
 
 
 

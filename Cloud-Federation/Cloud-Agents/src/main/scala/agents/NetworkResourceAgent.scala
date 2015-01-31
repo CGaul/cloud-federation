@@ -55,7 +55,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	
 	def initChildActors(): ActorRef = {
 		// Spawn a NetworkDiscoveryAgent (NDA) for Network-Topology-Discovery:
-		val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, context.self)
+		val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], 
+																cloudConfig.ovxIp, cloudConfig.ovxApiPort, context.self)
 		val ndaActor = context.actorOf(ndaProps, name="networkDiscoveryAgent")
 		log.info("NetworkDiscoveryAgent started at path: {}", ndaActor.path)
 		ndaActor ! "start"
