@@ -8,7 +8,7 @@ import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
 import datatypes.Subscription
-import messages.DiscoveryPublication
+import messages.{FederationInfoSubscription, DiscoveryPublication}
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 /**
@@ -82,7 +82,9 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 			val subscription = Subscription(tActorRefMMA2, cloudConfig2.cloudSLA,
 																			cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
 			tActorRefMMA1.receive(DiscoveryPublication(subscription))
-
+      expectMsgClass(classOf[FederationInfoSubscription])
 		}
+    
+    
 	}
 }

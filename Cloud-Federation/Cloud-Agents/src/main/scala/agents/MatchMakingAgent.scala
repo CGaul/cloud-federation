@@ -189,7 +189,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 						=> recvResourceFederationReply(tenant, federatedResources, wasFederated)
 
 		}
-		case _										=> log.error("Unknown message received!")
+		case _ => log.error("Unknown message received!")
 	}
 	
 	private def sendFederationRequestToNextMMA(tenant: Tenant, resourcesToGather: ResourceAlloc) = {

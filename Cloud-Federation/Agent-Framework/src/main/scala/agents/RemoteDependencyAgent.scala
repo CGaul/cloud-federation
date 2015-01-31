@@ -32,16 +32,16 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 	val _workingThread = new Thread(new Runnable{
 		override def run(): Unit = {
 			log.info("Trying to solve remote Dependencies of other Agents in {}...", context.self)
-			val unresolvedBefore = unresolvedActors.length
 			while(_shouldRun) {
+			  val unresolvedBefore = unresolvedActors.length
 				sendIdentityRequests()
+        
+        Thread.sleep(1 * 1000) //sleep 1 seconds between each discovery
+        val unresolvedAfter = unresolvedActors.length
+        log.info("Resolved {}/{} Actor dependencies in current iteration.",
+          unresolvedBefore - unresolvedAfter, unresolvedBefore)
+        Thread.sleep(1 * 1000) //sleep 1 seconds between each discovery
 			}
-			
-			Thread.sleep(1 * 1000) //sleep 1 seconds between each discovery
-			val unresolvedAfter = unresolvedActors.length
-			log.info("Resolved {}/{} Actor dependencies in current iteration.", 
-							 unresolvedBefore - unresolvedAfter, dependentActors.length)
-			Thread.sleep(1 * 1000) //sleep 1 seconds between each discovery
 		}
 	})
 
@@ -59,6 +59,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 
 		var actorID: Int = 0
 		for (actor <- unresolvedActors){
+      log.info("Send Identify request to {}", actor)
 			actor ! Identify(actorID)
 			actorID += 1
 		}
@@ -108,7 +109,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		 	unstashAll()
 			_shouldRun = false
 			context.become(receiveOnline)
-			log.debug("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
+			log.info("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {
 		  log.debug("Some ActorRef dependencies are currently unsolved. RemoteDependencyActor stays OFFLINE. " +

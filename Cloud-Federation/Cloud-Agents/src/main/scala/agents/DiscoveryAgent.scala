@@ -20,13 +20,6 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 									//with ActorLogging
 {
 
-/* Values: */
-/* ======= */
-	
-	val pubsubActorOpt = dependentActors(0)
-	val mmaActorOpt = dependentActors(1)
-	
-
 /* Variables: */
 /* ========== */ 
 	
@@ -56,7 +49,8 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 	private def revcFederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
-		matchMakingActorSelection ! Identify
+    val mmaActorOpt = dependentActors.filter(_.isDefined).map(_.get).find(_.path.name == "matchMakingAgent")
+		
 		mmaActorOpt match{
 		    case Some(mmaActor)	=>
 					pubSubActorSelection ! DiscoverySubscription(Subscription(mmaActor, cloudSLA, 
