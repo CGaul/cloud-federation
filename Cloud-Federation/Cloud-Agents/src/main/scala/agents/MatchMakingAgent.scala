@@ -44,7 +44,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 
 	def recvDiscoveryPublication(cloudDiscovery: Subscription): Unit = {
 		log.info("MatchMakingAgent received DiscoveryPublication from {}. " +
-			"Adding CloudDiscovery to known Clouds...")
+			"Adding CloudDiscovery to known Clouds...",
+      sender())
 		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
 		log.info("Sending own FederationInfoSubscription to foreign MMA...")
 		val ownSubscription = Subscription(context.self, cloudConfig.cloudSLA,
@@ -70,8 +71,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 	 * @param resourcesToGather The ResourceAllocation that the MMA needs to gather from its federated Clouds.
 	 */
 	def recvResourceRequest(tenant: Tenant, resourcesToGather: ResourceAlloc): Unit = {
-		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) at MatchMakingAgent.",
-						 tenant, resourcesToGather.resources.size)
+		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
+						 tenant, resourcesToGather.resources.size, sender())
 		
 		if(cloudDiscoveries.size > 0){
 			// First, add all previously discovered foreign MMAs into the list of outstanding requests for the
@@ -81,16 +82,6 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 		}
 	}
 
-
-	def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
-		// Use a random ID for the local mapping of the foreign Tenant
-		// TODO: test if Tenant-ID already exists:
-		val localTenant = Tenant((Math.random * Int.MaxValue).toInt, foreignTenant.subnet, 
-														 foreignTenant.ofcIp, foreignTenant.ofcPort)
-		foreignToLocalTenants = foreignToLocalTenants + (foreignTenant -> localTenant)
-		return localTenant
-	}
-
 	/**
 	 * Received from one of the foreign MMAs that want to start a Federation.
 	 * The Federation starter MMA will be the master MMA then, this MMA will be the slave (some for NRA).
@@ -98,8 +89,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 	 * @param resourcesToAlloc
 	 */
 	def recvResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc): Unit = {
-		log.info("Received ResourceFederationRequest (Tenant: {}, ResCount: {}) at MatchMakingAgent.",
-			tenant, resourcesToAlloc.resources.size)
+		log.info("Received ResourceFederationRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
+			tenant, resourcesToAlloc.resources.size, sender())
 
 		if(auctionedResources.contains(sender())){
 			//TODO: auctionedResources need to be set somewhere before..
@@ -107,28 +98,34 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 			// Are the requested resources a subset (or the whole set) of the sender's available Resources?
 			// This is fulfilled, if no resource is left in the resourceToAlloc, if filtered by its available Resources:
 			val leftResToAlloc: Iterable[Resource] = resourcesToAlloc.resources.filter(sendersAvailResources.resources.contains)
-			if(leftResToAlloc.size > 0){
+			if(leftResToAlloc.size == 0){
+        log.info("Federation queried by MMA {}, including ResToAlloc: {} is fully allocateable locally. " +
+                 "NRA will allocate resources.",
+          sender(), resourcesToAlloc.resources)
+        // If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
+        // so that it will be mapped to the running OVX instance:
+        nraSelection ! ResourceFederationRequest(mapForeignToLocal(tenant), resourcesToAlloc)
+
+        // If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
+        // including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
+        sender ! ResourceFederationReply(tenant, resourcesToAlloc, wasFederated = true)
+			}
+			else{
 				log.warning("More Resources should be allocated over the Federation than available from won auctions! " +
                     "ResToAlloc: {}, MMA's AuctionedResources: {}", 
 									resourcesToAlloc.resources, sendersAvailResources.resources)
 				
 				// TODO: possibility to only allocate resourcesToAlloc partially.
-				// If resourcesToAlloc are not completely allocateably locally, drop the FederationRequest,
+				// If resourcesToAlloc are not completely allocateable locally, drop the FederationRequest,
 				// replying with an empty body in the ResourceFederationReply back to the foreign MMA.
 				sender ! ResourceFederationReply(tenant, resourcesToAlloc, wasFederated = false)
 			}
-			else{
-				log.info("Federation queried by MMA {}, including ResToAlloc: {} will be allocated locally.", 
-								 sender(), resourcesToAlloc.resources)
-				// If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
-				// so that it will be mapped to the running OVX instance:
-				nraSelection ! ResourceFederationRequest(mapForeignToLocal(tenant), resourcesToAlloc)
-				
-				// If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
-				// including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
-				sender ! ResourceFederationReply(tenant, resourcesToAlloc, wasFederated = true)
-			}
 		}
+    else {
+      log.warning("No auctionedResources found for foreign MMA {}! Can't allocate any federated resources here.",
+                  sender())
+      sender ! ResourceFederationReply(tenant, resourcesToAlloc, wasFederated = false)
+    }
 	}
 
   /**
@@ -168,6 +165,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 
 	def recvFederationInfoPublication(possibleFederatedAllocs: Vector[(Host, Vector[ResourceAlloc])]): Unit = {
 		log.info("Received FederationInfoPublication from {}", sender())
+    // TODO: Implement publication handling
 	}
 
 	override def receive: Receive = {
@@ -191,6 +189,15 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 		}
 		case _ => log.error("Unknown message received!")
 	}
+
+  private def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
+    // Use a random ID for the local mapping of the foreign Tenant
+    // TODO: test if Tenant-ID already exists:
+    val localTenant = Tenant((Math.random * Int.MaxValue).toInt, foreignTenant.subnet,
+      foreignTenant.ofcIp, foreignTenant.ofcPort)
+    foreignToLocalTenants = foreignToLocalTenants + (foreignTenant -> localTenant)
+    return localTenant
+  }
 	
 	private def sendFederationRequestToNextMMA(tenant: Tenant, resourcesToGather: ResourceAlloc) = {
 		// Find the next MMA from the local MMA's mapping:

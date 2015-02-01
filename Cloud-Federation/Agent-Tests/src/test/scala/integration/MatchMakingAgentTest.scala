@@ -4,11 +4,15 @@ import java.io.File
 
 import agents.MatchMakingAgent
 import akka.actor.{ActorSelection, ActorSystem, Props}
-import akka.testkit.{TestActorRef, TestKit}
+import akka.testkit.{TestProbe, TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
-import datatypes.Subscription
-import messages.{FederationInfoSubscription, DiscoveryPublication}
+import datatypes.ByteUnit._
+import datatypes.CPUUnit.CPUUnit
+import datatypes.CPUUnit._
+import datatypes.ImgFormat._
+import datatypes._
+import messages._
 import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 
 /**
@@ -20,8 +24,8 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 /* Global Values: */
 /* ============== */
 
-	val cloudConfig1 = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf1"))
-	val cloudConfig2 = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf2"))
+	private val cloudConfig1 = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf1"))
+	private val cloudConfig2 = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf2"))
 	
 
 
@@ -35,56 +39,91 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 		TestKit.shutdownActorSystem(system)
 	}
 
-	
-// ActorSelections and Naming
-// --------------------------
-	
-	val mmaName1 = "matchMakingAgent_1"
-	val mmaName2 = "matchMakingAgent_2"
-	val mmaSelection1: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName1)
-	val mmaSelection2: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+mmaName2)
-	val nraName1 = "networkResourceAgent_1"
-	val nraName2 = "networkResourceAgent_2"
-	val nraSelection1: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName1)
-	val nraSelection2: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/"+nraName2)
-	
-	
-// The MMA Actor Generation:
-// -------------------------
-	
-	val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraSelection1)
-	val tActorRefMMA1 	= TestActorRef[MatchMakingAgent](mmaProps1, name = mmaName1)
 
-	val mmaProps2: Props = Props(classOf[MatchMakingAgent], cloudConfig2, nraSelection2)
-	val tActorRefMMA2 	= TestActorRef[MatchMakingAgent](mmaProps2, name = mmaName2)
-	
-	
-// The NRA Actor Generation:
-// -------------------------	
-	
-//	val nraProps1:	Props = Props(classOf[NetworkResourceAgent], cloudConfig1.ovxIp, cloudConfig1.ovxApiPort,
-//																cloudConfig1.cloudHosts.toList, tActorRefMMA1)
-//	val tActorRefNRA1 	= TestActorRef[NetworkResourceAgent](nraProps1, nraName1)
-//
-//	val nraProps2:	Props = Props(classOf[NetworkResourceAgent], cloudConfig2.ovxIp, cloudConfig2.ovxApiPort,
-//																cloudConfig2.cloudHosts.toList, tActorRefMMA2)
-//	val tActorRefNRA2 	= TestActorRef[NetworkResourceAgent](nraProps1, nraName2)
-	
-//	Thread.sleep(10000) // Wait for 10 seconds (this should be enough for the first two NDA TopologyDiscoveries)
-
-
+// The MMA Actor Generation with NRA TestProbe:
+// --------------------------------------------
+  
+  private val nraTestProbe = TestProbe()
+  private val nraTestSelection = system.actorSelection(nraTestProbe.ref.path)
+	private val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraTestSelection)
+	private val tActorRefMMA1 	= TestActorRef[MatchMakingAgent](mmaProps1, name = "matchMakingAgent")
+  
 
 /* Test Specifications: */
 /* ==================== */
 
-	"A MatchMakingAgent" should {
-		"be able to receive a DiscoveryPublication from its local DA and subscribe with the foreign MMA afterwards" in {
-			val subscription = Subscription(tActorRefMMA2, cloudConfig2.cloudSLA,
+	"A MatchMakingAgent's recv-methods" should {
+    // testProbe, registered at MMA_1 in order to test message handling from MMA_1 -> foreign MMA (testProbe)
+    val mmaTestProbe: TestProbe = TestProbe()
+    
+    // MatchMakingAgent-Tests Resources:
+    val (resAlloc1, tenant1) = MatchMakingAgentTest.prepareTestResources(cloudConfig1)
+    
+    // recvDiscoveryPublication:
+		"subscribe with a discovered foreign MMA, after a DiscoveryPublication was received from its local DA" in {
+			val subscription = Subscription(mmaTestProbe.ref, cloudConfig2.cloudSLA,
 																			cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
-			tActorRefMMA1.receive(DiscoveryPublication(subscription))
-      expectMsgClass(classOf[FederationInfoSubscription])
+			mmaTestProbe.send(tActorRefMMA1, DiscoveryPublication(subscription))
+      mmaTestProbe.expectMsgClass(classOf[FederationInfoSubscription])
 		}
     
+    // recvResourceRequest
+    "send a ResourceFederationRequest to a previously subscribed foreign MMA, " +
+    "if a ResourceRequest from the local NRA was received" in {
+      mmaTestProbe.send(tActorRefMMA1, ResourceRequest(tenant1, resAlloc1))
+      mmaTestProbe.expectMsg(ResourceFederationRequest(tenant1, resAlloc1))
+    }
     
+    // recvResourceFederationRequest #1 (no auctioned Resources for foreign MMA)
+    "send an unsucessful ResourceFederationReply, if a ResourceFederationRequest was received from" +
+      " a foreign MMA that has no auctionedResources at the local MMA" in {
+      mmaTestProbe.send(tActorRefMMA1, ResourceFederationRequest(tenant1, resAlloc1))
+      mmaTestProbe.expectMsg(ResourceFederationReply(tenant1, resAlloc1, wasFederated = false))
+    }
+    
+    // recvResourceFederationReply #1 (federation successful)
+    "send a ResourceFederationResult to the local NRA, " +
+      "if a successfully federated ResourceFederationReply was received from a foreign MMA" in {
+      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1, resAlloc1, wasFederated = true))
+      nraTestProbe.expectMsg(ResourceFederationResult(tenant1, resAlloc1))
+    }
+
+    // recvResourceFederationReply #2 (federation unsuccessful)
+    "send a ResourceFederationRequest to the next outstanding MMA in list, " +
+      "if an unsucessful ResourceFederationReply was received from a foreign MMA" in {
+      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1, resAlloc1, wasFederated = false))
+    }
+    
+    // recvFederationInfoSubscription
+    //TODO
+    
+    //recvFederationInfoPublication
+    //TODO
 	}
+}
+
+/** 
+ * Companion Object for MatchMakingAgentTest
+ */
+object MatchMakingAgentTest 
+{
+  def prepareTestResources(cloudConfig: CloudConfigurator): (ResourceAlloc, Tenant) = {
+    // ResourceAlloc, used in test-cases:
+    val res1 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
+      ByteSize(50.0, GiB), ByteSize(50.0, MiB),
+      20.0f, Vector[ResId]())
+    val res2 : Resource = Resource(	ResId(2), MEDIUM, ByteSize(8.0, GiB),
+      ByteSize(50.0, GiB), ByteSize(50.0, MiB),
+      20.0f, Vector[ResId]())
+  
+    val reqHostSLA1 = new HostSLA(0.90f, Vector(IMG, COW),
+      Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 3)))
+  
+    val resAlloc1 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res1, res2), 	reqHostSLA1)
+  
+    // Tenant, used in test-cases:
+    val tenant1 = cloudConfig.cloudTenants(0)   
+    
+    return (resAlloc1, tenant1)
+  }
 }
