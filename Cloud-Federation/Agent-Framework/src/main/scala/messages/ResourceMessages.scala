@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{ResourceAlloc, Tenant}
+import datatypes.{OFSwitch, ResourceAlloc, Tenant}
 
 /**
  * @author Constantin Gaul, created on 10/16/14.
@@ -23,12 +23,12 @@ case class ResourceReply(allocatedResources: ResourceAlloc)
   extends ResourceMessage with CCFMResourceDest
 
 
-case class ResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc)
+case class ResourceFederationRequest(tenant: Tenant, gwSwitch: OFSwitch, resourcesToAlloc: ResourceAlloc)
   extends ResourceMessage with NRAResourceDest with MMAResourceDest
 
 
-case class ResourceFederationReply(tenant: Tenant, federatedResources: ResourceAlloc, wasFederated: Boolean)
+case class ResourceFederationReply(tenant: Tenant, gwSwitch: OFSwitch, federatedResources: ResourceAlloc, wasFederated: Boolean)
   extends ResourceMessage with MMAResourceDest
 
-case class ResourceFederationResult(tenant: Tenant, federatedResources: ResourceAlloc)
+case class ResourceFederationResult(tenant: Tenant, gwSwitch: OFSwitch, federatedResources: ResourceAlloc)
   extends ResourceMessage with NRAResourceDest
