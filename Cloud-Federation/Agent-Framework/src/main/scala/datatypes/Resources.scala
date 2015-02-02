@@ -148,7 +148,10 @@ case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHo
 	/* ---------------- */
 
 	override def equals(obj: scala.Any): Boolean = obj match {
-		case that: ResourceAlloc 	=> this.tenantID == that.tenantID && this.resources == that.resources
+		case that: ResourceAlloc 	=> (that canEqual this) &&
+                                 this.tenantID == that.tenantID &&
+                                 this.resources == that.resources &&
+                                 this.requestedHostSLA == that.requestedHostSLA
 		case _ 							=> false
 	}
 
@@ -192,7 +195,7 @@ object ResourceAlloc {
 		val tenantID: Int = (resAllocNode \\ "TenantID").text.toInt
 		var resources: Vector[Resource] = Vector()
 		
-		for (actResNode <- resAllocNode \\ "Resources") {
+		for (actResNode <- resAllocNode \ "Resources" \\ "Resource") {
 			resources = resources :+ Resource.fromXML(actResNode)
 		}
 		val reqHostSLA: HostSLA = HostSLA.fromXML((resAllocNode \\ "ReqHostSLA")(0))
@@ -227,17 +230,17 @@ object CPUResOrdering extends Ordering[Resource]{
 }
 object RAMResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round((x.ram compareSafely y.ram) * ResOrderingMult.RAM_MULT)
+		return Math.round((x.ram compareTo y.ram) * ResOrderingMult.RAM_MULT)
 	}
 }
 object StorageResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round((x.storage compareSafely y.storage) * ResOrderingMult.STORAGE_MULT)
+		return Math.round((x.storage compareTo y.storage) * ResOrderingMult.STORAGE_MULT)
 	}
 }
 object BandwidthResOrdering extends Ordering[Resource]{
 	override def compare(x: Resource, y: Resource): Int = {
-		return Math.round((x.bandwidth compareSafely y.bandwidth) * ResOrderingMult.BDWTH_MULT)
+		return Math.round((x.bandwidth compareTo y.bandwidth) * ResOrderingMult.BDWTH_MULT)
 	}
 }
 object LatencyResOrdering extends Ordering[Resource]{

@@ -103,22 +103,6 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 		return new ByteSize(destSize, destUnit)
 	}
 
-	def compareSafely(other: ByteSize): Int = {
-		//Normalize each ByteUnit to MB first, as it is nearly the Median of the sizeConversion table:
-		val mbDiff: Double  = this.convert(ByteUnit.MB).size - other.convert(ByteUnit.MB).size
-		try{
-			val diffRnd: Int = Math.toIntExact(Math.round(mbDiff))
-			return diffRnd
-		}
-		catch {
-			case e: ArithmeticException =>
-				//If mbDiff is not fitting in Integer cast, reduce it to gbDiff, then try again:
-				val gbDiff			 = mbDiff / 1000;
-				val reducedDiffRnd = Math.toIntExact(Math.round(gbDiff))
-				return reducedDiffRnd
-		}
-	}
-
 	def normalizeToMB: Double = {
 		val normalizedBytes : ByteSize = convert(ByteUnit.MB)
 		return normalizedBytes.size
@@ -129,6 +113,26 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 		val byteSize: Double 	= this.size * srcUnitMult
 		return byteSize
 	}
+
+
+/* Private Methods: */
+/* ================ */
+
+  private def compareSafely(other: ByteSize): Int = {
+    //Normalize each ByteUnit to MB first, as it is nearly the Median of the sizeConversion table:
+    val mbDiff: Double  = this.convert(ByteUnit.MB).size - other.convert(ByteUnit.MB).size
+    try{
+      val diffRnd: Int = Math.toIntExact(Math.round(mbDiff))
+      return diffRnd
+    }
+    catch {
+      case e: ArithmeticException =>
+        //If mbDiff is not fitting in Integer cast, reduce it to gbDiff, then try again:
+        val gbDiff			 = mbDiff / 1000
+        val reducedDiffRnd = Math.toIntExact(Math.round(gbDiff))
+        return reducedDiffRnd
+    }
+  }
 
 
 	/* Overridden Methods: */
@@ -143,13 +147,7 @@ case class ByteSize(size: Double, unit: ByteUnit) extends Comparable[ByteSize]
 
 
 	override def compareTo(that: ByteSize): Int = {
-		val thisUnitMult: Long		= sizeConversion(this.unit)
-		val thatUnitMult: Long		= sizeConversion(that.unit)
-
-		val thisByteSize: Double	= this.size * thisUnitMult
-		val thatByteSize: Double	= that.size * thatUnitMult
-		val result: Int 				= Math.round(thisByteSize - thatByteSize).asInstanceOf[Int]
-		return result
+		return compareSafely(that)
 	}
 
 
