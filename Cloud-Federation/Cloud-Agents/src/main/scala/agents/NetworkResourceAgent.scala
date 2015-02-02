@@ -150,12 +150,12 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
 	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
 	/**
-	 * Receives a ResourceFederationSummary from the MatchMakingAgent.
+	 * Receives a ResourceFederationResult from the MatchMakingAgent.
 	 * <p>
 	 * 	If a ResourceRequest could not have been processed locally,
 	 * 	the NetworkFederationAgent has asked the MatchMakingAgent
 	 * 	for Federation-Resources.
-	 * 	All results are included in such ResourceFederationSummary,
+	 * 	All results are included in such ResourceFederationResult,
 	 * 	stating the allocated Resources per foreign Cloud
 	 * 	(the ActorRef is the foreign slave MMA)
 	 * 	*
@@ -165,6 +165,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	 */
 	private def recvResourceFederationResult(tenant: Tenant, foreignGWSwitch: OFSwitch, federatedResources: ResourceAlloc): Unit = {
     prepareFederation(tenant, foreignGWSwitch)
+    //TODO: uploadNetworkToOVX(..)
 	}
 
 
@@ -188,6 +189,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
     prepareFederation(tenant, foreignGWSwitch)
 		mapAllocOnOVX(tenant, hostList)
+    //TODO: uploadNetworkToOVX(..)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
@@ -335,14 +337,63 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	}
 
   private def prepareFederation(tenant: Tenant, foreignGWSwitch: OFSwitch) = {
-
-    //TODO: establish federation.
-    for (actGateway <- tenantGatewayMap.getOrElse(tenant, List())) {
+    
+    val localGWSwitch = cloudConfig.cloudGateway
+    
+    //Add localGWSwitch, if not already added:
+    if(! tenantGatewayMap.getOrElse(tenant, List()).contains(localGWSwitch))
+    {
       // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
-      _createOVXSwitch(tenant, actGateway)
+      _createOVXSwitch(tenant, localGWSwitch)
 
       // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-      _createAllOVXSwitchPorts(tenant, actGateway)
+      _createAllOVXSwitchPorts(tenant, localGWSwitch)
+      tenantGatewayMap = tenantGatewayMap + (tenant -> (tenantGatewayMap.getOrElse(tenant, List()) :+ localGWSwitch))
+    }
+    
+    // Add foreignGWSwitch, if not already added:
+    if(! tenantGatewayMap.getOrElse(tenant, List()).contains(foreignGWSwitch))
+     {
+      // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
+      _createOVXSwitch(tenant, foreignGWSwitch)
+
+      // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
+      _createAllOVXSwitchPorts(tenant, foreignGWSwitch)
+      tenantGatewayMap = tenantGatewayMap + (tenant -> (tenantGatewayMap.getOrElse(tenant, List()) :+ foreignGWSwitch))
+    }
+    
+    // Connect both Gateway Switches with each other, if no link is currently established:
+    // Find the srcPortMapping for the actual srcPort in the switchPortMap's actPhysSwitch entry:
+    val physLocalPortOpt = localGWSwitch.portMap.find(_._2.dpid == foreignGWSwitch.dpid)
+    val physForeignPortOpt = foreignGWSwitch.portMap.find(_._2.dpid == localGWSwitch.dpid)
+    
+    val virtLocalGWOpt = tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(localGWSwitch.dpid.convertToHexLong))
+    val virtForeignGWOpt = tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(foreignGWSwitch.dpid.convertToHexLong))
+    
+    if(physLocalPortOpt.isDefined && physForeignPortOpt.isDefined && 
+      virtLocalGWOpt.isDefined && virtForeignGWOpt.isDefined) {
+      
+      val virtLocalGW = virtLocalGWOpt.get
+      val virtForeignGW = virtForeignGWOpt.get
+      
+      val physicalLocalPort = physLocalPortOpt.get
+      val physicalForeignPort = physForeignPortOpt.get
+      val localPortMapping = switchPortMap.getOrElse(localGWSwitch, List()).find(_._1 == physicalLocalPort)
+      val foreignPortMapping = switchPortMap.getOrElse(foreignGWSwitch, List()).find(_._1 == physicalForeignPort)
+      
+      if(localPortMapping.isDefined && foreignPortMapping.isDefined){
+        val (physSrcPort, virtSrcPort, srcComponent) = localPortMapping.get
+        val (physDstPort, virtDstPort, dstComponent) = foreignPortMapping.get
+
+        // Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
+        val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
+        if (!alreadyConnected) {
+
+          _connectOVXSwitches(tenant, 
+                              localGWSwitch, physSrcPort, virtLocalGW, virtSrcPort,
+                              foreignGWSwitch, physDstPort, virtForeignGW, virtDstPort)
+        }
+      }
     }
   }
 	

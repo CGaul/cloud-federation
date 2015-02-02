@@ -1,4 +1,4 @@
 <Switch>
     <DPID>00:00:00:00:00:01:10:00</DPID>
-    <Links>1 - Endpoint(00:00:00:00:00:01:11:00,3)</Links>
+    <Links>1 - Endpoint(00:00:00:00:00:01:11:00,3), 2 - Endpoint(00:00:00:00:00:02:10:00,2)</Links>
 </Switch>
