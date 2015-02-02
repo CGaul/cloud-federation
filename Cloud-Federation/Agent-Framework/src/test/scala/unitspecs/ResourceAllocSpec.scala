@@ -119,10 +119,10 @@ object ResourceAllocSpec {
     // ResourceAlloc, used in test-cases:
     val res1 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
       ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-      20.0f, Vector[ResId]())
+      20.0f, Vector[ResId](ResId(2)))
     val res2 : Resource = Resource(	ResId(2), MEDIUM, ByteSize(8.0, GiB),
       ByteSize(50.0, GiB), ByteSize(50.0, MiB),
-      20.0f, Vector[ResId]())
+      20.0f, Vector[ResId](ResId(1)))
 
     val reqHostSLA = new HostSLA(0.90f, Vector(IMG, COW),
       Vector[(CPUUnit, Int)]((SMALL, 2), (MEDIUM, 3)))

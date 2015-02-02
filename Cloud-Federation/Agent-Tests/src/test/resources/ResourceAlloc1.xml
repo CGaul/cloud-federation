@@ -1,0 +1,30 @@
+<ResourceAlloc>
+    <TenantID>1</TenantID>
+    <Resources>
+        <Resource>
+            <ID>1</ID>
+            <CPU>SMALL</CPU>
+            <RAM><ByteSize>4.0 GiB</ByteSize></RAM>
+            <Storage><ByteSize>50.0 GiB</ByteSize></Storage>
+            <Bandwidth><ByteSize>50.0 MiB</ByteSize></Bandwidth>
+            <Latency>20.0</Latency>
+            <Links>2</Links>
+        </Resource>
+        <Resource>
+            <ID>2</ID>
+            <CPU>MEDIUM</CPU>
+            <RAM><ByteSize>8.0 GiB</ByteSize></RAM>
+            <Storage><ByteSize>50.0 GiB</ByteSize></Storage>
+            <Bandwidth><ByteSize>50.0 MiB</ByteSize></Bandwidth>
+            <Latency>20.0</Latency>
+            <Links>1</Links>
+        </Resource>
+    </Resources>
+    <ReqHostSLA>
+        <HostSLA>
+            <RelOnlineTime>0.9</RelOnlineTime>
+            <ImgFormats>COW IMG</ImgFormats>
+            <maxResPerCPU><t2>SMALL,2</t2><t2>MEDIUM,3</t2></maxResPerCPU>
+        </HostSLA>
+    </ReqHostSLA>
+</ResourceAlloc>
