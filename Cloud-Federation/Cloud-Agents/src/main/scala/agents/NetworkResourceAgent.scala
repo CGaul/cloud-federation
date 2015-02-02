@@ -71,11 +71,11 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			case ResourceRequest(tenant, resourcesToAlloc)
 			=> recvResourceRequest(tenant, resourcesToAlloc)
 
-			case ResourceFederationRequest(tenant, resourcesToAlloc)
-			=> recvResourceFederationRequest(tenant, resourcesToAlloc)
+			case ResourceFederationRequest(tenant, foreignGWSwitch, resourcesToAlloc)
+			=> recvResourceFederationRequest(tenant, foreignGWSwitch, resourcesToAlloc)
 
-			case ResourceFederationResult(tenant, resourcesAllocated)
-			=> recvResourceFederationSummary(tenant, resourcesAllocated)
+			case ResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated)
+			=> recvResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated)
 		}
 			
 		case message: NRANetworkDest => message match{
@@ -134,7 +134,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
-		mapAllocOnOVX(tenant, hostList, federated = false)
+		mapAllocOnOVX(tenant, hostList)
 //		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
 
 		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
@@ -163,7 +163,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
 	 * @param federatedResources
 	 */
-	private def recvResourceFederationSummary(tenant: Tenant, federatedResources: ResourceAlloc): Unit = {
+	private def recvResourceFederationResult(tenant: Tenant, foreignGWSwitch: OFSwitch, federatedResources: ResourceAlloc): Unit = {
+    prepareFederation(tenant, foreignGWSwitch)
 	}
 
 
@@ -175,7 +176,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	 * @param resourcesToAlloc
 	 * @param tenant
 	 */
-	private def recvResourceFederationRequest(tenant: Tenant, resourcesToAlloc: ResourceAlloc): Unit = {
+	private def recvResourceFederationRequest(tenant: Tenant, foreignGWSwitch: OFSwitch, resourcesToAlloc: ResourceAlloc): Unit = {
 		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
 			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, tenant.ofcIp)
 
@@ -185,7 +186,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
-		mapAllocOnOVX(tenant, hostList, federated = true)
+    prepareFederation(tenant, foreignGWSwitch)
+		mapAllocOnOVX(tenant, hostList)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
@@ -242,7 +244,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		return (allocationPerHost, remainResAlloc)
 	}
 	
-	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host], federated: Boolean) = {
+	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
 
 		// If the tenant does not have an OVX tenant-network until now, create one:
 		if (!tenantNetMap.keys.exists(_ == tenant)) {
@@ -308,18 +310,6 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 				}
 			}
 		}
-		
-		if(federated){
-			//TODO: establish federation.
-			for (actGateway <- tenantGatewayMap.getOrElse(tenant, List())) {
-				// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
-				_createOVXSwitch(tenant, actGateway)
-
-				// Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-				_createAllOVXSwitchPorts(tenant, actGateway)
-			}
-		}
-		
 
 		// Create Ports at the Host's Endpoint Switch:Port connect the Host to it
 		for (actHost <- hosts) {
@@ -343,6 +333,18 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			_startOVXNetwork(tenant)
 		}
 	}
+
+  private def prepareFederation(tenant: Tenant, foreignGWSwitch: OFSwitch) = {
+
+    //TODO: establish federation.
+    for (actGateway <- tenantGatewayMap.getOrElse(tenant, List())) {
+      // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
+      _createOVXSwitch(tenant, actGateway)
+
+      // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
+      _createAllOVXSwitchPorts(tenant, actGateway)
+    }
+  }
 	
 	
 	private def _createOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
