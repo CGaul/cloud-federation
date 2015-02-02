@@ -68,12 +68,12 @@ class CloudConfigurator(cloudConfDir: File,
   
   private def readCloudSLAfromXML: CloudSLA = {
     // Define the Cloud-SLA from the CloudSLA.xml file in the cloudConfDir/ directory
-    return CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +cloudSLAFileName))
+    return CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +File.separator+ cloudSLAFileName))
   }
 
   private def readGatewayfromXML: OFSwitch = {
     // Define the Cloud's Gateway OF-Switch from the CloudGateway.xml file in the cloudConfDir/ directory
-    return OFSwitch.loadFromXML(new File(cloudConfDir.getAbsolutePath +gatewayFileName))
+    return OFSwitch.loadFromXML(new File(cloudConfDir.getAbsolutePath +File.separator+ gatewayFileName))
   }
 }
 

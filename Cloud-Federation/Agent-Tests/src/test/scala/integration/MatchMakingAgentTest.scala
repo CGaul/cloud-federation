@@ -71,27 +71,33 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
     "send a ResourceFederationRequest to a previously subscribed foreign MMA, " +
     "if a ResourceRequest from the local NRA was received" in {
       mmaTestProbe.send(tActorRefMMA1, ResourceRequest(tenant1, resAlloc1))
-      mmaTestProbe.expectMsg(ResourceFederationRequest(tenant1, resAlloc1))
+      mmaTestProbe.expectMsg(ResourceFederationRequest(tenant1,
+                                          tActorRefMMA1.underlyingActor.localGWSwitch, resAlloc1))
     }
     
     // recvResourceFederationRequest #1 (no auctioned Resources for foreign MMA)
     "send an unsucessful ResourceFederationReply, if a ResourceFederationRequest was received from" +
       " a foreign MMA that has no auctionedResources at the local MMA" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceFederationRequest(tenant1, resAlloc1))
-      mmaTestProbe.expectMsg(ResourceFederationReply(tenant1, resAlloc1, wasFederated = false))
+      mmaTestProbe.send(tActorRefMMA1, ResourceFederationRequest(tenant1,
+                                          cloudConfig2.cloudGateway, resAlloc1))
+      mmaTestProbe.expectMsg(ResourceFederationReply(tenant1,
+                                          tActorRefMMA1.underlyingActor.localGWSwitch, resAlloc1, wasFederated = false))
     }
     
     // recvResourceFederationReply #1 (federation successful)
     "send a ResourceFederationResult to the local NRA, " +
       "if a successfully federated ResourceFederationReply was received from a foreign MMA" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1, resAlloc1, wasFederated = true))
-      nraTestProbe.expectMsg(ResourceFederationResult(tenant1, resAlloc1))
+      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1,
+                                          cloudConfig2.cloudGateway, resAlloc1, wasFederated = true))
+      nraTestProbe.expectMsg(ResourceFederationResult(tenant1,
+                                          cloudConfig2.cloudGateway, resAlloc1))
     }
 
     // recvResourceFederationReply #2 (federation unsuccessful)
     "send a ResourceFederationRequest to the next outstanding MMA in list, " +
       "if an unsucessful ResourceFederationReply was received from a foreign MMA" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1, resAlloc1, wasFederated = false))
+      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1,
+                                          tActorRefMMA1.underlyingActor.localGWSwitch, resAlloc1, wasFederated = false))
     }
     
     // recvFederationInfoSubscription
