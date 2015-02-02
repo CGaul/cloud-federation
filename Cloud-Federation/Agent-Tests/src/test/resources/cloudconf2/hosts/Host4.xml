@@ -35,4 +35,5 @@
 			</maxResPerCPU>
 		</HostSLA>
 	</HostSLA>
+    <Federateable>true</Federateable>
 </Host>

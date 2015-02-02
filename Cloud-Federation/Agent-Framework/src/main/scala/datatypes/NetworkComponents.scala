@@ -226,7 +226,7 @@ object OFSwitch {
  */
 case class Host(hardwareSpec: Resource, endpoint: Endpoint, ip: InetAddress, mac: String,
                 var allocatedResources: Vector[ResourceAlloc] = Vector(),
-                var sla: HostSLA)
+                var sla: HostSLA, isFederateable: Boolean)
   extends NetworkComponent{
 
   /* Getters: */
@@ -397,8 +397,12 @@ case class Host(hardwareSpec: Resource, endpoint: Endpoint, ip: InetAddress, mac
   /* ---------------- */
 
   override def equals(obj: scala.Any): Boolean = obj match{
-    case that: Host 	=> this.hardwareSpec == that.hardwareSpec && this.sla == that.sla &&
-      this.ip == that.ip && this.mac == that.mac
+    case that: Host 	=> (this canEqual that) &&
+                         this.hardwareSpec == that.hardwareSpec &&
+                         this.sla == that.sla &&
+                         this.ip == that.ip && 
+                         this.mac == that.mac &&
+                         this.isFederateable == that.isFederateable
     case _ 						=> false
   }
 
@@ -422,6 +426,7 @@ object Host {
       <MAC>{host.mac}</MAC>
       <ResourceAllocs>{host.allocatedResources.map(resAlloc => ResourceAlloc.toXML(resAlloc))}</ResourceAllocs>
       <HostSLA>{HostSLA.toXML(host.sla)}</HostSLA>
+      <Federateable>{host.isFederateable.toString}</Federateable>
     </Host>
 
   def saveToXML(file: File, host: Host) = {
@@ -461,8 +466,14 @@ object Host {
       }
     }
     val hostSLA: HostSLA = HostSLA.fromXML((hostNode \ "HostSLA")(0))
+    val isFederateable: Boolean =
+      (hostNode \ "Federateable").text match{
+        case "true"  => true
+        case "false" => false
+        case _       => false
+      }
 
-    return Host(hardwareSpec, endpoint, hostIP, hostMAC, allocRes, hostSLA)
+    return Host(hardwareSpec, endpoint, hostIP, hostMAC, allocRes, hostSLA, isFederateable)
   }
 
   def loadFromXML(file: File): Host = {
