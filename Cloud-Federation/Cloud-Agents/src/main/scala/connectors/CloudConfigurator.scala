@@ -3,7 +3,7 @@ package connectors
 import java.io.File
 import java.net.InetAddress
 
-import datatypes.{CloudSLA, Host, Tenant}
+import datatypes.{OFSwitch, CloudSLA, Host, Tenant}
 import org.slf4j.LoggerFactory
 
 /**
@@ -11,7 +11,8 @@ import org.slf4j.LoggerFactory
  */
 class CloudConfigurator(cloudConfDir: File, 
                         hostDirName: String = "hosts", 
-                        tenantsDirName: String = "tenants", 
+                        tenantsDirName: String = "tenants",
+                        gatewayFileName: String = "CloudGateway.xml",
                         cloudSLAFileName: String = "CloudSLA.xml") {
 
 /* Values: */
@@ -29,6 +30,7 @@ class CloudConfigurator(cloudConfDir: File,
   def cloudHosts 		= readCloudHostsfromXML
   def cloudTenants  = readCloudTenantsfromXML
   def cloudSLA 			= readCloudSLAfromXML
+  def cloudGateway  = readGatewayfromXML
 
 
   //TODO: build security interfaces for a Certificate-Store
@@ -66,7 +68,12 @@ class CloudConfigurator(cloudConfDir: File,
   
   private def readCloudSLAfromXML: CloudSLA = {
     // Define the Cloud-SLA from the CloudSLA.xml file in the cloudConfDir/ directory
-    return CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
+    return CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +cloudSLAFileName))
+  }
+
+  private def readGatewayfromXML: OFSwitch = {
+    // Define the Cloud's Gateway OF-Switch from the CloudGateway.xml file in the cloudConfDir/ directory
+    return OFSwitch.loadFromXML(new File(cloudConfDir.getAbsolutePath +gatewayFileName))
   }
 }
 

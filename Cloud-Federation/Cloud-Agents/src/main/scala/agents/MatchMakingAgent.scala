@@ -14,6 +14,9 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 	
 /* Values: */
 /* ======= */
+
+  private val localGWSwitch = cloudConfig.cloudGateway
+
 	
 /* Variables: */
 /* ========== */
