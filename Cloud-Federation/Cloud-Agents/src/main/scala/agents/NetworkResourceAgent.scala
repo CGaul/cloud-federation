@@ -165,7 +165,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	 */
 	private def recvResourceFederationResult(tenant: Tenant, foreignGWSwitch: OFSwitch, federatedResources: ResourceAlloc): Unit = {
     prepareFederation(tenant, foreignGWSwitch)
-    //TODO: uploadNetworkToOVX(..)
+    uploadNetworkToFederatedOVX(tenant)
 	}
 
 
@@ -189,7 +189,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
     prepareFederation(tenant, foreignGWSwitch)
 		mapAllocOnOVX(tenant, hostList)
-    //TODO: uploadNetworkToOVX(..)
+    uploadNetworkToFederatedOVX(tenant)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
@@ -396,8 +396,32 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       }
     }
   }
+  
+  private def uploadNetworkToFederatedOVX(tenant: Tenant) = {
+    val virtNetOpt = tenantNetMap.get(tenant)
+    virtNetOpt match{
+        case Some(virtNet)  =>
+          log.info("Removing tenant {} OFC Controller {} from network {}...",
+                   tenant.id, virtNet.controllerUrls(0), virtNet.networkAddress)
+          _ovxConn.removeControllers(tenant.id, List(virtNet.controllerUrls(0)))
+          
+//          log.info("Adding federated OVX as new Controller {} for network {} of tenant {}...",
+//                   )
+          //TODO: either use federated OVX Address in createNetwork from the beginning (even if federated OVX is only passive at that time), or rebuild network here.
+          
+        case None          => 
+          log.error("No virtual tenant network registered for tenant {}!",
+                    tenant.id)
+          
+    }
+    
+    
+  }
 	
 	
+  /* Helper Methods for OVXConnector: */
+  /* ================================ */
+  
 	private def _createOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
 			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
 			netOpt match{
