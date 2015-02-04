@@ -41,11 +41,17 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> revcFederationSLAs(cloudSLA, possibleHostSLAs)
 			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
 			case DiscoveryPublication(cloudDiscovery)				=> recvDiscoveryPublication(cloudDiscovery)
+      case OvxInstanceRequest(cloud1, cloud2)         => recvOvxInstanceRequest(cloud1, cloud2)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
 }
 
+  /**
+   * Received from local CCFM
+   * @param cloudSLA
+   * @param possibleHostSLAs
+   */
 	private def revcFederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
@@ -63,6 +69,10 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 		
 	}
 
+  /**
+   * Received from PubSub-Federator
+   * @param hashKey
+   */
 	def recvAuthenticationInquiry(hashKey: Long) = {
 		log.info("Received AuthenticationInquiry from Federator.")
 		//TODO: decrypt hashKey with own private key:
@@ -73,6 +83,10 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 		pubSubActorSelection ! authAnswer
 	}
 
+  /**
+   * Received from PubSub-Federator
+   * @param cloudDiscovery
+   */
 	//TODO: change cert type to "Certificate"
 	def recvDiscoveryPublication(cloudDiscovery: Subscription) = {
 		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.actorRefMMA)
@@ -82,6 +96,17 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 
 //	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
 	}
+
+  /**
+   * Received from local MMA
+   * @param cloud1
+   * @param cloud2
+   */
+  def recvOvxInstanceRequest(cloud1: Subscription, cloud2: Subscription) = {
+    log.info("Received OvxInstanceRequest from {}. Forwarding to PubSub-Federator...", sender())
+    pubSubActorSelection ! OvxInstanceRequest(cloud1, cloud2)
+  }
+
 
 	private def recvCCFMShutdown() = {
 		log.info("Received Shutdown Call from CCFM.")

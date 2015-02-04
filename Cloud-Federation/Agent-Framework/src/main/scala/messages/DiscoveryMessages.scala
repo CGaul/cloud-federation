@@ -1,5 +1,7 @@
 package messages
 
+import java.net.InetAddress
+
 import datatypes.{CloudSLA, HostSLA, Subscription}
 
 sealed trait DiscoveryMessage
@@ -55,3 +57,8 @@ case class AuthenticationAnswer(solvedKey: Long)
 //TODO: change cert type to "Certificate"
 case class DiscoveryPublication(cloudDiscovery: Subscription)
 	extends DiscoveryMessage with DDADiscoveryDest with MMADiscoveryDest
+
+case class OvxInstanceRequest(localCloud: Subscription, foreignCloud: Subscription)
+  extends DiscoveryMessage with DDADiscoveryDest with PubSubDiscoveryDest
+case class OvxInstanceReply(ovxIP: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int)
+  extends DiscoveryMessage with DDADiscoveryDest with MMADiscoveryDest

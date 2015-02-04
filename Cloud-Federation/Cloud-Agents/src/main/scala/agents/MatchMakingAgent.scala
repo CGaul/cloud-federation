@@ -1,5 +1,7 @@
 package agents
 
+import java.net.InetAddress
+
 import akka.actor._
 import connectors.CloudConfigurator
 import datatypes._
@@ -8,7 +10,7 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelection) 
+class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSelection: ActorSelection)
 	extends Actor with ActorLogging
 {
 	
@@ -56,6 +58,19 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 		cloudDiscovery.actorRefMMA ! FederationInfoSubscription(ownSubscription)
 	}
 
+  /**
+   * Received from Pub-Sub Federator
+   * @param ovxIp
+   * @param ovxApiPort
+   * @param ovxCtrlPort
+   */
+  def recvOvxInstanceReply(ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
+    log.info("Received OvxInstanceReply from {} with OVX-Instance: (IP: {}, API-Port: {}, Ctrl-Port: {})",
+      sender(), ovxIp, ovxApiPort, ovxCtrlPort)
+
+    //TODO: implement logic - how to send to NRA and when?
+  }
+
 	/**
 	 * Received from NetworkResourceAgent.
 	 * <p>
@@ -76,12 +91,17 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 	def recvResourceRequest(tenant: Tenant, resourcesToGather: ResourceAlloc): Unit = {
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
 						 tenant, resourcesToGather.resources.size, sender())
-		
+
+    // Only try to federated, if foreign clouds are known:
 		if(cloudDiscoveries.size > 0){
 			// First, add all previously discovered foreign MMAs into the list of outstanding requests for the
 			// current ResourceAlloc that should be solved in a federation from the foreign cloud:
 			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorRefMMA).toList)
 			sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
+
+      // Send an OVXInstanceRequest to the DA that forwards it to the PubSub-Federator,
+      // in order to receive a OVXInstanceReply here at the MMA:
+      //TODO: implement: daAgent ! OvxInstanceRequest()
 		}
 	}
 
@@ -175,7 +195,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, nraSelection: ActorSelect
 
 	override def receive: Receive = {
 		case message: MMADiscoveryDest => message match {
-			case DiscoveryPublication(cloudDiscovery) => recvDiscoveryPublication(cloudDiscovery)
+			case DiscoveryPublication(cloudDiscovery)              => recvDiscoveryPublication(cloudDiscovery)
+      case OvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)  => recvOvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)
 		}
 		case message: MMAFederationDest => message match{
 			case FederationInfoSubscription(foreignCloudSLA) 	=> recvFederationInfoSubscription(foreignCloudSLA)
@@ -238,7 +259,7 @@ object MatchMakingAgent
 	 * @param cloudConfig The CloudConfigurator that manages all XML-configs for the local Cloud
 	 * @return An Akka Properties-Object
 	 */
-	def props(cloudConfig: CloudConfigurator, nraSelection: ActorSelection):
-		Props = Props(new MatchMakingAgent(cloudConfig, nraSelection))
+	def props(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSelection: ActorSelection):
+		Props = Props(new MatchMakingAgent(cloudConfig, daAgent, nraSelection))
 }
 

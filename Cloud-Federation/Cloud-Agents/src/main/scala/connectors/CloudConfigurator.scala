@@ -27,6 +27,7 @@ class CloudConfigurator(cloudConfDir: File,
   def certFile 			= _certFile
   def ovxIp 				= _ovxIP
   def ovxApiPort		= _ovxApiPort
+  def ovxCtrlPort   = _ovxCtrlPort
   def cloudHosts 		= readCloudHostsfromXML
   def cloudTenants  = readCloudTenantsfromXML
   def cloudSLA 			= readCloudSLAfromXML
@@ -37,6 +38,7 @@ class CloudConfigurator(cloudConfDir: File,
   private val _certFile: File			= new File(cloudConfDir.getAbsolutePath +"/cloud1.key")
   private val _ovxIP: InetAddress 	= InetAddress.getLocalHost
   private val _ovxApiPort: Int			= 8080
+  private val _ovxCtrlPort: Int     = 6633 //TODO: check in OVX Config
 
 
 /* Private Methods: */

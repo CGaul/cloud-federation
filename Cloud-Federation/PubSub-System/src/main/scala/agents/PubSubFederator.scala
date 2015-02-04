@@ -1,5 +1,7 @@
 package agents
 
+import java.net.InetAddress
+
 import akka.actor._
 import datatypes.{Subscriber, Subscription}
 import messages._
@@ -31,14 +33,19 @@ class PubSubFederator extends Actor with ActorLogging
 	 case message: PubSubDiscoveryDest	=> message match {
      case DiscoverySubscription(subscription)	=> recvDiscoverySubscription(subscription)
 		 case AuthenticationAnswer(solvedKey) 		=> recvAuthenticationAnswer(solvedKey)
+     case OvxInstanceRequest(cloud1, cloud2)  => recvOVXInstanceRequest(cloud1, cloud2)
 	 }
 	 case _																	=> log.error("Unknown message received!")
   }
 
+  /**
+   * Received from DiscoveryAgent
+   * @param newSubscription
+   */
   def recvDiscoverySubscription(newSubscription: Subscription): Unit = {
 		log.info("Received DiscoverySubscription from {}", sender())
 	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
-		val newSubscriber = Subscriber(sender(), authenticated = false)
+		val newSubscriber = Subscriber(sender(), authenticated = false, List())
 		if(subscribers.contains(newSubscriber)){
 			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRefDA)
 			return
@@ -59,6 +66,10 @@ class PubSubFederator extends Actor with ActorLogging
 		newSubscriber.actorRefDA ! authSubscriberQuestion
 	}
 
+  /**
+   * Received from DiscoveryAgent
+   * @param solvedKey
+   */
 	def recvAuthenticationAnswer(solvedKey: Long): Unit = {
 		log.info("Received AuthenticationAnswer from {}", sender())
 		val subscriberToAuth: ActorRef = sender()
@@ -73,7 +84,7 @@ class PubSubFederator extends Actor with ActorLogging
 			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
-				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true)
+				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true, List())
 				log.debug("Subscribers before auth-update: "+ subscribers)
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
@@ -99,12 +110,40 @@ class PubSubFederator extends Actor with ActorLogging
 		}
 	}
 
+  /**
+   * Received from DiscoveryAgent
+   * @param cloud1
+   * @param cloud2
+   */
+  def recvOVXInstanceRequest(cloud1: Subscription, cloud2: Subscription) = {
+    // After setting up an OVX instance for federation, tell both cloud MMA-Actors where the OVX-Instance is found:
+    val (ovxIp, ovxApiPort, ovxCtrlPort) = startOVXInstance()
+    cloud1.actorRefMMA ! OvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)
+    cloud2.actorRefMMA ! OvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)
+
+    // Set the asking DA as the federation master inside the Federator for the cloud2 subscription:
+    val masterSubscriberOpt = subscribers.find(_.actorRefDA == sender())
+    masterSubscriberOpt match{
+      case Some(masterSubscriber) =>
+        val updFederationList = masterSubscriber.masterOfFederations :+ (cloud1, cloud2)
+        val updSubscriber = new Subscriber(masterSubscriber.actorRefDA, masterSubscriber.authenticated, updFederationList)
+        subscribers = subscribers.updated(subscribers.indexOf(masterSubscriber), updSubscriber)
+        log.info("Subscriber {} is the new master of the federation between {} and {}", sender(), cloud1, cloud2)
+      case None                   =>
+        log.error("No matching DA-ActorRef found as a registered Subscriber for {}!", sender())
+    }
+  }
+
+
+
+  /* Private Methods: */
+  /* ================ */
 
 	/**
 	 * Publishes a subscription to each authenticated Subscriber in the subscribers Vector.
 	 * Does not publish a Subscription back to the originating Subscriber.
 	 */
-	def broadcastOneSubscription(originator: Subscriber, subscription: Subscription) = {
+	private def broadcastOneSubscription(originator: Subscriber, subscription: Subscription) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
@@ -116,7 +155,7 @@ class PubSubFederator extends Actor with ActorLogging
 		}
 	}
 	
-	def publishAllSubscriptions(receiver: Subscriber) = {
+	private def publishAllSubscriptions(receiver: Subscriber) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
 		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
 		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRefDA).contains).map(_._2)
@@ -127,6 +166,16 @@ class PubSubFederator extends Actor with ActorLogging
 				receiver.actorRefDA ! DiscoveryPublication(actSubscription)
 			}
 		}
-
 	}
+
+
+  private def startOVXInstance(): (InetAddress, Int, Int) = {
+    //TODO: Implement shortcut: just read OVX config and start OVX manually
+
+    val ovxIp = InetAddress.getLocalHost
+    val ovxApiPort = 8080
+    val ovxCtrlPort = 6633 //TODO: check in OVX Config
+
+    return (ovxIp, ovxApiPort, ovxCtrlPort)
+  }
 }
