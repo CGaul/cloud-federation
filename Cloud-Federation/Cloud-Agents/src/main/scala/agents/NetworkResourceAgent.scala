@@ -20,7 +20,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 /* Values: */
 /* ======= */
 	
-		private val _ovxConn = OVXConnector(cloudConfig.ovxIp, cloudConfig.ovxApiPort)
+		private val _ovxConn = OVXConnector(cloudConfig.cloudOvx.ovxIp, cloudConfig.cloudOvx.ovxApiPort)
 
 
 /* Variables: */
@@ -56,7 +56,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	def initChildActors(): ActorRef = {
 		// Spawn a NetworkDiscoveryAgent (NDA) for Network-Topology-Discovery:
 		val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], 
-																cloudConfig.ovxIp, cloudConfig.ovxApiPort, context.self)
+																cloudConfig.cloudOvx.ovxIp, cloudConfig.cloudOvx.ovxApiPort, context.self)
 		val ndaActor = context.actorOf(ndaProps, name="networkDiscoveryAgent")
 		log.info("NetworkDiscoveryAgent started at path: {}", ndaActor.path)
 		ndaActor ! "start"
@@ -388,8 +388,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       
       val physicalLocalPort = physLocalPortOpt.get
       val physicalForeignPort = physForeignPortOpt.get
-      val localPortMapping = switchPortMap.getOrElse(localGWSwitch, List()).find(_._1 == physicalLocalPort)
-      val foreignPortMapping = switchPortMap.getOrElse(foreignGWSwitch, List()).find(_._1 == physicalForeignPort)
+      val localPortMapping = switchPortMap.getOrElse(localGWSwitch, List()).find(_._1 == physicalLocalPort._1)
+      val foreignPortMapping = switchPortMap.getOrElse(foreignGWSwitch, List()).find(_._1 == physicalForeignPort._1)
       
       if(localPortMapping.isDefined && foreignPortMapping.isDefined){
         val (physSrcPort, virtSrcPort, srcComponent) = localPortMapping.get

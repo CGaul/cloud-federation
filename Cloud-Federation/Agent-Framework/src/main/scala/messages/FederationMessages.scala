@@ -25,5 +25,10 @@ case class FederationInfoPublication(resourcePool: Vector[(Host, Vector[Resource
 
 case class OvxInstanceRequest(subscription: Subscription)
   extends FederationMessages with PubSubFederationDest
+
+/**
+ * Only received through a Future of PubSub-Federator -> MMA
+ * @param ovxInstance: The federated OVX Instance, managed by the PubSub-Federator
+ */
 case class OvxInstanceReply(ovxInstance: OvxInstance)
-  extends FederationMessages with MMAFederationDest
+  extends FederationMessages

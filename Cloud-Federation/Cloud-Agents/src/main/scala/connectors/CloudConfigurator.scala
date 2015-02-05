@@ -3,7 +3,7 @@ package connectors
 import java.io.File
 import java.net.InetAddress
 
-import datatypes.{OFSwitch, CloudSLA, Host, Tenant}
+import datatypes._
 import org.slf4j.LoggerFactory
 
 /**
@@ -25,9 +25,7 @@ class CloudConfigurator(cloudConfDir: File,
 /* ======== */
 
   def certFile 			= _certFile
-  def ovxIp 				= _ovxIP
-  def ovxApiPort		= _ovxApiPort
-  def ovxCtrlPort   = _ovxCtrlPort
+  def cloudOvx      = OvxInstance(_ovxIP, _ovxApiPort, _ovxCtrlPort, federator =  false)
   def cloudHosts 		= readCloudHostsfromXML
   def cloudTenants  = readCloudTenantsfromXML
   def cloudSLA 			= readCloudSLAfromXML

@@ -119,7 +119,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
       try {
         val ovxReply = Await.result(futureOvxReply, timeout.duration).asInstanceOf[OvxInstanceReply]
         federatedOvxInstance = Some(ovxReply.ovxInstance)
-        sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather, ovxReply)
+        sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
       }
       catch{
         case e: TimeoutException => log.error("No OVX-Instance Reply was available from the PubSub-Federator after {}. " +
