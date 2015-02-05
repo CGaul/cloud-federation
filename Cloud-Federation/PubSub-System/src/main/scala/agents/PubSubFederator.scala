@@ -3,7 +3,7 @@ package agents
 import java.net.InetAddress
 
 import akka.actor._
-import datatypes.{Subscriber, Subscription}
+import datatypes.{OvxInstance, Subscriber, Subscription}
 import messages._
 
 /**
@@ -31,11 +31,13 @@ class PubSubFederator extends Actor with ActorLogging
 
   override def receive: Receive = {
 	 case message: PubSubDiscoveryDest	=> message match {
-     case DiscoverySubscription(subscription)	=> recvDiscoverySubscription(subscription)
-		 case AuthenticationAnswer(solvedKey) 		=> recvAuthenticationAnswer(solvedKey)
-     case OvxInstanceRequest(cloud1, cloud2)  => recvOVXInstanceRequest(cloud1, cloud2)
+     case DiscoverySubscription(subscription) => recvDiscoverySubscription(subscription)
+     case AuthenticationAnswer(solvedKey)     => recvAuthenticationAnswer(solvedKey)
+   }
+     case message: PubSubFederationDest => message match {
+     case OvxInstanceRequest(subscription)  => recvOVXInstanceRequest(subscription)
 	 }
-	 case _																	=> log.error("Unknown message received!")
+	 case _	=> log.error("Unknown message received!")
   }
 
   /**
@@ -45,7 +47,7 @@ class PubSubFederator extends Actor with ActorLogging
   def recvDiscoverySubscription(newSubscription: Subscription): Unit = {
 		log.info("Received DiscoverySubscription from {}", sender())
 	 	//When a new DiscoverySubscription drops in, save that sender as an unauthenticated subscriber:
-		val newSubscriber = Subscriber(sender(), authenticated = false, List())
+		val newSubscriber = Subscriber(sender(), authenticated = false, None)
 		if(subscribers.contains(newSubscriber)){
 			log.warning("Subscriber {} is already registered at PubSub-Server", newSubscriber.actorRefDA)
 			return
@@ -84,7 +86,7 @@ class PubSubFederator extends Actor with ActorLogging
 			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
-				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true, List())
+				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true, None)
 				log.debug("Subscribers before auth-update: "+ subscribers)
 				subscribers = subscribers.updated(index, authSubscriber)
 				log.info("Authentication for new {} was successful! Subscriber Registration completed.", subscribers(index))
@@ -112,23 +114,20 @@ class PubSubFederator extends Actor with ActorLogging
 
   /**
    * Received from DiscoveryAgent
-   * @param cloud1
-   * @param cloud2
+   * @param subscription
    */
-  def recvOVXInstanceRequest(cloud1: Subscription, cloud2: Subscription) = {
+  def recvOVXInstanceRequest(subscription: Subscription) = {
     // After setting up an OVX instance for federation, tell both cloud MMA-Actors where the OVX-Instance is found:
-    val (ovxIp, ovxApiPort, ovxCtrlPort) = startOVXInstance()
-    cloud1.actorRefMMA ! OvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)
-    cloud2.actorRefMMA ! OvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)
+    val ovxInstance = startOVXInstance()
+    subscription.actorRefMMA ! OvxInstanceReply(ovxInstance)
 
     // Set the asking DA as the federation master inside the Federator for the cloud2 subscription:
     val masterSubscriberOpt = subscribers.find(_.actorRefDA == sender())
     masterSubscriberOpt match{
       case Some(masterSubscriber) =>
-        val updFederationList = masterSubscriber.masterOfFederations :+ (cloud1, cloud2)
-        val updSubscriber = new Subscriber(masterSubscriber.actorRefDA, masterSubscriber.authenticated, updFederationList)
+        val updSubscriber = new Subscriber(masterSubscriber.actorRefDA, masterSubscriber.authenticated, Some(ovxInstance))
         subscribers = subscribers.updated(subscribers.indexOf(masterSubscriber), updSubscriber)
-        log.info("Subscriber {} is the new master of the federation between {} and {}", sender(), cloud1, cloud2)
+        log.info("Subscriber {} is the new master of a federation and owns federated {}", sender(), ovxInstance)
       case None                   =>
         log.error("No matching DA-ActorRef found as a registered Subscriber for {}!", sender())
     }
@@ -169,13 +168,14 @@ class PubSubFederator extends Actor with ActorLogging
 	}
 
 
-  private def startOVXInstance(): (InetAddress, Int, Int) = {
+  private def startOVXInstance(): OvxInstance = {
     //TODO: Implement shortcut: just read OVX config and start OVX manually
 
     val ovxIp = InetAddress.getLocalHost
     val ovxApiPort = 8080
     val ovxCtrlPort = 6633 //TODO: check in OVX Config
+    val federator = true
 
-    return (ovxIp, ovxApiPort, ovxCtrlPort)
+    return OvxInstance(ovxIp, ovxApiPort, ovxCtrlPort, federator)
   }
 }

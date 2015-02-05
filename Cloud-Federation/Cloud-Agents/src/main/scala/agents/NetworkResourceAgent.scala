@@ -1,5 +1,7 @@
 package agents
 
+import java.net.InetAddress
+
 import akka.actor._
 import connectors._
 import datatypes._
@@ -71,11 +73,11 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			case ResourceRequest(tenant, resourcesToAlloc)
 			=> recvResourceRequest(tenant, resourcesToAlloc)
 
-			case ResourceFederationRequest(tenant, foreignGWSwitch, resourcesToAlloc)
-			=> recvResourceFederationRequest(tenant, foreignGWSwitch, resourcesToAlloc)
+			case ResourceFederationRequest(tenant, foreignGWSwitch, resourcesToAlloc, ovxInstance)
+			=> recvResourceFederationRequest(tenant, foreignGWSwitch, resourcesToAlloc, ovxInstance)
 
-			case ResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated)
-			=> recvResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated)
+			case ResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated, ovxInstance)
+			=> recvResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated, ovxInstance)
 		}
 			
 		case message: NRANetworkDest => message match{
@@ -150,22 +152,28 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
 	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
 	/**
-	 * Receives a ResourceFederationResult from the MatchMakingAgent.
+	 * Received from local MMA.
 	 * <p>
 	 * 	If a ResourceRequest could not have been processed locally,
-	 * 	the NetworkFederationAgent has asked the MatchMakingAgent
-	 * 	for Federation-Resources.
+	 * 	the NRA has asked the MMA for Federation-Resources.
 	 * 	All results are included in such ResourceFederationResult,
 	 * 	stating the allocated Resources per foreign Cloud
 	 * 	(the ActorRef is the foreign slave MMA)
-	 * 	*
 	 * </p>
 	 * Jira: CITMASTER-28 - Develop NetworkResourceAgent
-	 * @param federatedResources
-	 */
-	private def recvResourceFederationResult(tenant: Tenant, foreignGWSwitch: OFSwitch, federatedResources: ResourceAlloc): Unit = {
+   *
+   * @param tenant
+   * @param foreignGWSwitch
+   * @param federatedResources
+   * @param ovxInstance
+   */
+	private def recvResourceFederationResult(tenant: Tenant, foreignGWSwitch: OFSwitch, 
+                                           federatedResources: ResourceAlloc, ovxInstance: OvxInstance): Unit = {
+    log.info("Received ResourceFederationResult at NRA from {} Preparing Federation for tenant {} on OVX-F Instance {}...", 
+      sender(), tenant.id, ovxInstance)
+    
     prepareFederation(tenant, foreignGWSwitch)
-    uploadNetworkToFederatedOVX(tenant)
+    uploadNetworkToFederatedOVX(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxApiPort)
 	}
 
 
@@ -174,11 +182,13 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	 * Received from local MMA.
 	 * Allocate foreign resources locally that are part of a federation.
 	 *
-	 * @param resourcesToAlloc
-	 * @param tenant
-	 */
-	private def recvResourceFederationRequest(tenant: Tenant, foreignGWSwitch: OFSwitch, resourcesToAlloc: ResourceAlloc): Unit = {
-		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NetworkResourceAgent.",
+   * @param tenant
+   * @param foreignGWSwitch
+   * @param resourcesToAlloc
+   */
+	private def recvResourceFederationRequest(tenant: Tenant, foreignGWSwitch: OFSwitch, 
+                                            resourcesToAlloc: ResourceAlloc, ovxInstance: OvxInstance): Unit = {
+		log.info("Received ResourceFederationRequest (TenantID: {}, ResCount: {}, OFC-IP: {}) at NRA.",
 			resourcesToAlloc.tenantID, resourcesToAlloc.resources.size, tenant.ofcIp)
 
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourcesToAlloc)
@@ -189,7 +199,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
     prepareFederation(tenant, foreignGWSwitch)
 		mapAllocOnOVX(tenant, hostList)
-    uploadNetworkToFederatedOVX(tenant)
+    uploadNetworkToFederatedOVX(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxCtrlPort)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaing Resources to Allocate back to the sender.
@@ -397,7 +407,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     }
   }
   
-  private def uploadNetworkToFederatedOVX(tenant: Tenant) = {
+  private def uploadNetworkToFederatedOVX(tenant: Tenant, ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
     val virtNetOpt = tenantNetMap.get(tenant)
     virtNetOpt match{
         case Some(virtNet)  =>

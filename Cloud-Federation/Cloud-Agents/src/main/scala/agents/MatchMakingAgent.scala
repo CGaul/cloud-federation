@@ -2,16 +2,23 @@ package agents
 
 import java.net.InetAddress
 
+import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
 import connectors.CloudConfigurator
 import datatypes._
 import messages._
 
+import scala.concurrent.{TimeoutException, Await}
+import scala.concurrent.duration._
+
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSelection: ActorSelection)
-	extends Actor with ActorLogging
+class MatchMakingAgent(cloudConfig: CloudConfigurator, 
+                       federatorActorSel: ActorSelection, nraActorSel: ActorSelection)
+	extends RemoteDependencyAgent(List(federatorActorSel, nraActorSel)) with ActorLogging
 {
 	
 /* Values: */
@@ -25,7 +32,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
 
 	private var cloudDiscoveries: Vector[Subscription] = Vector()
 	private var federationSubscriptions: Vector[Subscription] = Vector()
-
+  private var federatedOvxInstance: Option[OvxInstance] = None
+  
 	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map() //TODO: use
 	
 	// Each ResourceAlloc has exactly one Cloud that manages it (locally or inside a federation):
@@ -97,11 +105,26 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
 			// First, add all previously discovered foreign MMAs into the list of outstanding requests for the
 			// current ResourceAlloc that should be solved in a federation from the foreign cloud:
 			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorRefMMA).toList)
-			sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
 
-      // Send an OVXInstanceRequest to the DA that forwards it to the PubSub-Federator,
-      // in order to receive a OVXInstanceReply here at the MMA:
-      //TODO: implement: daAgent ! OvxInstanceRequest()
+      // Send an OVXInstanceRequest to the PubSub-Federator,
+      // in order to receive an OvxInstanceReply here at the MMA:
+      // (Do this only once! Only ove OVX-F is needed per Cloud)
+      val localSubscr = Subscription(context.self, cloudConfig.cloudSLA,
+        cloudConfig.cloudHosts.map(_.sla).toVector, cloudConfig.certFile)
+      log.info("Asking the PubSub-Federator for an OVX Instance now, that will host the federation of {}",
+        localSubscr)
+
+      implicit val timeout = Timeout(5 seconds)
+      val futureOvxReply = federatorActorSel ? OvxInstanceRequest(localSubscr)
+      try {
+        val ovxReply = Await.result(futureOvxReply, timeout.duration).asInstanceOf[OvxInstanceReply]
+        federatedOvxInstance = Some(ovxReply.ovxInstance)
+        sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather, ovxReply)
+      }
+      catch{
+        case e: TimeoutException => log.error("No OVX-Instance Reply was available from the PubSub-Federator after {}. " +
+          "No ResourceFederationResult was sent to local NRA!", timeout)
+      }      
 		}
 	}
 
@@ -111,7 +134,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
 	 * @param tenant
 	 * @param resourcesToAlloc
 	 */
-	def recvResourceFederationRequest(tenant: Tenant, foreignGWSwitch: OFSwitch, resourcesToAlloc: ResourceAlloc): Unit = {
+	def recvResourceFederationRequest(tenant: Tenant, foreignGWSwitch: OFSwitch, 
+                                    resourcesToAlloc: ResourceAlloc, ovxInstance: OvxInstance): Unit = {
 		log.info("Received ResourceFederationRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
 			tenant, resourcesToAlloc.resources.size, sender())
 
@@ -127,7 +151,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
           sender(), resourcesToAlloc.resources)
         // If Allocation Requirements are met, forward ResourceFederationRequest to NRA,
         // so that it will be mapped to the running OVX instance:
-        nraSelection ! ResourceFederationRequest(mapForeignToLocal(tenant), foreignGWSwitch, resourcesToAlloc)
+        nraActorSel ! ResourceFederationRequest(mapForeignToLocal(tenant), foreignGWSwitch, resourcesToAlloc, ovxInstance)
 
         // If the Resources are allocateable locally, send a ResourceFederationReply back to foreign (master) MMA
         // including local (slave) MMA ActorRef and resourcesToAlloc that will be allocated by (slave) NRA locally.
@@ -170,7 +194,16 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
         sender(), federatedResources)
       // IMPLICIT: federatedResources is the same ResourceAlloc that was forwarded from this MMA to the foreign MMA before:
       fedResCloudAssigns = fedResCloudAssigns + (federatedResources -> sender())
-      nraSelection ! ResourceFederationResult(tenant, foreignGWSwitch, federatedResources)
+      federatedOvxInstance match{
+          case Some(ovxInstance) =>
+            log.info("Sending successful federation establishment as a ResourceFederationResult to local NRA...")
+            nraActorSel ! ResourceFederationResult(tenant, foreignGWSwitch, federatedResources, ovxInstance)
+            
+          case None =>
+            log.error("No OVX-F was available, on sending a ResourceFederationResult to local NRA for tenant {}!",
+                      tenant.id)
+      }
+      
     }
     else{
       log.warning("Received ResourceFederationReply. " +
@@ -193,10 +226,15 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
     // TODO: Implement publication handling
 	}
 
-	override def receive: Receive = {
+  /**
+   * The online receive-handle that needs to be implemented by the specified class, extending this RemoteDependencyAgent.
+   * Contains the functionality, which will be executed by the Actor if all RemoteDependencies are solved and a message
+   * comes into the mailbox, or there were stashed messages while the Actor was in its _offline state.
+   * @return
+   */
+  override def receiveOnline: Receive = {
 		case message: MMADiscoveryDest => message match {
 			case DiscoveryPublication(cloudDiscovery)              => recvDiscoveryPublication(cloudDiscovery)
-      case OvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)  => recvOvxInstanceReply(ovxIp, ovxApiPort, ovxCtrlPort)
 		}
 		case message: MMAFederationDest => message match{
 			case FederationInfoSubscription(foreignCloudSLA) 	=> recvFederationInfoSubscription(foreignCloudSLA)
@@ -206,8 +244,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
 			case ResourceRequest(tenant, resources)
 						=> recvResourceRequest(tenant, resources)
 				
-			case ResourceFederationRequest(tenant, foreignGWSwitch, resources)
-						=> recvResourceFederationRequest(tenant, foreignGWSwitch, resources)
+			case ResourceFederationRequest(tenant, foreignGWSwitch, resources, ovxInstance)
+						=> recvResourceFederationRequest(tenant, foreignGWSwitch, resources, ovxInstance)
 				
 			case ResourceFederationReply(tenant, foreignGWSwitch, federatedResources, wasFederated)
 						=> recvResourceFederationReply(tenant, foreignGWSwitch, federatedResources, wasFederated)
@@ -225,17 +263,25 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSel
     return localTenant
   }
 	
-	private def sendFederationRequestToNextMMA(tenant: Tenant, gwSwitch: OFSwitch, resourcesToGather: ResourceAlloc) = {
+	private def sendFederationRequestToNextMMA(tenant: Tenant, gwSwitch: OFSwitch, 
+                                             resourcesToGather: ResourceAlloc) = {
 		// Find the next MMA from the local MMA's mapping:
 		val outstandingMMAList = fedResOutstanding.getOrElse(resourcesToGather, List())
 		val nextMMAOpt = outstandingMMAList.headOption
 		
 		nextMMAOpt match{
 		    case Some(nextMMA) => 
-					log.info("Sending Federation Request to next MMA in outstanding List. MMA: {}", nextMMA)
-									 nextMMA !  ResourceFederationRequest(tenant, gwSwitch, resourcesToGather)
-					// Remove the nextMMA that was just requested from the outstanding list:
-					fedResOutstanding = fedResOutstanding + (resourcesToGather -> outstandingMMAList.filter(_ != nextMMA))
+          federatedOvxInstance match{
+            case Some(ovxInstance) =>
+              log.info("Sending Federation Request to next MMA in outstanding List. MMA: {}", nextMMA)
+              nextMMA !  ResourceFederationRequest(tenant, gwSwitch, resourcesToGather, ovxInstance)
+                // Remove the nextMMA that was just requested from the outstanding list:
+              fedResOutstanding = fedResOutstanding + (resourcesToGather -> outstandingMMAList.filter(_ != nextMMA))
+              
+            case None => 
+              log.error("No OVX-F was available, on sending a FederationRequest to next MMA {} for tenant {}!",
+                        nextMMA, tenant.id)
+          }
 					
 		    case None          =>  
 					log.warning("No next MMA is outstanding for the ResourceFederationRequest ({}, {}). " +
@@ -259,7 +305,7 @@ object MatchMakingAgent
 	 * @param cloudConfig The CloudConfigurator that manages all XML-configs for the local Cloud
 	 * @return An Akka Properties-Object
 	 */
-	def props(cloudConfig: CloudConfigurator, daAgent: ActorRef, nraSelection: ActorSelection):
-		Props = Props(new MatchMakingAgent(cloudConfig, daAgent, nraSelection))
+	def props(cloudConfig: CloudConfigurator, federatorActorSel: ActorSelection, nraActorSel: ActorSelection):
+		Props = Props(new MatchMakingAgent(cloudConfig, federatorActorSel, nraActorSel))
 }
 

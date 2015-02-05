@@ -129,6 +129,58 @@ object Endpoint{
 }
 
 
+case class OvxInstance(ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int, federator: Boolean)
+  extends NetworkComponent
+
+/** 
+ * Companion Object for OvxInstance
+ */
+object OvxInstance {
+  
+  /* Serialization: */
+  /* ============== */
+
+  def toXML(ovxInstance: OvxInstance): Node =
+    <OvxInstance>
+      <IP>{ovxInstance.ovxIp.getHostName}</IP>
+      <ApiPort>{ovxInstance.ovxApiPort}</ApiPort>
+      <CtrlPort>{ovxInstance.ovxCtrlPort}</CtrlPort>
+      <Federator>{ovxInstance.federator.toString}</Federator>
+    </OvxInstance>
+
+
+  def saveToXML(file: File, ovxInstance: OvxInstance) = {
+    val xmlNode = toXML(ovxInstance)
+    xml.XML.save(file.getAbsolutePath, xmlNode)
+  }
+
+  /* De-Serialization: */
+  /* ================= */
+
+  def fromXML(node: Node): OvxInstance = {
+    var ovxNode = node
+    if((node \ "OvxInstance").text != "")
+      ovxNode = (node \ "OvxInstance")(0)
+
+    val ovxIp: InetAddress = InetAddress.getByName((ovxNode \ "IP").text)
+    val ovxApiPort = (ovxNode \ "ApiPort").asInstanceOf[Int]
+    val ovxCtrlPort = (ovxNode \ "CtrlPort").asInstanceOf[Int]
+    val federator = (ovxNode \ "Federator").text match {
+      case "true" => true
+      case _      => false
+    }
+
+    return OvxInstance(ovxIp, ovxApiPort, ovxCtrlPort, federator)
+  }
+
+  def loadFromXML(file: File): OvxInstance = {
+    val xmlNode = xml.XML.loadFile(file)
+    return fromXML(xmlNode)
+  }
+}
+
+
+
 /**
  * The representative data class of an OpenFlow-Switch.
  * @param dpid The OpenFlow "data path id" that uniquely describes this OpenFlow-Switch
