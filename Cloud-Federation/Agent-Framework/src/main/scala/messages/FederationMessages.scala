@@ -1,8 +1,6 @@
 package messages
 
-import java.net.InetAddress
-
-import datatypes.{OvxInstance, Host, ResourceAlloc, Subscription}
+import datatypes.{Host, OvxInstance, ResourceAlloc, Subscription}
 
 /**
  * @author Constantin Gaul, created on 11/16/14.

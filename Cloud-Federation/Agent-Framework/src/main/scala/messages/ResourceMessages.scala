@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{OvxInstance, OFSwitch, ResourceAlloc, Tenant}
+import datatypes.{OFSwitch, OvxInstance, ResourceAlloc, Tenant}
 
 /**
  * @author Constantin Gaul, created on 10/16/14.

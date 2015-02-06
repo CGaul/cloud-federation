@@ -1,7 +1,5 @@
 package messages
 
-import java.net.InetAddress
-
 import datatypes.{CloudSLA, HostSLA, Subscription}
 
 sealed trait DiscoveryMessage

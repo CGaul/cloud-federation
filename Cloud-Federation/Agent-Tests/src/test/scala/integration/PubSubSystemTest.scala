@@ -8,7 +8,7 @@ import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
 import datatypes._
-import messages.{AuthenticationAnswer, AuthenticationInquiry, DiscoveryPublication, DiscoverySubscription}
+import messages.{AuthenticationAnswer, AuthenticationInquiry, DiscoverySubscription}
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**

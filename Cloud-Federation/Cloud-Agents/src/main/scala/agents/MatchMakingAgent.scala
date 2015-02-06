@@ -10,8 +10,8 @@ import connectors.CloudConfigurator
 import datatypes._
 import messages._
 
-import scala.concurrent.{TimeoutException, Await}
 import scala.concurrent.duration._
+import scala.concurrent.{Await, TimeoutException}
 
 /**
  * @author Constantin Gaul, created on 5/31/14.

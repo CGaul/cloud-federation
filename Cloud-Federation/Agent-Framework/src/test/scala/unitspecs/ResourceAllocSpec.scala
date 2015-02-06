@@ -6,7 +6,7 @@ import datatypes.ByteUnit._
 import datatypes.CPUUnit._
 import datatypes.ImgFormat._
 import datatypes._
-import org.scalatest.{GivenWhenThen, FlatSpec, ShouldMatchers}
+import org.scalatest.{FlatSpec, GivenWhenThen, ShouldMatchers}
 
 /**
  * @author Constantin Gaul, created onc 10/28/14.

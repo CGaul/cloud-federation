@@ -3,13 +3,12 @@ package integration
 import java.io.File
 
 import agents.MatchMakingAgent
-import akka.actor.{ActorSelection, ActorSystem, Props}
-import akka.testkit.{TestProbe, TestActorRef, TestKit}
+import akka.actor.{ActorSystem, Props}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
 import datatypes.ByteUnit._
-import datatypes.CPUUnit.CPUUnit
-import datatypes.CPUUnit._
+import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
 import messages._
