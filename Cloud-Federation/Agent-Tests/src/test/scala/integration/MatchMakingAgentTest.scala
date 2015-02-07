@@ -1,6 +1,7 @@
 package integration
 
 import java.io.File
+import java.net.InetAddress
 
 import agents.MatchMakingAgent
 import akka.actor.{ActorSystem, Props}
@@ -12,19 +13,21 @@ import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
 import messages._
-import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.{GivenWhenThen, BeforeAndAfterAll, Matchers, WordSpecLike}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.
  */
 class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
-	with WordSpecLike with Matchers with BeforeAndAfterAll {
+	with WordSpecLike with Matchers with BeforeAndAfterAll with GivenWhenThen {
 
 /* Global Values: */
 /* ============== */
 
-	private val cloudConfig1 = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf1"))
-	private val cloudConfig2 = CloudConfigurator(new File ("Agent-Tests/src/test/resources/cloudconf2"))
+  private val cloudConfFile1 = new File ("Agent-Tests/src/test/resources/cloudconf1")
+  private val cloudConfFile2 = new File ("Agent-Tests/src/test/resources/cloudconf2")
+	private val cloudConfig1 = CloudConfigurator(cloudConfFile1)
+	private val cloudConfig2 = CloudConfigurator(cloudConfFile2)
 	
 
 
@@ -34,69 +37,104 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val config = ConfigFactory.load("testApplication.conf")
 	def this() = this(ActorSystem("cloudAgentSystem"))
 
-	override def afterAll() {
+  override def beforeAll(): Unit = {
+    require(cloudConfFile1.isDirectory, "Directory cloudconf1 needs to exist in \"Agent-Tests/src/test/resources/\"!")
+    require(cloudConfFile2.isDirectory, "Directory cloudconf2 needs to exist in \"Agent-Tests/src/test/resources/\"!")
+  }
+  
+	override def afterAll(): Unit = {
 		TestKit.shutdownActorSystem(system)
 	}
 
 
 // The MMA Actor Generation with NRA TestProbe:
 // --------------------------------------------
-  
-  private val nraTestProbe = TestProbe()
-  private val nraTestSelection = system.actorSelection(nraTestProbe.ref.path)
-	private val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraTestSelection)
-	private val tActorRefMMA1 	= TestActorRef[MatchMakingAgent](mmaProps1, name = "matchMakingAgent")
-  
+
+  // the local NRA that has a bidirectional connection from MMA <-> NRA:
+  private val localNRAProbe = TestProbe()
+
+  // global PubSub-Federator Probe, where each MMA and DA are connected to:
+  private val federatorProbe: TestProbe = TestProbe()
+
+  private val nraTestSel = system.actorSelection(localNRAProbe.ref.path)
+  private val federatorTestSel = system.actorSelection(federatorProbe.ref.path)
+	private val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, federatorTestSel, nraTestSel)
+	private val localMMATestActor 	= TestActorRef[MatchMakingAgent](mmaProps1, name = "matchMakingAgent")
+
 
 /* Test Specifications: */
 /* ==================== */
 
 	"A MatchMakingAgent's recv-methods" should {
-    // testProbe, registered at MMA_1 in order to test message handling from MMA_1 -> foreign MMA (testProbe)
-    val mmaTestProbe: TestProbe = TestProbe()
+    // testProbe, registered at MMA_1 in order to test message handling from MMA_1 -> foreign MMA (testProbe):
+    val foreignMMAProbe: TestProbe = TestProbe()
     
     // MatchMakingAgent-Tests Resources:
     val (resAlloc1, tenant1) = MatchMakingAgentTest.prepareTestResources(cloudConfig1)
     
+    // Federator OVX-Instance:
+    val ovxInstanceFed = OvxInstance(InetAddress.getLoopbackAddress, 1234, 5678, federator = true)
+    
+    
     // recvDiscoveryPublication:
 		"subscribe with a discovered foreign MMA, after a DiscoveryPublication was received from its local DA" in {
-			val subscription = Subscription(mmaTestProbe.ref, cloudConfig2.cloudSLA,
+			val subscription = Subscription(foreignMMAProbe.ref, cloudConfig2.cloudSLA,
 																			cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
-			mmaTestProbe.send(tActorRefMMA1, DiscoveryPublication(subscription))
-      mmaTestProbe.expectMsgClass(classOf[FederationInfoSubscription])
+			foreignMMAProbe.send(localMMATestActor, DiscoveryPublication(subscription))
+      foreignMMAProbe.expectMsgClass(classOf[FederationInfoSubscription])
 		}
     
     // recvResourceRequest
     "send a ResourceFederationRequest to a previously subscribed foreign MMA, " +
     "if a ResourceRequest from the local NRA was received" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceRequest(tenant1, resAlloc1))
-      mmaTestProbe.expectMsg(ResourceFederationRequest(tenant1,
-                                          tActorRefMMA1.underlyingActor.localGWSwitch, resAlloc1))
+      Given("that the local MMA receives a ResourceRequest from the local NRA")
+      localNRAProbe.send(localMMATestActor, ResourceRequest(tenant1, resAlloc1))
+      
+      When("the federator receives a valid OvxInstanceRequest from the local MMA and answers with a OvxInstanceReply")
+      val expectedSubscription = Subscription(localMMATestActor, cloudConfig1.cloudSLA,
+        cloudConfig1.cloudHosts.map(_.sla).toVector, cloudConfig1.certFile)
+      federatorProbe.expectMsg(OvxInstanceRequest(expectedSubscription))
+      federatorProbe.reply(OvxInstanceReply(ovxInstanceFed))
+      
+      Then("the local MMA should send a ResourceFederationRequest to the foreign MMA, including all information, " +
+        "necessary to form a federation")
+      foreignMMAProbe.expectMsg(ResourceFederationRequest(tenant1, localMMATestActor.underlyingActor.localGWSwitch, 
+                                                          resAlloc1, ovxInstanceFed))
     }
     
     // recvResourceFederationRequest #1 (no auctioned Resources for foreign MMA)
     "send an unsucessful ResourceFederationReply, if a ResourceFederationRequest was received from" +
       " a foreign MMA that has no auctionedResources at the local MMA" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceFederationRequest(tenant1,
-                                          cloudConfig2.cloudGateway, resAlloc1))
-      mmaTestProbe.expectMsg(ResourceFederationReply(tenant1,
-                                          tActorRefMMA1.underlyingActor.localGWSwitch, resAlloc1, wasFederated = false))
+      When("a foreign MMA sends a ResourceFederationRequest to the local MMA and the local MMA has no saved auctioned Resources for the foreign MMA")
+      foreignMMAProbe.send(localMMATestActor, ResourceFederationRequest(tenant1, 
+                           cloudConfig2.cloudGateway, resAlloc1, ovxInstanceFed))
+      
+      Then("the localMMA should answer with a negative ResourceFederationReply (wasFederated = false)")
+      foreignMMAProbe.expectMsg(ResourceFederationReply(tenant1,
+                                          localMMATestActor.underlyingActor.localGWSwitch, resAlloc1, wasFederated = false))
     }
     
     // recvResourceFederationReply #1 (federation successful)
     "send a ResourceFederationResult to the local NRA, " +
       "if a successfully federated ResourceFederationReply was received from a foreign MMA" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1,
+      When("a foreign MMA sends a positive (wasFederated = true) ResourceFederationReply to the local MMA")
+      foreignMMAProbe.send(localMMATestActor, ResourceFederationReply(tenant1,
                                           cloudConfig2.cloudGateway, resAlloc1, wasFederated = true))
-      nraTestProbe.expectMsg(ResourceFederationResult(tenant1,
-                                          cloudConfig2.cloudGateway, resAlloc1))
+      
+      Then("the local MMA should send a ResourceFederationResult to the local NRA, including all information, " +
+        "neccessary to form a federation on the Network Layer")
+      localNRAProbe.expectMsg(ResourceFederationResult(tenant1,
+                                          cloudConfig2.cloudGateway, resAlloc1, ovxInstanceFed))
     }
 
     // recvResourceFederationReply #2 (federation unsuccessful)
     "send a ResourceFederationRequest to the next outstanding MMA in list, " +
       "if an unsucessful ResourceFederationReply was received from a foreign MMA" in {
-      mmaTestProbe.send(tActorRefMMA1, ResourceFederationReply(tenant1,
-                                          tActorRefMMA1.underlyingActor.localGWSwitch, resAlloc1, wasFederated = false))
+      When("a foreign MMA sends a negative (wasFederated = false) ResourceFederationReply to the local MMA")
+      foreignMMAProbe.send(localMMATestActor, ResourceFederationReply(tenant1,
+                                          localMMATestActor.underlyingActor.localGWSwitch, resAlloc1, wasFederated = false))
+      
+      Then("nothing should happen after that")
     }
     
     // recvFederationInfoSubscription

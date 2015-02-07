@@ -119,7 +119,7 @@ class PubSubFederator extends Actor with ActorLogging
   def recvOVXInstanceRequest(subscription: Subscription) = {
     // After setting up an OVX instance for federation, tell both cloud MMA-Actors where the OVX-Instance is found:
     val ovxInstance = startOVXInstance()
-    subscription.actorRefMMA ! OvxInstanceReply(ovxInstance)
+    sender() ! OvxInstanceReply(ovxInstance)
 
     // Set the asking DA as the federation master inside the Federator for the cloud2 subscription:
     val masterSubscriberOpt = subscribers.find(_.actorRefDA == sender())

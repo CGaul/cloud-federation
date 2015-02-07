@@ -3,6 +3,7 @@ package agents
 import java.net.InetAddress
 
 import agents.cloudfederation.RemoteDependencyAgent
+import akka.actor.Status.{Failure, Success}
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -97,6 +98,9 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 	 * @param resourcesToGather The ResourceAllocation that the MMA needs to gather from its federated Clouds.
 	 */
 	def recvResourceRequest(tenant: Tenant, resourcesToGather: ResourceAlloc): Unit = {
+    //Import implicit ExecutionContext for onSuccess and onFailure. Uses default ThreadPool for ExecContext:
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
 						 tenant, resourcesToGather.resources.size, sender())
 
@@ -114,17 +118,30 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
       log.info("Asking the PubSub-Federator for an OVX Instance now, that will host the federation of {}",
         localSubscr)
 
-      implicit val timeout = Timeout(5 seconds)
-      val futureOvxReply = federatorActorSel ? OvxInstanceRequest(localSubscr)
-      try {
-        val ovxReply = Await.result(futureOvxReply, timeout.duration).asInstanceOf[OvxInstanceReply]
-        federatedOvxInstance = Some(ovxReply.ovxInstance)
-        sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
+      val futureOvxReply = federatorActorSel.ask(OvxInstanceRequest(localSubscr)) (Timeout(15 seconds).duration)
+      futureOvxReply onSuccess  {
+        case ovxReply: OvxInstanceReply =>
+          log.info("Received asked OvxInstanceReply {} from Federator, sending FederationRequest to next MMA...",
+                   ovxReply.ovxInstance)
+          federatedOvxInstance = Some(ovxReply.ovxInstance)
+          sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
       }
-      catch{
-        case e: TimeoutException => log.error("No OVX-Instance Reply was available from the PubSub-Federator after {}. " +
-          "No ResourceFederationResult was sent to local NRA!", timeout)
-      }      
+      
+      futureOvxReply onFailure {
+        case _ => log.error("No asked OvxInstanceReply could be received from the federator in an async future!")
+      }
+//      federatedOvxInstance = for {
+//        ovxReply <- futureOvxReply.mapTo[OvxInstanceReply]
+//      } yield (ovxReply.ovxInstance)
+//      try {
+//        val ovxReply = Await.result(futureOvxReply, timeout.duration).asInstanceOf[OvxInstanceReply]
+//        federatedOvxInstance = Some(ovxReply.ovxInstance)
+//        sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
+//      }
+//      catch{
+//        case e: TimeoutException => log.error("No OVX-Instance Reply was available from the PubSub-Federator after {}. " +
+//          "No ResourceFederationResult was sent to local NRA!", timeout)
+//      }
 		}
 	}
 
@@ -239,6 +256,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 		case message: MMAFederationDest => message match{
 			case FederationInfoSubscription(foreignCloudSLA) 	=> recvFederationInfoSubscription(foreignCloudSLA)
 			case FederationInfoPublication(possibleAllocs) 		=> recvFederationInfoPublication(possibleAllocs)
+      case OvxInstanceReply(ovxInstance) => log.error("OvxInstanceReply should not be received here!")
 		}
 		case message: MMAResourceDest	=> message match {
 			case ResourceRequest(tenant, resources)
@@ -251,7 +269,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 						=> recvResourceFederationReply(tenant, foreignGWSwitch, federatedResources, wasFederated)
 
 		}
-		case _ => log.error("Unknown message received!")
+		case message => log.error("Unknown message {} received!", message.toString)
 	}
 
   private def mapForeignToLocal(foreignTenant: Tenant): Tenant = {

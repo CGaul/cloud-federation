@@ -4,7 +4,7 @@ import java.io.File
 
 import agents.{MatchMakingAgent, NetworkResourceAgent}
 import akka.actor.{ActorSelection, ActorSystem, Props}
-import akka.testkit.{TestActorRef, TestKit}
+import akka.testkit.{TestProbe, TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
 import connectors.CloudConfigurator
 import datatypes.ByteUnit._
@@ -69,13 +69,15 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
 
 	//val mmaSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/matchMakingAgent")
-	val nraSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/networkResourceAgent")
+//	val nraSelection: ActorSelection = system.actorSelection("akka://cloudAgentSystem/user/networkResourceAgent")
+//
+//	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraSelection)
+//	val tActorRefMMA 	= TestActorRef[MatchMakingAgent](mmaProps)
+  
+  val localMMAProbe: TestProbe = TestProbe()
 
-	val mmaProps: Props = Props(classOf[MatchMakingAgent], cloudConfig1, nraSelection)
-	val tActorRefMMA 	= TestActorRef[MatchMakingAgent](mmaProps)
-
-	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudConfig1, tActorRefMMA)
-	val tActorRefNRA 	= TestActorRef[NetworkResourceAgent](nraProps)
+	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudConfig1, localMMAProbe.ref)
+	val localNRATestActor = TestActorRef[NetworkResourceAgent](nraProps)
 	
 //	val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent], ovxIp, ovxApiPort, tActorRefNRA)
 //	val tActorRefNDA 	= TestActorRef[NetworkDiscoveryAgent](ndaProps)
@@ -95,13 +97,13 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	"A NetworkResourceAgent" should {
 		"answer with a ResourceReply, if ResourceRequests are locally fulfillable" in {
 			//TODO: Write out Shortcut implementation:
-			tActorRefNRA.receive(ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc1))
-			tActorRefNRA.receive(ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc2))
+			localNRATestActor.receive(ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc1))
+			localNRATestActor.receive(ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc2))
 		}
 
 		"try to allocate Resources via a Federation, if ResourceRequests are NOT locally fulfillable" in{
 			//TODO: Write out Shortcut implementation:
-			tActorRefNRA.receive(ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc3))
+			localNRATestActor.receive(ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc3))
 		}
 	}
 }

@@ -31,7 +31,7 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
 
 	
 	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],cloudConfig, 
-																								nraSelection)
+                                                pubSubActorSelection, nraSelection)
 	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, name="matchMakingAgent")
 	log.info("MatchMakingAgent started at path: {}.", matchMakingAgent.path)
 
