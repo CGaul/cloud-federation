@@ -70,6 +70,10 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
+  /**
+   * Received from Tenant side
+   * @param resToAlloc
+   */
 	def recvTenantRequest(resToAlloc: ResourceAlloc): Unit = {
 		log.info("CCFM Received TenantRequest from Tenant-ID {}. Forwarding to NRA, after Tenant is resolved...",
 			resToAlloc.tenantID)
@@ -84,6 +88,11 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
 		}
 	}
 
+  /**
+   * Received from Tenant side 
+   * @param tenant
+   * @param resToAlloc
+   */
 	def recvResourceRequest(tenant: Tenant, resToAlloc: ResourceAlloc): Unit = {
 		log.info("CCFM Received ResourceRequest from Tenant {}. Forwarding to NRA...",
 		resToAlloc.tenantID)
@@ -91,12 +100,16 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
 		networkResourceAgent ! ResourceRequest(tenant, resToAlloc)
 	}
 
+  /**
+   * Received from NRA 
+   * @param resources
+   */
+  def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.3 - Federation-Agents
+
 
 	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=> recvDiscoveryError(status)
-		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
-		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case message: CCFMResourceDest	=> message match {
 			case TenantRequest(resToAlloc)						=> recvTenantRequest(resToAlloc)
 			case ResourceRequest(tenant, resToAlloc) 	=> recvResourceRequest(tenant, resToAlloc)
@@ -112,13 +125,6 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
 	def recvDiscoveryError(error: String) = {
 		log.error("Discovery Error \""+ error + "\" received.")
 	}
-
-
-	def recvMatchMakingMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
-
-	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
-
-	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.3 - Federation-Agents
 }
 
 

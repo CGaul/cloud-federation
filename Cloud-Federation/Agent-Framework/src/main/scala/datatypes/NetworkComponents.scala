@@ -163,8 +163,8 @@ object OvxInstance {
       ovxNode = (node \ "OvxInstance")(0)
 
     val ovxIp: InetAddress = InetAddress.getByName((ovxNode \ "IP").text)
-    val ovxApiPort = (ovxNode \ "ApiPort").asInstanceOf[Int]
-    val ovxCtrlPort = (ovxNode \ "CtrlPort").asInstanceOf[Int]
+    val ovxApiPort = (ovxNode \ "ApiPort").text.toInt
+    val ovxCtrlPort = (ovxNode \ "CtrlPort").text.toInt
     val federator = (ovxNode \ "Federator").text match {
       case "true" => true
       case _      => false

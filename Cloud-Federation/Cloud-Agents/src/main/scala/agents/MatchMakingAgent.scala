@@ -67,19 +67,6 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 		cloudDiscovery.actorRefMMA ! FederationInfoSubscription(ownSubscription)
 	}
 
-  /**
-   * Received from Pub-Sub Federator
-   * @param ovxIp
-   * @param ovxApiPort
-   * @param ovxCtrlPort
-   */
-  def recvOvxInstanceReply(ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
-    log.info("Received OvxInstanceReply from {} with OVX-Instance: (IP: {}, API-Port: {}, Ctrl-Port: {})",
-      sender(), ovxIp, ovxApiPort, ovxCtrlPort)
-
-    //TODO: implement logic - how to send to NRA and when?
-  }
-
 	/**
 	 * Received from NetworkResourceAgent.
 	 * <p>
@@ -130,18 +117,6 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
       futureOvxReply onFailure {
         case _ => log.error("No asked OvxInstanceReply could be received from the federator in an async future!")
       }
-//      federatedOvxInstance = for {
-//        ovxReply <- futureOvxReply.mapTo[OvxInstanceReply]
-//      } yield (ovxReply.ovxInstance)
-//      try {
-//        val ovxReply = Await.result(futureOvxReply, timeout.duration).asInstanceOf[OvxInstanceReply]
-//        federatedOvxInstance = Some(ovxReply.ovxInstance)
-//        sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
-//      }
-//      catch{
-//        case e: TimeoutException => log.error("No OVX-Instance Reply was available from the PubSub-Federator after {}. " +
-//          "No ResourceFederationResult was sent to local NRA!", timeout)
-//      }
 		}
 	}
 

@@ -9,9 +9,10 @@ import com.typesafe.config.ConfigFactory
  */
 object PubSubManagement extends App
 {
-  val appcfg = loadConfigs(args)
+  val appCfg = loadAkkaConfig(args)
+  val fedconfDir = loadFederatorConfDir(args)
 
-  val config = ConfigFactory.parseFileAnySyntax(appcfg)
+  val config = ConfigFactory.parseFileAnySyntax(appCfg)
   val system = ActorSystem("pubSubSystem", config.getConfig("pubsubsystem").withFallback(config))
 
   val pubSubActor = system.actorOf(Props[PubSubFederator], name="remoteFederator")
@@ -23,34 +24,72 @@ object PubSubManagement extends App
 /* Private Methods: */
 /* ================ */
 
-  private def loadConfigs(args: Array[String]): File = {
+  private def loadFederatorConfDir(args: Array[String]): File = {
     def exitOnParamError() = {
-      System.err.println("At least one argument " +
-        "(namely --appcfg application.conf) " +
-        "has to be passed into this pubsub-system.jar!")
+      System.err.println("No --fedconf federatorconf-dir could have been found as commandline arg, " +
+        "passed into this pubsub-system.jar!")
       System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
       System.exit(1)
     }
+
+    def exitOnDirError(dir: File) = {
+      System.err.println(s"The Dir ``${dir.getName}´´ specified as cloudconfdir needs to be existent and a directory!")
+      System.exit(1)
+    }
+
+    var clouddir: Option[File] = None
+
+    for (i <- 0 to (args.size - 1)) args(i) match{
+      case "--fedconf" 	  => if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+      case "-c" 					=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+    }
+
+    // Check cloudconfdir is an existing dir:
+    clouddir match{
+      case Some(file) =>
+        if(!file.isDirectory) {
+          exitOnDirError(file)
+        }
+
+      case None	=>
+        exitOnParamError()
+    }
+
+    return clouddir.get
+  }
+
+
+  private def loadAkkaConfig(args: Array[String]): File = {
+    def exitOnParamError() = {
+      System.err.println("No --appconf application.conf could have been found as commandline arg, " +
+        "passed into this pubsub-system.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
+      System.exit(1)
+    }
+
     def exitOnFileError(file: File) = {
-      System.err.println(s"The File ``${file.getName}´´ specified as appcfg needs to be existent!")
+      System.err.println(s"The File ``${file.getName}´´ specified as application.conf needs to be existent!")
       System.exit(1)
     }
 
     var appcfg: 	Option[File] = None
 
-    if(args.length < 2) exitOnParamError()
-
     for (i <- 0 to (args.size - 1)) args(i) match{
-      case "--appconf" 	=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
-      case "-a" 				=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
-      case _						=>
+      case "--appconf" 		=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+      case "-a" 					=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
     }
 
-    // Check whether appcfg is an existing File:
-    appcfg match {
-      case Some(file) => if (!file.exists()) exitOnFileError(file)
-      case None => exitOnParamError()
+    // Check application.conf is an existing file:
+    appcfg match{
+      case Some(file) =>
+        if(!file.isFile) {
+          exitOnFileError(file)
+        }
+
+      case None	=>
+        exitOnParamError()
     }
+
     return appcfg.get
   }
 }

@@ -173,7 +173,7 @@ class PubSubFederator extends Actor with ActorLogging
 
     val ovxIp = InetAddress.getLocalHost
     val ovxApiPort = 8080
-    val ovxCtrlPort = 6633 //TODO: check in OVX Config
+    val ovxCtrlPort = 6633
     val federator = true
 
     return OvxInstance(ovxIp, ovxApiPort, ovxCtrlPort, federator)

@@ -44,6 +44,65 @@ class NetworkComponentSpec extends FlatSpec with Matchers with GivenWhenThen wit
 
 
 
+  /* OvxInstance-Class Unit-Spec */
+  /* =========================== */
+
+  behavior of "An OvxInstance"
+
+  val ovxInstance1 	= new OvxInstance(InetAddress.getLocalHost, 1234, 5678, false)
+  val ovxInstance2 	= new OvxInstance(InetAddress.getLocalHost, 1234, 5678, true)
+  val ovxInstance3 	= new OvxInstance(InetAddress.getLoopbackAddress, 1234, 5678, false)
+
+  it should "be equal equal to itself" in{
+    ovxInstance1 should equal(ovxInstance1)
+  }
+
+  it should "be equal to another, statically applied OvxInstance with the same values" in{
+    val ovxInstance1Comp = OvxInstance(InetAddress.getLocalHost, 1234, 5678, false)
+    ovxInstance1 should equal(ovxInstance1Comp)
+  }
+
+  it should "be fully serializable to and deserializable from XML" in{
+    val xmlSerialOvxInstance1 = OvxInstance.toXML(ovxInstance1)
+    val xmlSerialOvxInstance2 = OvxInstance.toXML(ovxInstance2)
+    val xmlSerialOvxInstance3 = OvxInstance.toXML(ovxInstance3)
+
+    println("serialized OvxInstance1 = " + xmlSerialOvxInstance1)
+    println("serialized OvxInstance2 = " + xmlSerialOvxInstance2)
+    println("serialized OvxInstance3 = " + xmlSerialOvxInstance3)
+
+    val xmlDeserialRes1 = OvxInstance.fromXML(xmlSerialOvxInstance1)
+    val xmlDeserialRes2 = OvxInstance.fromXML(xmlSerialOvxInstance2)
+    val xmlDeserialRes3 = OvxInstance.fromXML(xmlSerialOvxInstance3)
+
+    ovxInstance1 shouldEqual xmlDeserialRes1
+    ovxInstance2 shouldEqual xmlDeserialRes2
+    ovxInstance3 shouldEqual xmlDeserialRes3
+    ovxInstance3 should not equal xmlDeserialRes1
+  }
+
+  it should "be loadable from and saveable to a XML file" in{
+    val xmlFile1 = new File(resDir.getAbsolutePath +"/OvxInstance1.xml")
+    val xmlFile2 = new File(resDir.getAbsolutePath +"/OvxInstance2.xml")
+    val xmlFile3 = new File(resDir.getAbsolutePath +"/OvxInstance3.xml")
+    OvxInstance.saveToXML(xmlFile1, ovxInstance1)
+    OvxInstance.saveToXML(xmlFile2, ovxInstance2)
+    OvxInstance.saveToXML(xmlFile3, ovxInstance3)
+
+    val loadedOvxInstance1 = OvxInstance.loadFromXML(xmlFile1)
+    val loadedOvxInstance2 = OvxInstance.loadFromXML(xmlFile2)
+    val loadedOvxInstance3 = OvxInstance.loadFromXML(xmlFile3)
+
+    println("ovxInstance1 = " + loadedOvxInstance1)
+    println("ovxInstance2 = " + loadedOvxInstance2)
+    println("ovxInstance3 = " + loadedOvxInstance3)
+
+    ovxInstance1 should equal (loadedOvxInstance1)
+    ovxInstance2 should equal (loadedOvxInstance2)
+    ovxInstance3 should equal (loadedOvxInstance3)
+  }
+
+
   /* Switch-Class Unit-Spec */
   /* ====================== */
 
