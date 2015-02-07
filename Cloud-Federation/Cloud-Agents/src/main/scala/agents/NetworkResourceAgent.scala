@@ -9,6 +9,20 @@ import messages._
 
 import scala.util.control.Breaks._
 
+
+
+/* Enums: */
+/* ====== */
+
+object DiscoveryState extends Enumeration {
+  type DiscoveryState = Value
+  val ONLINE, OFFLINE = Value
+}
+
+
+/* Classes: */
+/* ======== */
+
 /**
  * @author Constantin Gaul, created on 10/15/14.
  */
@@ -16,16 +30,18 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 													 matchMakingAgent: ActorRef)
 													extends Actor with ActorLogging with Stash
 {
-	
+  
 /* Values: */
 /* ======= */
-	
+  
 		private val _ovxConn = OVXConnector(cloudConfig.cloudOvx.ovxIp, cloudConfig.cloudOvx.ovxApiPort)
 
 
 /* Variables: */
 /* ========== */
-	
+  
+    var state = DiscoveryState.OFFLINE
+  
 		// Physical Topologies, received from the CCFM (hosts) and the NDA (switches)
 		private val hostTopology: List[Host] = cloudConfig.cloudHosts.toList
 		private var switchTopology: List[OFSwitch] = List()
@@ -98,6 +114,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			=> 	recvTopologyDiscovery(switchList)
 				unstashAll()
 				context.become(active())
+        state = DiscoveryState.ONLINE
 				log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
 		}
 		case _	=> log.error("Unknown message received!")
@@ -129,7 +146,6 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) at NetworkResourceAgent.",
 			tenant, resourceToAlloc.resources.size)
-
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourceToAlloc)
 
 		// Prepare the locally fulfilled allocations that will be send to OVX via
@@ -143,14 +159,16 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
 		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
 		if(remainResToAlloc.isDefined){
-			log.info("ResourceRequest {} could	 not have been allocated completely on the local cloud. " +
+			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
 			matchMakingAgent ! ResourceRequest(tenant, remainResToAlloc.get)
 		}
-		else log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
+		else {
+      log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
+      sender() ! ResourceReply(resourceToAlloc)
+    }
 	}
-
-	//TODO: Shortcut Implementation in 0.2 Integrated Controllers
+  
 	/**
 	 * Received from local MMA.
 	 * <p>
@@ -202,10 +220,14 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     uploadNetworkToFederatedOVX(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxCtrlPort)
 
 		if(remainResToAlloc.size > 0){
-			// TODO: send Information about remaing Resources to Allocate back to the sender.
+			// TODO: send Information about remaining Resources to Allocate back to the sender.
 		}
 	}
-	
+
+  /**
+   * Received from NDA
+   * @param switchTopology
+   */
 	private def recvTopologyDiscovery(switchTopology: List[OFSwitch]) = {
 		log.info("Received new Switch-Topology from {}, including {} switches.", sender(), switchTopology.length)
 		this.switchTopology = switchTopology
@@ -256,11 +278,14 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		return (allocationPerHost, remainResAlloc)
 	}
 	
-	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]) = {
+	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]): Unit = {
 
 		// If the tenant does not have an OVX tenant-network until now, create one:
 		if (!tenantNetMap.keys.exists(_ == tenant)) {
-			_createOVXNetwork(tenant)
+			val tenantNet = _createOVXNetwork(tenant)
+      if(tenantNet.isEmpty)
+//        log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant)
+        return
 		}
 		
 		// The hostPhysSwitchMap defines a mapping between each known host and all physical Switches,

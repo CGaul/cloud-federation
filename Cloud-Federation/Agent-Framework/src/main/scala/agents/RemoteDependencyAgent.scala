@@ -1,15 +1,30 @@
 package agents.cloudfederation
 
 import akka.actor._
+import datatypes.ByteUnit._
 
 import scala.collection.mutable.ArrayBuffer
 
+
+/* Enums: */
+/* ====== */
+
+object DependencyState extends Enumeration {
+  type DependencyState = Value
+  val ONLINE, OFFLINE = Value
+}
+
+
+/* Classes: */
+/* ======== */
+
 /**
- * A simple Actor which has two states: _offline and online.
- * If all remote dependencies {Vector[ActorSelection]} are answering to a identityRequest, the Actor will go online,
- * otherwise the state defaults to _offline.
+ * A simple Actor which has two states: OFFLINE and ONLINE.
+ * If all remote dependencies {Vector[ActorSelection]} are answering to a identityRequest, the Actor will go ONLINE,
+ * otherwise the state defaults to OFFLINE.
  * @author Constantin Gaul, created on 6/3/14.
  */
+//TODO: maybe use Akka FSM for the Implementation of the RemoteDependencyAgent
 abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) extends Actor with ActorLogging with Stash
 {
 	
@@ -22,6 +37,8 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 /* Variables: */
 /* ========== */
 	
+  var state = DependencyState.OFFLINE
+  
 	private var _shouldRun = true
 	private var unresolvedActors: List[ActorSelection] = remoteDependencies
 
@@ -109,6 +126,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		 	unstashAll()
 			_shouldRun = false
 			context.become(receiveOnline)
+      state = DependencyState.ONLINE
 			log.info("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {
@@ -117,6 +135,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		}
 	}
 
+  // TODO: use
   private def recv_offlineNotifier() = {
 	 //Find the actorRef that notifies this actor of being killed in the actorDependency,
 	 //remove it and make this actor _offline again:
@@ -124,6 +143,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 	 if (killedActorIndex != -1){
 		dependentActors.update(killedActorIndex, None)
 		context.become(_offline())
+     state = DependencyState.OFFLINE
 		log.debug("Actor "+ sender().toString() +" has send a KillNotifier. RemoteDependencyActor is now OFFLINE.")
 	 }
   }
