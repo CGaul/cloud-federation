@@ -3,6 +3,7 @@ import java.io.File
 import agents.PubSubFederator
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
+import connectors.FederationConfigurator
 
 /**
  * @author Constantin Gaul, created on 6/23/14.
@@ -15,9 +16,10 @@ object PubSubManagement extends App
   val config = ConfigFactory.parseFileAnySyntax(appCfg)
   val system = ActorSystem("pubSubSystem", config.getConfig("pubsubsystem").withFallback(config))
 
-  val pubSubActor = system.actorOf(Props[PubSubFederator], name="remoteFederator")
+  val fedBrokerProps = Props(classOf[PubSubFederator], FederationConfigurator(fedconfDir))
+  val fedBroker = system.actorOf(fedBrokerProps, name="remoteFederator")
 
-  println("Starting Cloud-Federator successfully! Pub-Sub Federator: "+ pubSubActor)
+  println("Starting Cloud-Federator successfully! Pub-Sub Federator: "+ fedBroker)
 
 
 
@@ -42,6 +44,7 @@ object PubSubManagement extends App
     for (i <- 0 to (args.size - 1)) args(i) match{
       case "--fedconf" 	  => if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
       case "-c" 					=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+      case _              =>
     }
 
     // Check cloudconfdir is an existing dir:
@@ -77,6 +80,7 @@ object PubSubManagement extends App
     for (i <- 0 to (args.size - 1)) args(i) match{
       case "--appconf" 		=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
       case "-a" 					=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+      case _              =>
     }
 
     // Check application.conf is an existing file:

@@ -63,8 +63,11 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     //Resolver Link for Akka Libraries:
     resolvers += Common.Resolvers.akkaTypeSafeRepo,
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
+    resolvers += "spray repo" at "http://repo.spray.io",
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
+    //Spray Library:
+    libraryDependencies += "io.spray" % "spray-can" % "1.3.2",
     //Logging (SLF4J + Logback):
     libraryDependencies ++= Common.Imports.loggerDependencies,
     //Scala XML Support:

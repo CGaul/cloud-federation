@@ -91,6 +91,7 @@ object CloudAgentManagement extends App
     for (i <- 0 to (args.size - 1)) args(i) match{
       case "--cloudconf" 	=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
       case "-c" 					=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+      case _              =>
     }
 
     // Check cloudconfdir is an existing dir:
@@ -126,6 +127,7 @@ object CloudAgentManagement extends App
     for (i <- 0 to (args.size - 1)) args(i) match{
       case "--appconf" 		=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
       case "-a" 					=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+      case _              =>
     }
 
     // Check application.conf is an existing file:
