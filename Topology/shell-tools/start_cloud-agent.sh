@@ -54,7 +54,7 @@ if [[ ${USER} == "" ]] || [[ ${PASSWD} == "" ]]; then
 fi
 
 # Constants:
-JARNAME="cloud-agents_0.2-SNAPSHOT.fat.jar"
+JARNAME="cloud-agents_0.3-SNAPSHOT.fat.jar"
 
 NOW=$(date +"%y-%m-%d_%H-%M-%S")
 LOGFILE=${LOGPATH}/${NOW}.log
