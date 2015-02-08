@@ -156,6 +156,9 @@ object OvxInstance {
   
   def saveAllToXML(file: File, ovxInstances: List[OvxInstance]) = {
     if(ovxInstances.length > 0){
+      // Clear file before append via FileWriter:
+      if(file.exists()) file.delete()
+      
       val fileWriter = new FileWriter(file, true)
       fileWriter.write("<OvxInstances>")
       for (actOvxInstance <- ovxInstances) {
