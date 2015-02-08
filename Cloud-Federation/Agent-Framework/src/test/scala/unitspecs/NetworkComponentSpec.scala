@@ -49,16 +49,16 @@ class NetworkComponentSpec extends FlatSpec with Matchers with GivenWhenThen wit
 
   behavior of "An OvxInstance"
 
-  val ovxInstance1 	= new OvxInstance(InetAddress.getLocalHost, 1234, 5678, false)
-  val ovxInstance2 	= new OvxInstance(InetAddress.getLocalHost, 1234, 5678, true)
-  val ovxInstance3 	= new OvxInstance(InetAddress.getLoopbackAddress, 1234, 5678, false)
+  val ovxInstance1 	= new OvxInstance(InetAddress.getLocalHost, 1, 2, false)
+  val ovxInstance2 	= new OvxInstance(InetAddress.getLocalHost, 1, 2, true)
+  val ovxInstance3 	= new OvxInstance(InetAddress.getLoopbackAddress, 3, 4, false)
 
   it should "be equal equal to itself" in{
     ovxInstance1 should equal(ovxInstance1)
   }
 
   it should "be equal to another, statically applied OvxInstance with the same values" in{
-    val ovxInstance1Comp = OvxInstance(InetAddress.getLocalHost, 1234, 5678, false)
+    val ovxInstance1Comp = OvxInstance(InetAddress.getLocalHost, 1, 2, federator = false)
     ovxInstance1 should equal(ovxInstance1Comp)
   }
 
@@ -82,6 +82,7 @@ class NetworkComponentSpec extends FlatSpec with Matchers with GivenWhenThen wit
   }
 
   it should "be loadable from and saveable to a XML file" in{
+    // Per Instance load / save per file:
     val xmlFile1 = new File(resDir.getAbsolutePath +"/OvxInstance1.xml")
     val xmlFile2 = new File(resDir.getAbsolutePath +"/OvxInstance2.xml")
     val xmlFile3 = new File(resDir.getAbsolutePath +"/OvxInstance3.xml")
@@ -100,6 +101,15 @@ class NetworkComponentSpec extends FlatSpec with Matchers with GivenWhenThen wit
     ovxInstance1 should equal (loadedOvxInstance1)
     ovxInstance2 should equal (loadedOvxInstance2)
     ovxInstance3 should equal (loadedOvxInstance3)
+
+    // Multiple load / save per file:
+    val xmlFileAll = new File(resDir.getAbsolutePath +"/OvxInstances.xml")
+    val allOvxInstances = List(ovxInstance1, ovxInstance2, ovxInstance3)
+    OvxInstance.saveAllToXML(xmlFileAll, allOvxInstances)
+    
+    val loadedAllOvxInstances = OvxInstance.loadAllFromXML(xmlFileAll)
+    
+    loadedAllOvxInstances should equal (allOvxInstances)
   }
 
 

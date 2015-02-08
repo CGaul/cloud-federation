@@ -3,20 +3,23 @@ package agents
 import java.net.InetAddress
 
 import akka.actor._
+import connectors.FederationConfigurator
 import datatypes.{OvxInstance, Subscriber, Subscription}
 import messages._
 
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class PubSubFederator extends Actor with ActorLogging
+class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with ActorLogging
 {
 
 /* Variables: */
 /* ========== */
 
   private var subscriptions : Map[ActorRef, Subscription] = Map()
-  private var subscribers : Vector[Subscriber] = Vector()
+  private var subscribers : List[Subscriber] = List()
+  
+  private var assignedOvxInstances: List[OvxInstance] = List()
 
 
 /* Methods: */
@@ -85,7 +88,7 @@ class PubSubFederator extends Actor with ActorLogging
 			}
 			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
-				// Replace old subscriber in subscribers Vector with authenticated Subscriber:
+				// Replace old subscriber in subscribers List with authenticated Subscriber:
 				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true, None)
 				log.debug("Subscribers before auth-update: "+ subscribers)
 				subscribers = subscribers.updated(index, authSubscriber)
@@ -139,12 +142,12 @@ class PubSubFederator extends Actor with ActorLogging
   /* ================ */
 
 	/**
-	 * Publishes a subscription to each authenticated Subscriber in the subscribers Vector.
+	 * Publishes a subscription to each authenticated Subscriber in the subscribers List.
 	 * Does not publish a Subscription back to the originating Subscriber.
 	 */
 	private def broadcastOneSubscription(originator: Subscriber, subscription: Subscription) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
-		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
+		val authSubscribers: List[Subscriber] = subscribers.filter(_.authenticated).filter(_ != originator)
 
 		if(authSubscribers.size > 0) {
 			log.info("Broadcasting Subscription of {} to {} authenticated Subscribers", originator.actorRefDA, authSubscribers.size)
@@ -156,7 +159,7 @@ class PubSubFederator extends Actor with ActorLogging
 	
 	private def publishAllSubscriptions(receiver: Subscriber) = {
 		// Filter all authenticated Subscribers without the originated subscriber:
-		val authSubscribers: Vector[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
+		val authSubscribers: List[Subscriber] = subscribers.filter(_.authenticated).filter(_ != receiver)
 		val authSubscriptions: Iterable[Subscription] = subscriptions.filterKeys(authSubscribers.map(_.actorRefDA).contains).map(_._2)
 
 		if(authSubscriptions.size > 0){
@@ -169,13 +172,28 @@ class PubSubFederator extends Actor with ActorLogging
 
 
   private def startOVXInstance(): OvxInstance = {
-    //TODO: Implement shortcut: just read OVX config and start OVX manually
+    //TODO change shortcut Implementation: Currently just read OVX config and start OVX manually. Better: Start OVX programmatically
 
-    val ovxIp = InetAddress.getLocalHost
-    val ovxApiPort = 8080
-    val ovxCtrlPort = 6633
-    val federator = true
-
-    return OvxInstance(ovxIp, ovxApiPort, ovxCtrlPort, federator)
+    // Get all unassigned OVX-Instances from the federationConfig:
+    val unassignedOvxInstances = fedConfig.ovxInstances.filterNot(assignedOvxInstances.contains)
+    
+    // Assign the first OVX-Instance for the current OVX-startup request:
+    val startedOvx = unassignedOvxInstances(0)
+    assignedOvxInstances = assignedOvxInstances :+ startedOvx
+    return startedOvx
   }
 }
+
+/** 
+ * Companion Object for PubSubFederator with Akka Actor spawning context
+ */
+object PubSubFederator {
+    /**
+     * props-method is used in the AKKA-Context, spawning a new Actor.
+     * @return An Akka Properties-Object
+     */
+    def props(fedConfig: FederationConfigurator):
+    Props = Props(new PubSubFederator(fedConfig))
+}
+
+

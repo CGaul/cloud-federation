@@ -18,7 +18,7 @@ class CloudConfigurator(cloudConfDir: File,
 /* Values: */
 /* ======= */
 
-  val log = LoggerFactory.getLogger(classOf[OVXConnector])
+  val log = LoggerFactory.getLogger(classOf[CloudConfigurator])
 
 
 /* Getters: */

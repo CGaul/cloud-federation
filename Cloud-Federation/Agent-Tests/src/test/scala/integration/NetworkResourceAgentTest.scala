@@ -6,7 +6,7 @@ import agents.{DiscoveryState, NetworkResourceAgent}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestProbe, TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
-import connectors.CloudConfigurator
+import connectors.{CloudConfigurator}
 import datatypes.ByteUnit._
 import datatypes.CPUUnit._
 import datatypes.ImgFormat._
@@ -24,7 +24,6 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 /* ============== */
 
   private val cloudConfFile1 = new File ("Agent-Tests/src/test/resources/cloudconf1")
-  private val cloudConfFile2 = new File ("Agent-Tests/src/test/resources/cloudconf2")
   private val cloudConfig1 = CloudConfigurator(cloudConfFile1)
 
 
@@ -37,7 +36,6 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 
   override def beforeAll(): Unit = {
     require(cloudConfFile1.isDirectory, "Directory cloudconf1 needs to exist in \"Agent-Tests/src/test/resources/\"!")
-    require(cloudConfFile2.isDirectory, "Directory cloudconf2 needs to exist in \"Agent-Tests/src/test/resources/\"!")
   }
 
 	override def afterAll() {

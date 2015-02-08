@@ -1,6 +1,6 @@
 package datatypes
 
-import java.io.File
+import java.io.{FileWriter, File}
 import java.net.{InetAddress, UnknownHostException}
 
 import datatypes.CPUUnit._
@@ -153,6 +153,21 @@ object OvxInstance {
     val xmlNode = toXML(ovxInstance)
     xml.XML.save(file.getAbsolutePath, xmlNode)
   }
+  
+  def saveAllToXML(file: File, ovxInstances: List[OvxInstance]) = {
+    if(ovxInstances.length > 0){
+      val fileWriter = new FileWriter(file, true)
+      fileWriter.write("<OvxInstances>")
+      for (actOvxInstance <- ovxInstances) {
+        val xmlNode = toXML(actOvxInstance)
+          xml.XML.write(fileWriter, xmlNode, "", xmlDecl = false, null)
+//          xml.XML.save(file.getAbsolutePath, xmlNode)
+      }
+      fileWriter.write("</OvxInstances>")
+      fileWriter.flush()
+      fileWriter.close()
+    }
+  }
 
   /* De-Serialization: */
   /* ================= */
@@ -176,6 +191,12 @@ object OvxInstance {
   def loadFromXML(file: File): OvxInstance = {
     val xmlNode = xml.XML.loadFile(file)
     return fromXML(xmlNode)
+  }
+  
+  def loadAllFromXML(file: File): List[OvxInstance] = {
+    val xmlNode = xml.XML.loadFile(file)
+    val ovxInstances = (xmlNode \\ "OvxInstances" \\ "OvxInstance").map(fromXML).toList
+    return ovxInstances
   }
 }
 
