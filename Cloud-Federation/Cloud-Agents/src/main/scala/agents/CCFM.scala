@@ -104,7 +104,9 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
    * Received from NRA 
    * @param resources
    */
-  def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.3 - Federation-Agents
+  def recvResourceReply(resources: ResourceAlloc): Unit = {
+    log.info("ResourceReply received from {} for tenant {}.", sender(), resources.tenantID)
+  }
 
 
 	override def receive(): Receive = {
