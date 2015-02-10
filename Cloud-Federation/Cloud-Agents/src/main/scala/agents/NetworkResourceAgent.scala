@@ -96,11 +96,6 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			=> recvResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated, ovxInstance)
 		}
 
-    case message: NRAFederationDest => message match {
-      case FederateableResourceRequest()
-      => recvFederateableResourceRequest()
-    }
-			
 		case message: NRANetworkDest => message match{
 			case TopologyDiscovery(switchList)
 			=> 	recvTopologyDiscovery(switchList)
@@ -228,12 +223,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			// TODO: send Information about remaining Resources to Allocate back to the sender.
 		}
 	}
-
-  
-  private def recvFederateableResourceRequest() = {
-    //TODO: send FederateableResourceReply back to sender().
-  }
-  
+    
   
   /**
    * Received from NDA
@@ -243,7 +233,25 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		log.info("Received new Switch-Topology from {}, including {} switches.", sender(), switchTopology.length)
 		this.switchTopology = switchTopology
 		this.hostPhysSwitchMap = hostPhysSwitchMap ++ hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
+    sendFederateableResourcesToMMA()
 	}
+
+  /**
+   * Sending a FederateableResourceDiscovery to the MMA, once a new TopologyDiscovery was received.
+   * FederateableResourceDiscovery contains (Host -> ResourceAlloc) tuples, where each Host is federateable.
+   */
+  private def sendFederateableResourcesToMMA() = {
+    log.info("Sending new FederateableResources to MMA...")
+    val federateableHosts = hostTopology.filter(_.isFederateable)
+    val federateableResources = federateableHosts.map(host => (host -> host.allocatedResources))
+    var federateableReply: Vector[(Host, ResourceAlloc)] = Vector()
+    for ((actHost, actFedRes) <- federateableResources) {
+      // Add each ResourceAlloc in actFedRes to the federateableReply (host, ResAlloc) vector:
+      actFedRes.foreach(resAlloc => federateableReply = federateableReply :+ (actHost, resAlloc))
+    }
+    // Finally send a FederateableResourceDiscovery local MMA:
+    matchMakingAgent ! FederateableResourceDiscovery(federateableReply)
+  }
 
 
 /* Private Helper Methods: */

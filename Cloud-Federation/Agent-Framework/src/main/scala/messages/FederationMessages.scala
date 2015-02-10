@@ -13,18 +13,11 @@ sealed trait PubSubFederationDest extends PubSubDest
 
 
 /**
- * Send from local MMA to local NRA in order to receive a FederateableResourceReply from the NRA, telling the
- * MMA which Resources in his Cloud-Topology are marked as "federateable" 
- */
-case class FederateableResourceRequest()
-  extends FederationMessages with NRAFederationDest
-
-/**
  * Send from local NRA back to local MMA as a reply to the FederateableResourceRequest-message.
  * Tells the MMA which Resources in the NRAs Cloud-Topology are marked as "federateable".
  * @param federateableResources
  */
-case class FederateableResourceReply(federateableResources: Vector[(Host, ResourceAlloc)])
+case class FederateableResourceDiscovery(federateableResources: Vector[(Host, ResourceAlloc)])
   extends FederationMessages with MMAFederationDest
 
 

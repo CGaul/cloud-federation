@@ -221,12 +221,15 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 
   /**
    * Received from local NRA after this MMA send a FederateableResourceRequest to him.
-   * @param federateableResources
+   * @param fedDiscovery
    */
-  def recvFederateableResourceReply(federateableResources: Vector[(Host, ResourceAlloc)]) = {
-    log.info("Received FederateableResourceReply from {}", sender())
-    for ((actHost, hostResourceAllocs) <- federateableResources ) {
-      //TODO: continue here
+  def recvFederateableResourceDiscovery(fedDiscovery: Vector[(Host, ResourceAlloc)]) = {
+    log.info("Received FederateableResourceDiscovery from {}", sender())
+    for ((actHost, hostResAlloc) <- fedDiscovery ) {
+      if(! federateableResources.contains((actHost, hostResAlloc))){
+        log.info("Initiated federateableResource {}, received from NRA", (actHost, hostResAlloc))
+        federateableResources = federateableResources + ((actHost, hostResAlloc) -> false)
+      }
     }
   }
 
@@ -309,7 +312,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 			case DiscoveryPublication(cloudDiscovery)         => recvDiscoveryPublication(cloudDiscovery)
 		}
 		case message: MMAFederationDest => message match{
-      case FederateableResourceReply(fedResources)      => recvFederateableResourceReply(fedResources)
+      case FederateableResourceDiscovery(fedResources)  => recvFederateableResourceDiscovery(fedResources)
 			case FederationInfoSubscription(foreignCloudSLA) 	=> recvFederationInfoSubscription(foreignCloudSLA)
 			case FederationInfoPublication(possibleAllocs) 		=> recvFederationInfoPublication(possibleAllocs)
       case ResourceAuctionBid(host, resBid, askPrice)   => recvResourceAuctionBid(host, resBid, askPrice)
