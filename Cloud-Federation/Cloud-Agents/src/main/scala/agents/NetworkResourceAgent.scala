@@ -95,6 +95,11 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			case ResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated, ovxInstance)
 			=> recvResourceFederationResult(tenant, foreignGWSwitch, resourcesAllocated, ovxInstance)
 		}
+
+    case message: NRAFederationDest => message match {
+      case FederateableResourceRequest()
+      => recvFederateableResourceRequest()
+    }
 			
 		case message: NRANetworkDest => message match{
 			case TopologyDiscovery(switchList)
@@ -224,6 +229,12 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 	}
 
+  
+  private def recvFederateableResourceRequest() = {
+    //TODO: send FederateableResourceReply back to sender().
+  }
+  
+  
   /**
    * Received from NDA
    * @param switchTopology

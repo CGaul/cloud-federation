@@ -34,9 +34,22 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 	private var cloudDiscoveries: Vector[Subscription] = Vector()
 	private var federationSubscriptions: Vector[Subscription] = Vector()
   private var federatedOvxInstance: Option[OvxInstance] = None
-  
-	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map() //TODO: use
+
+  /**
+   * Known from a FederateableResourceReply from the NRA to this MMA, so that this MMA knows, which ResourceAllocs
+   * are available to be auctioned to foreign MMAs. 
+   */
+  private var federateableResources: Map[(Host, ResourceAlloc), Boolean] = Map()
+  /**
+   * Used by the auctioneer side of this MMA: tells, which foreign MMAs have won auctioned ResourceAllocs at this MMA- 
+   */
+	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
+  /**
+   * Used by the bidder side of this MMA: tells, which foreign ResourceAllocs are won by this MMA. 
+   */
+  private var wonResources: Map[ResourceAlloc, ActorRef] = Map()
 	
+  
 	// Each ResourceAlloc has exactly one Cloud that manages it (locally or inside a federation):
 	/**
 	 * Outstanding Mapping of ResourceAlloc to a list of ActorSelections, that are tried one after the other
@@ -206,18 +219,85 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
     }
 	}
 
+  /**
+   * Received from local NRA after this MMA send a FederateableResourceRequest to him.
+   * @param federateableResources
+   */
+  def recvFederateableResourceReply(federateableResources: Vector[(Host, ResourceAlloc)]) = {
+    log.info("Received FederateableResourceReply from {}", sender())
+    for ((actHost, hostResourceAllocs) <- federateableResources ) {
+      //TODO: continue here
+    }
+  }
 
+
+  /**
+   * Received from foreign MMA that wants to subscribe with this MMA
+   * @param subscription
+   */
 	def recvFederationInfoSubscription(subscription: Subscription): Unit = {
 		log.info("Received FederationInfoSubscription from {}", sender())
 		federationSubscriptions = federationSubscriptions :+ subscription
-    //TODO: Implement subscription handling
+    
+    // Preparing any federeateableResources for the InfoPublication:
+    val possibleFedAllocs = federateableResources.map(_._1).toVector
+    log.info("Sending FederationInfoPublication {} back to subscriber.", possibleFedAllocs)
+    sender() ! FederationInfoPublication(possibleFedAllocs)
 	}
 
-	def recvFederationInfoPublication(possibleFederatedAllocs: Vector[(Host, Vector[ResourceAlloc])]): Unit = {
+  /**
+   * Received from foreign MMA that accepts subscription with this MMA and sends periodic information about foreign
+   * federateable status 
+   * 
+   * An InfoPublication acts as a initiator of Resource-Auctioning for all possibleFederatedAllocs that is included
+   * in the message. 
+   * @param possibleFedAllocs
+   */
+	def recvFederationInfoPublication(possibleFedAllocs: Vector[(Host, ResourceAlloc)]): Unit = {
 		log.info("Received FederationInfoPublication from {}", sender())
-    // TODO: Implement publication handling
+
+    //TODO: Implement iBundle - Shortcut implementation: For each ResAlloc, simply bid something on some ResourceAllocs:
+    for ((actHost, hostResAlloc) <- possibleFedAllocs) {
+      // Send a random amount of CLOUD_CREDITS as askPrice for given ResAlloc to auctioneer:
+      sender() ! ResourceAuctionBid(actHost, hostResAlloc, Price(Math.random().toFloat, CloudCurrency.CLOUD_CREDIT))
+    }
 	}
 
+  /**
+   * Received from foreign MMA that answers on a previous FederationInfoPublication, send by this MMA.
+   * As the FederationInfoPublication indicates to start an auction for all ResourceAllocs, contained in the message,
+   * all subscribed MMAs are allowed to reply with ResourceAuctionBids to it. This MMA has to decide on the ask Price,
+   * which of the subscribed MMAs wins each federateable resource. 
+   * @param resourceBid
+   * @param askPrice
+   * @return
+   */
+  def recvResourceAuctionBid(resourceHost: Host, resourceBid: ResourceAlloc, askPrice: Price) = {
+    log.info("Received ResourceAuctionBid from {}. Bid on {} with askPrice: {}",
+             sender(), resourceBid, askPrice)
+    //TODO: Implement iBundle - Shortcut implementation: The first incoming Request wins.
+    if(federateableResources.contains((resourceHost, resourceBid)) && federateableResources((resourceHost, resourceBid))) {
+      sender() ! ResourceAuctionResult(resourceBid, won = true)
+      auctionedResources = auctionedResources + (sender() -> resourceBid)
+    }
+    else
+      sender() ! ResourceAuctionResult(resourceBid, won = false)
+  }
+
+  /**
+   * Received from foreign MMA that acts as the auctioneer for a previously initiated auction. This MMA has send a 
+   * ResourceAuctionBid before and the foreign MMA replies with a ResourceAuctionResult to each received ResourceAuctionBid.
+   * The message tells this MMA, whether he has won the bidded ResourceAlloc for the previously defined askPrice.
+   * @param resourceBid
+   * @param won
+   * @return
+   */
+  def recvResourceAuctionResult(resourceBid: ResourceAlloc, won: Boolean) = {
+    log.info("Received ResourceAuctionResult from {}. Won the ResAlloc? {}.", sender(), won)
+    wonResources = wonResources + (resourceBid -> sender())
+  }
+
+  
   /**
    * The online receive-handle that needs to be implemented by the specified class, extending this RemoteDependencyAgent.
    * Contains the functionality, which will be executed by the Actor if all RemoteDependencies are solved and a message
@@ -226,11 +306,14 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
    */
   override def receiveOnline: Receive = {
 		case message: MMADiscoveryDest => message match {
-			case DiscoveryPublication(cloudDiscovery)              => recvDiscoveryPublication(cloudDiscovery)
+			case DiscoveryPublication(cloudDiscovery)         => recvDiscoveryPublication(cloudDiscovery)
 		}
 		case message: MMAFederationDest => message match{
+      case FederateableResourceReply(fedResources)      => recvFederateableResourceReply(fedResources)
 			case FederationInfoSubscription(foreignCloudSLA) 	=> recvFederationInfoSubscription(foreignCloudSLA)
 			case FederationInfoPublication(possibleAllocs) 		=> recvFederationInfoPublication(possibleAllocs)
+      case ResourceAuctionBid(host, resBid, askPrice)   => recvResourceAuctionBid(host, resBid, askPrice)
+      case ResourceAuctionResult(resourceBid, won)      => recvResourceAuctionResult(resourceBid, won)
       case OvxInstanceReply(ovxInstance) => log.error("OvxInstanceReply should not be received here!")
 		}
 		case message: MMAResourceDest	=> message match {
