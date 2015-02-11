@@ -68,6 +68,9 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 	"A MatchMakingAgent's recv-methods" should {
     // testProbe, registered at MMA_1 in order to test message handling from MMA_1 -> foreign MMA (testProbe):
     val foreignMMAProbe: TestProbe = TestProbe()
+    // An the foreign Cloud's subscription:
+    val foreignSubscription = Subscription(foreignMMAProbe.ref, cloudConfig2.cloudSLA,
+      cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
     
     // MatchMakingAgent-Tests Resources:
     val (resAlloc1, tenant1) = MatchMakingAgentTest.prepareTestResources(cloudConfig1)
@@ -78,9 +81,7 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
     
     // recvDiscoveryPublication:
 		"subscribe with a discovered foreign MMA, after a DiscoveryPublication was received from its local DA" in {
-			val subscription = Subscription(foreignMMAProbe.ref, cloudConfig2.cloudSLA,
-																			cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
-			foreignMMAProbe.send(localMMATestActor, DiscoveryPublication(subscription))
+			foreignMMAProbe.send(localMMATestActor, DiscoveryPublication(foreignSubscription))
       foreignMMAProbe.expectMsgClass(classOf[FederationInfoSubscription])
 		}
     
@@ -138,10 +139,26 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
     }
     
     // recvFederationInfoSubscription
-    //TODO
+    "send a FederationInfoPublication to the requesting MMA," +
+      "if this MMA has sent a FederationInfoSubscription to it before" in{
+      foreignMMAProbe.send(localMMATestActor, FederationInfoSubscription(foreignSubscription))
+      foreignMMAProbe.expectMsgClass(classOf[FederationInfoPublication])
+    }
     
     //recvFederationInfoPublication
-    //TODO
+    "begin with bidding, if a FederationInfoPublication was received from a previously subscribed MMA" in{
+      val unsubscribedMMA = TestProbe()
+      Given("a not subscribed MMA sends a FederationInfoPublication to the MMATestActor")
+      val (host, resAlloc) = (cloudConfig2.cloudHosts(0), resAlloc1)
+      unsubscribedMMA.send(localMMATestActor, FederationInfoPublication(Vector((host, resAlloc))))
+      Then("the call will be dropped, no auctioning will begin")
+      unsubscribedMMA.expectNoMsg()
+      
+      Given("that a foreign MMA is asked to act as a subscriber first and answers afterwards with an InfoPublication")
+      foreignMMAProbe.send(localMMATestActor, FederationInfoPublication(Vector((host, resAlloc))))
+      Then("begin bidding with this acknowledged auctioneer")
+      foreignMMAProbe.expectMsgClass(classOf[ResourceAuctionBid])
+    }
 	}
 }
 

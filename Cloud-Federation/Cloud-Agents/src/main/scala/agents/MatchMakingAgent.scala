@@ -28,7 +28,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 /* ========== */
 
 	private var cloudDiscoveries: Vector[Subscription] = Vector()
-	private var federationSubscriptions: Vector[Subscription] = Vector()
+	private var federationSubscriptions: Vector[(Subscription, ActorRef)] = Vector()
   private var federatedOvxInstance: Option[OvxInstance] = None
 
   /**
@@ -236,7 +236,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
    */
 	def recvFederationInfoSubscription(subscription: Subscription): Unit = {
 		log.info("Received FederationInfoSubscription from {}", sender())
-		federationSubscriptions = federationSubscriptions :+ subscription
+		federationSubscriptions = federationSubscriptions :+ (subscription, sender())
     
     // Preparing any federeateableResources for the InfoPublication:
     val possibleFedAllocs = federateableResources.map(_._1).toVector
@@ -254,11 +254,15 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
    */
 	def recvFederationInfoPublication(possibleFedAllocs: Vector[(Host, ResourceAlloc)]): Unit = {
 		log.info("Received FederationInfoPublication from {}", sender())
-
-    //TODO: Implement iBundle - Shortcut implementation: For each ResAlloc, simply bid something on some ResourceAllocs:
-    for ((actHost, hostResAlloc) <- possibleFedAllocs) {
-      // Send a random amount of CLOUD_CREDITS as askPrice for given ResAlloc to auctioneer:
-      sender() ! ResourceAuctionBid(actHost, hostResAlloc, Price(Math.random().toFloat, CloudCurrency.CLOUD_CREDIT))
+    
+    // Only answer senders of a FederationInfoPublications, that were asked to act as subscribers via a FederationInfoSubscription first:
+    if(cloudDiscoveries.exists(_.actorRefMMA == sender())) {
+      log.info("FederationInfoPublication was received from previously discovered Cloud subscriber. Sending ResourceAuctionBid back...")
+      //TODO: Implement iBundle - Shortcut implementation: For each ResAlloc, simply bid something on some ResourceAllocs:
+      for ((actHost, hostResAlloc) <- possibleFedAllocs) {
+        // Send a random amount of CLOUD_CREDITS as askPrice for given ResAlloc to auctioneer:
+        sender() ! ResourceAuctionBid(actHost, hostResAlloc, Price(Math.random().toFloat, CloudCurrency.CLOUD_CREDIT))
+      }
     }
 	}
 
@@ -274,13 +278,17 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
   def recvResourceAuctionBid(resourceHost: Host, resourceBid: ResourceAlloc, askPrice: Price) = {
     log.info("Received ResourceAuctionBid from {}. Bid on {} with askPrice: {}",
              sender(), resourceBid, askPrice)
-    //TODO: Implement iBundle - Shortcut implementation: The first incoming Request wins.
-    if(federateableResources.contains((resourceHost, resourceBid)) && federateableResources((resourceHost, resourceBid))) {
-      sender() ! ResourceAuctionResult(resourceBid, won = true)
-      auctionedResources = auctionedResources + (sender() -> resourceBid)
+    
+    if(federationSubscriptions.exists(_._2 == sender())) {
+      log.info("AuctionBid was received from known subscriber MMA: {}", sender())
+      //TODO: Implement iBundle - Shortcut implementation: The first incoming Request wins.
+      if (federateableResources.contains((resourceHost, resourceBid)) && federateableResources((resourceHost, resourceBid))) {
+        sender() ! ResourceAuctionResult(resourceBid, won = true)
+        auctionedResources = auctionedResources + (sender() -> resourceBid)
+      }
+      else
+        sender() ! ResourceAuctionResult(resourceBid, won = false)
     }
-    else
-      sender() ! ResourceAuctionResult(resourceBid, won = false)
   }
 
   /**
