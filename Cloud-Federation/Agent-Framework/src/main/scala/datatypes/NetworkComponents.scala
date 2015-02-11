@@ -1,6 +1,6 @@
 package datatypes
 
-import java.io.{FileWriter, File}
+import java.io.{File, FileWriter}
 import java.net.{InetAddress, UnknownHostException}
 
 import datatypes.CPUUnit._

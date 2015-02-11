@@ -1,7 +1,6 @@
 package agents.cloudfederation
 
 import akka.actor._
-import datatypes.ByteUnit._
 
 import scala.collection.mutable.ArrayBuffer
 

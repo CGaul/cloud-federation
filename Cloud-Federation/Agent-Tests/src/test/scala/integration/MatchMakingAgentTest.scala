@@ -13,7 +13,7 @@ import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
 import messages._
-import org.scalatest.{GivenWhenThen, BeforeAndAfterAll, Matchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.

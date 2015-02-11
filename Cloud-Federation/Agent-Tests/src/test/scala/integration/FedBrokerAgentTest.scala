@@ -2,13 +2,13 @@ package integration
 
 import java.io.File
 
-import agents.{NetworkResourceAgent, PubSubFederator}
-import akka.actor.{ActorSelection, ActorSystem, Props}
-import akka.testkit.{TestProbe, TestActorRef, TestKit}
+import agents.PubSubFederator
+import akka.actor.{ActorSystem, Props}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
 import connectors.{CloudConfigurator, FederationConfigurator}
 import datatypes.Subscription
-import messages.{DiscoveryPublication, AuthenticationAnswer, AuthenticationInquiry, DiscoverySubscription}
+import messages.{AuthenticationAnswer, AuthenticationInquiry, DiscoveryPublication, DiscoverySubscription}
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**

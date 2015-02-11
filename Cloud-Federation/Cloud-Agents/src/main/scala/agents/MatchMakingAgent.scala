@@ -1,9 +1,6 @@
 package agents
 
-import java.net.InetAddress
-
 import agents.cloudfederation.RemoteDependencyAgent
-import akka.actor.Status.{Failure, Success}
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
@@ -12,7 +9,6 @@ import datatypes._
 import messages._
 
 import scala.concurrent.duration._
-import scala.concurrent.{Await, TimeoutException}
 
 /**
  * @author Constantin Gaul, created on 5/31/14.

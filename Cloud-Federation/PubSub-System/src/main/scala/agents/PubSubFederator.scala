@@ -1,7 +1,5 @@
 package agents
 
-import java.net.InetAddress
-
 import akka.actor._
 import connectors.FederationConfigurator
 import datatypes.{OvxInstance, Subscriber, Subscription}

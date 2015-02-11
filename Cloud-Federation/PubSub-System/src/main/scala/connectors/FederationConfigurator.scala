@@ -1,7 +1,6 @@
 package connectors
 
 import java.io.File
-import java.net.InetAddress
 
 import datatypes._
 import org.slf4j.LoggerFactory

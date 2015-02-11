@@ -3,16 +3,16 @@ package integration
 import java.io.File
 
 import agents.{DiscoveryState, NetworkResourceAgent}
-import akka.actor.{ActorSelection, ActorSystem, Props}
-import akka.testkit.{TestProbe, TestActorRef, TestKit}
+import akka.actor.{ActorSystem, Props}
+import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
-import connectors.{CloudConfigurator}
+import connectors.CloudConfigurator
 import datatypes.ByteUnit._
 import datatypes.CPUUnit._
 import datatypes.ImgFormat._
 import datatypes._
-import messages.{TopologyDiscovery, ResourceReply, ResourceRequest}
-import org.scalatest.{GivenWhenThen, BeforeAndAfterAll, Matchers, WordSpecLike}
+import messages.{FederateableResourceDiscovery, ResourceRequest, TopologyDiscovery}
+import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**
  * @author Constantin Gaul, created on 10/29/14.
@@ -70,8 +70,14 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
     }
     
     "become ONLINE, if a TopologyDiscovery was received from its local NDA" in {
+      Given("a TopologyDiscovery was received at the NRA (from its child NDA)")
       localNDAProbe.send(localNRATestActor, TopologyDiscovery(testTopology))
+      
+      Then("the NRA should become ONLINE")
       localNRATestActor.underlyingActor.state should equal (DiscoveryState.ONLINE)
+      
+      Then("the local MMA should receive a FedereteableResourceDiscovery from this NRA")
+      localMMAProbe.expectMsgClass(classOf[FederateableResourceDiscovery])
     }
     
   }
