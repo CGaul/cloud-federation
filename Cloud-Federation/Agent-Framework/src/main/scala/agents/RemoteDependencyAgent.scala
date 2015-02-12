@@ -99,6 +99,13 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 	*/
 	def receiveOnline: Receive
 
+  /**
+   * Event that will be queried, when the RemoteDependencyAgent switches its internal state from OFFLINE to ONLINE.
+   * Implement method calls here, that should be handled as an ONLINE state initializer.
+   * 
+   * This Event is called just after the state change via context.become(receiveOnline) has happened.
+   */
+  def becomeOnline: Unit = {}
 
   private def stashMessage() = {
 	 log.debug("Received Message, before RemoteDependencyAgent went online. Stashed message until being online.")
@@ -126,6 +133,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 			_shouldRun = false
 			context.become(receiveOnline)
       state = DependencyState.ONLINE
+      becomeOnline
 			log.info("All ActorRef dependencies solved. RemoteDependencyActor is now ONLINE.")
 		}
 	 	else {

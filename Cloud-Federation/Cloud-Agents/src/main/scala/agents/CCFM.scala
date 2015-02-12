@@ -48,22 +48,8 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File)
 
 	var foreignDiscoveryActors: Vector[ActorPath] = Vector()
 	var cloudFederationMatches: Vector[(ActorPath, ResourceAlloc)] = Vector()
-
-
-/* Execution: */
-/* ========== */
-
-  	//Called on CCFM construction:
-// val certFactory: CertificateFactory =  CertificateFactory.getInstance("X.509")
-//	val fis 						= new FileInputStream(cloudConfig.certFile)
-//	val cert: Certificate 	= certFactory.generateCertificate(fis)
-//	fis.close()
-
-	//TODO: Maybe possible HostSLAs should differ from initial CloudHostSLAs:
-	discoveryAgent ! FederationSLAs(cloudConfig.cloudSLA, cloudConfig.cloudHosts.map(_.sla))
-  	log.debug("Discovery-Init send to Discovery-Agent!")
-
-
+  
+  
 /* Methods: */
 /* ======== */
 

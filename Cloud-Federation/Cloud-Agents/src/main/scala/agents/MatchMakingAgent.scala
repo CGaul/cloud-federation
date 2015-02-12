@@ -301,7 +301,10 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
    */
   def recvResourceAuctionResult(resourceBid: ResourceAlloc, won: Boolean) = {
     log.info("Received ResourceAuctionResult from {}. Won the ResAlloc? {}.", sender(), won)
-    wonResources = wonResources + (resourceBid -> sender())
+    if(won) {
+      log.info("Won ResourceAuction with {}!", resourceBid)
+      wonResources = wonResources + (resourceBid -> sender())
+    }
   }
 
   

@@ -44,13 +44,17 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
    */
 	override def receiveOnline: Receive = {
 		case message: DDADiscoveryDest	=> message match {
-			case FederationSLAs(cloudSLA, possibleHostSLAs)	=> recvFederationSLAs(cloudSLA, possibleHostSLAs)
 			case AuthenticationInquiry(hashKey)							=> recvAuthenticationInquiry(hashKey)
 			case DiscoveryPublication(cloudDiscovery)				=> recvDiscoveryPublication(cloudDiscovery)
 		}
 		case Kill									=> recvCCFMShutdown()
 		case _										=> log.error("Unknown message received!")
-}
+  }
+  
+  override def becomeOnline: Unit = {
+    log.info("DiscoveryAgent became online, sending Subscription to FedBroker now...")
+    sendSubscriptionToFedBroker(cloudConfig.cloudSLA, cloudConfig.cloudHosts.map(_.sla))
+  }
 
   /**
    * Received from local CCFM
@@ -58,7 +62,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
    * @param possibleHostSLAs
    */
   //TODO: This method should not be needed from CCFM anymore. Refactor it.
-	private def recvFederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
+	private def sendSubscriptionToFedBroker(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
     val mmaActorOpt = dependentActors.filter(_.isDefined).map(_.get).find(_.path.name == "matchMakingAgent")
