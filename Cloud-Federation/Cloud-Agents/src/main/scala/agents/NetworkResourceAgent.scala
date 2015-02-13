@@ -497,9 +497,16 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	
   /* Helper Methods for OVXConnector: */
   /* ================================ */
-  
+
+  /**
+   * Creates an OVXNetwork with the given Tenant-OFC and the predefined OVX-F instance as the Network-Controllers
+   * @param tenant
+   * @return
+   */
 	private def _createOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
-			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"), tenant.subnet._1, tenant.subnet._2)
+			val netOpt = _ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}," +
+                                               s"tcp:${ovxInstance.ovxIp.getHostAddress}:${ovxInstance.ovxCtrlPort}"), 
+                                          tenant.subnet._1, tenant.subnet._2)
 			netOpt match{
 				case Some(net)  =>
 					log.info(s"Created virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{}. Is Booted: {}",
