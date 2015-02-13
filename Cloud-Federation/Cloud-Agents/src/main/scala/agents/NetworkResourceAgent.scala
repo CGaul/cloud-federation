@@ -481,9 +481,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
                    tenant.id, virtNet.controllerUrls(0), virtNet.networkAddress)
           _ovxConn.removeControllers(tenant.id, List(virtNet.controllerUrls(0)))
           
-//          log.info("Adding federated OVX as new Controller {} for network {} of tenant {}...",
-//                   )
-          //TODO: either use federated OVX Address in createNetwork from the beginning (even if federated OVX is only passive at that time), or rebuild network here.
+          // OVX-F has already complete knowledge over this network, as it is the secondary controller of it since network-creation.
+          // TODO: forward this physical network as a 1to1-mapping to the tenant-OFC from the OVX-F instead of the local OVX
           
         case None          => 
           log.error("No virtual tenant network registered for tenant {}!",

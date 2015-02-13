@@ -329,8 +329,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
     // (Do this only once! Only ove OVX-F is needed per Cloud)
     val localSubscr = Subscription(context.self, cloudConfig.cloudSLA,
       cloudConfig.cloudHosts.map(_.sla).toVector, cloudConfig.certFile)
-    log.info("Asking the PubSub-Federator for an OVX Instance now, that will host the federation of {}",
-      localSubscr)
+    log.info("Asking the PubSub-Federator for an OVX Instance now, " +
+      "that will host any outgoing federation where this cloud would be the federation master.")
     
     val futureOvxReply = federatorActorSel.ask(OvxInstanceRequest(localSubscr)) (Timeout(15 seconds).duration)
     futureOvxReply onSuccess  {
