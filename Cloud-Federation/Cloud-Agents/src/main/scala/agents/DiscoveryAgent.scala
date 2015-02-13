@@ -61,7 +61,6 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
    * @param cloudSLA
    * @param possibleHostSLAs
    */
-  //TODO: This method should not be needed from CCFM anymore. Refactor it.
 	private def sendSubscriptionToFedBroker(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
@@ -104,7 +103,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 		log.info("Trying to contact MMA at {}", mmaActorSel)
 		mmaActorSel ! DiscoveryPublication(cloudDiscovery)
 
-//	  	this.discoveryActors = discoveryActors #TODO: filter interesting publications.
+//	  	this.discoveryActors = discoveryActors #TODO: filter uninteresting publications.
 	}
 
 	private def recvCCFMShutdown() = {

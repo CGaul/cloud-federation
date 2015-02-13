@@ -23,13 +23,6 @@ class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with Acto
 /* Methods: */
 /* ======== */
 
-	//TODO: use?!
-  def publish(message: Unit) = {
-	 for (subscriber <- subscriptions){
-		subscriber._1 ! message
-	 }
-  }
-
   override def receive: Receive = {
 	 case message: PubSubDiscoveryDest	=> message match {
      case DiscoverySubscription(subscription) => recvDiscoverySubscription(subscription)
@@ -62,7 +55,7 @@ class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with Acto
 		//log.info("Subscriptions: "+ subscriptions)
 		log.debug("Subscribers after discovery update: "+ subscribers)
 
-		val encrSecCheck = Math.random().toLong //TODO: Write out Shortcut implementation.
+		val encrSecCheck = Math.random().toLong //FIXME: Write out Shortcut implementation.
 		log.info("Sending AuthenticationInquiry with encrypted security check: {}", encrSecCheck)
 		// Begin with the authentication of the new subscriber:
 		val authSubscriberQuestion = AuthenticationInquiry(encrSecCheck)
@@ -84,7 +77,7 @@ class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with Acto
 				log.warning("Subscriber {} is already authenticated. No further authentication check needed.", registeredSubscriber.get)
 				return
 			}
-			if(solvedKey == 0){ //TODO: Write out Shortcut implementation for solvedKey.
+			if(solvedKey == 0){ //FIXME: Write out Shortcut implementation for solvedKey.
 				val index: Int = subscribers.indexOf(registeredSubscriber.get)
 				// Replace old subscriber in subscribers List with authenticated Subscriber:
 				val authSubscriber = Subscriber(subscribers(index).actorRefDA, authenticated = true, None)
@@ -170,7 +163,7 @@ class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with Acto
 
 
   private def startOVXInstance(): OvxInstance = {
-    //TODO change shortcut Implementation: Currently just read OVX config and start OVX manually. Better: Start OVX programmatically
+    //FIXME change shortcut Implementation: Currently just read OVX config and start OVX manually. Better: Start OVX programmatically
 
     // Get all unassigned OVX-Instances from the federationConfig:
     val unassignedOvxInstances = fedConfig.ovxInstances.filterNot(assignedOvxInstances.contains)

@@ -534,8 +534,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 		return allPortsCreated
 	}
-	
-	//TODO: only create single Switch Port per call
+
 	private def _createOVXSwitchPort(tenant: Tenant, physSwitch: OFSwitch, physPort: Short): Option[(Short, Short)] = {
 		val portMapOpt = _ovxConn.createPort(tenantToOVXTenantId(tenant), physSwitch.dpid.toString, physPort)
 		portMapOpt match{

@@ -141,7 +141,6 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 			tenant, resourcesToAlloc.resources.size, sender())
 
 		if(auctionedResources.contains(sender())){
-			//TODO: auctionedResources need to be set somewhere before..
 			val sendersAvailResources: ResourceAlloc = auctionedResources(sender())
 			// Are the requested resources a subset (or the whole set) of the sender's available Resources?
 			// This is fulfilled, if no resource is left in the resourceToAlloc, if filtered by its available Resources:
@@ -342,7 +341,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 
   private def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
     // Use a random ID for the local mapping of the foreign Tenant
-    // TODO: test if Tenant-ID already exists:
+    // TODO: test if newly generated, local Tenant-ID already exists:
     val localTenant = Tenant((Math.random * Int.MaxValue).toInt, foreignTenant.subnet,
       foreignTenant.ofcIp, foreignTenant.ofcPort)
     foreignToLocalTenants = foreignToLocalTenants + (foreignTenant -> localTenant)

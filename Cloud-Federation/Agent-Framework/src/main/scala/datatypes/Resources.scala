@@ -115,7 +115,6 @@ object Resource {
 }
 
 
-//TODO: is tenantID really needed in ResourceAlloc?
 case class ResourceAlloc(tenantID: Int, resources: Vector[Resource], requestedHostSLA: HostSLA)
 {
 	/* Public Methods: */
