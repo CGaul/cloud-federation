@@ -94,8 +94,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 	 * @param resourcesToGather The ResourceAllocation that the MMA needs to gather from its federated Clouds.
 	 */
 	def recvResourceRequest(tenant: Tenant, resourcesToGather: ResourceAlloc): Unit = {
-    //Import implicit ExecutionContext for onSuccess and onFailure. Uses default ThreadPool for ExecContext:
-    import scala.concurrent.ExecutionContext.Implicits.global
+  
     
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
 						 tenant, resourcesToGather.resources.size, sender())
@@ -106,26 +105,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 			// current ResourceAlloc that should be solved in a federation from the foreign cloud:
 			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorRefMMA).toList)
 
-      // Send an OVXInstanceRequest to the PubSub-Federator,
-      // in order to receive an OvxInstanceReply here at the MMA:
-      // (Do this only once! Only ove OVX-F is needed per Cloud)
-      val localSubscr = Subscription(context.self, cloudConfig.cloudSLA,
-        cloudConfig.cloudHosts.map(_.sla).toVector, cloudConfig.certFile)
-      log.info("Asking the PubSub-Federator for an OVX Instance now, that will host the federation of {}",
-        localSubscr)
-
-      val futureOvxReply = federatorActorSel.ask(OvxInstanceRequest(localSubscr)) (Timeout(15 seconds).duration)
-      futureOvxReply onSuccess  {
-        case ovxReply: OvxInstanceReply =>
-          log.info("Received asked OvxInstanceReply {} from Federator, sending FederationRequest to next MMA...",
-                   ovxReply.ovxInstance)
-          federatedOvxInstance = Some(ovxReply.ovxInstance)
-          sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
-      }
-      
-      futureOvxReply onFailure {
-        case _ => log.error("No asked OvxInstanceReply could be received from the federator in an async future!")
-      }
+      log.info("Sending ResourceFederationRequest to next MMA...")
+      sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
 		}
 	}
 
@@ -338,6 +319,36 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 		}
 		case message => log.error("Unknown message {} received!", message.toString)
 	}
+  
+  override def becomeOnline = {
+    //Import implicit ExecutionContext for onSuccess and onFailure. Uses default ThreadPool for ExecContext:
+    import scala.concurrent.ExecutionContext.Implicits.global
+
+    // Send an OVXInstanceRequest to the PubSub-Federator,
+    // in order to receive an OvxInstanceReply here at the MMA:
+    // (Do this only once! Only ove OVX-F is needed per Cloud)
+    val localSubscr = Subscription(context.self, cloudConfig.cloudSLA,
+      cloudConfig.cloudHosts.map(_.sla).toVector, cloudConfig.certFile)
+    log.info("Asking the PubSub-Federator for an OVX Instance now, that will host the federation of {}",
+      localSubscr)
+    
+    val futureOvxReply = federatorActorSel.ask(OvxInstanceRequest(localSubscr)) (Timeout(15 seconds).duration)
+    futureOvxReply onSuccess  {
+      case ovxReply: OvxInstanceReply =>
+        log.info("Received asked OvxInstanceReply {} from Federator!",
+                 ovxReply.ovxInstance)
+        federatedOvxInstance = Some(ovxReply.ovxInstance)
+    }
+    
+    futureOvxReply onFailure {
+      case _ => log.error("No asked OvxInstanceReply could be received from the federator in an async future!")
+    }
+  }
+  
+  
+  
+/* Private Methods: */
+/* ================ */
 
   private def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
     // Use a random ID for the local mapping of the foreign Tenant

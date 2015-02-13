@@ -72,4 +72,4 @@ case class OvxInstanceRequest(subscription: Subscription)
   * @param ovxInstance: The federated OVX Instance, managed by the PubSub-Federator
   */
 case class OvxInstanceReply(ovxInstance: OvxInstance)
-  extends FederationMessages with MMAFederationDest
+  extends FederationMessages with MMAFederationDest with NRAFederationDest

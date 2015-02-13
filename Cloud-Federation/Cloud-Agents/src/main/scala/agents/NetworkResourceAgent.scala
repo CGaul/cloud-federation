@@ -45,7 +45,10 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		// Physical Topologies, received from the CCFM (hosts) and the NDA (switches)
 		private val hostTopology: List[Host] = cloudConfig.cloudHosts.toList
 		private var switchTopology: List[OFSwitch] = List()
-	
+	  
+    // Physical OvxInstance, received from MMA:
+    private var ovxInstance: OvxInstance = null
+  
 		// Physical Mappings:
 		private var hostPhysSwitchMap: Map[Host, List[OFSwitch]] = Map()
 		private var tenantPhysSwitchMap: Map[Tenant, List[OFSwitch]] = Map()
@@ -112,11 +115,15 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		case message: NRANetworkDest => message match{
 			case TopologyDiscovery(switchList)
 			=> 	recvTopologyDiscovery(switchList)
-				unstashAll()
-				context.become(active())
-        state = DiscoveryState.ONLINE
-				log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
+				  checkOnlineStateReached()
 		}
+
+    case message: NRAFederationDest => message match{
+      case OvxInstanceReply(ovxInstance)
+      =>  recvOvxInstanceReply(ovxInstance)
+          checkOnlineStateReached()
+
+    }
 		case _	=> log.error("Unknown message received!")
 	}
 
@@ -153,7 +160,6 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		val hostList = allocationsPerHost.map(_._1).toList
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
 		mapAllocOnOVX(tenant, hostList)
-//		log.info("Send json-Query {} to OVX Hypervisor", jsonQuery) TODO: delete
 
 		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
 		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
@@ -235,7 +241,18 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		this.hostPhysSwitchMap = hostPhysSwitchMap ++ hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
     sendFederateableResourcesToMMA()
 	}
+  
+  private def recvOvxInstanceReply(ovxInstance: OvxInstance) = {
+    log.info("OvxInstance {} received from MMA {}", ovxInstance, sender())
+    this.ovxInstance = ovxInstance
+  }
+  
 
+
+
+/* Private Helper Methods: */
+/* ======================= */
+  
   /**
    * Sending a FederateableResourceDiscovery to the MMA, once a new TopologyDiscovery was received.
    * FederateableResourceDiscovery contains (Host -> ResourceAlloc) tuples, where each Host is federateable.
@@ -252,10 +269,15 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     // Finally send a FederateableResourceDiscovery local MMA:
     matchMakingAgent ! FederateableResourceDiscovery(federateableReply)
   }
-
-
-/* Private Helper Methods: */
-/* ======================= */
+  
+  private def checkOnlineStateReached() = {
+    if(switchTopology.nonEmpty && ovxInstance != null) {
+      unstashAll()
+      context.become(active())
+      state = DiscoveryState.ONLINE
+      log.info("NetworkResourceAgent is becoming ACTIVE, as TopologyDiscovery was received!")
+    }
+  }
 
 	private def allocateLocally(resourceAlloc: ResourceAlloc): (Map[Host, ResourceAlloc], Option[ResourceAlloc]) = {
 		// Will be filled with each allocation per Host that happened in this local allocation call:
