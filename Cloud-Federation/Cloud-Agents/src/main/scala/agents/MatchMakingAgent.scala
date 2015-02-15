@@ -1,6 +1,5 @@
 package agents
 
-import agents.cloudfederation.RemoteDependencyAgent
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout

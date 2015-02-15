@@ -2,7 +2,7 @@ package integration
 
 import java.io.File
 
-import agents.{DiscoveryState, NetworkResourceAgent}
+import agents.{NetworkResourceAgent, DiscoveryState}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -17,7 +17,7 @@ import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 /**
  * @author Constantin Gaul, created on 10/29/14.
  */
-class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
+class NetworkResourceIntegrationTest (_system: ActorSystem) extends TestKit(_system)
 	with WordSpecLike with Matchers with BeforeAndAfterAll with GivenWhenThen {
 
 /* Global Values: */
@@ -43,8 +43,8 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	}
 
 
-  // The NRA Actor Generation with MMA TestProbe:
-  // --------------------------------------------
+  /* The NRA Actor Generation with MMA TestProbe: */
+  /* -------------------------------------------- */
   
   // Needed for the NRA to run, as MMA is bi-directionally linked from NRA <-> MMA:
   val localMMAProbe: TestProbe = TestProbe()
@@ -53,18 +53,34 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 	val nraProps:	Props = Props(classOf[NetworkResourceAgent], cloudConfig1, localMMAProbe.ref)
 	val localNRATestActor = TestActorRef[NetworkResourceAgent](nraProps)
 
+
+  /* Additional TestProbes for Test-Specifications: */
+  /* ---------------------------------------------- */
+
+  // As OVX is not expected to be running somewhere, while running this test, simulate NetworkDiscoveryAgent and its
+  // TopologyDiscovery to the NRA, getting the NRA from INACTIVE to ACTIVE:
+  val localNDAProbe: TestProbe = TestProbe()
+
+  // test probe that sends ResourceRequests to the local NRA:
+  val localCCFMProbe: TestProbe = TestProbe()
+  
   
 
 /* Test Specifications: */
 /* ==================== */
 
+  /* Resource Specifications: */
+  /* ------------------------ */
+
+  //NetworkResourceAgent Test-Topology:
+  val testTopology = NetworkResourceIntegrationTest.prepareTestTopology
+
+  // NetworkResourceAgent-Tests Resources:
+  val (resAlloc1, resAlloc2, resAlloc3) = NetworkResourceIntegrationTest.prepareTestResources
+  
+
   "A NetworkResourceAgent" should {
-    // As OVX is not expected to be running somewhere, while running this test, simulate NetworkDiscoveryAgent and its
-    // TopologyDiscovery to the NRA, getting the NRA from INACTIVE to ACTIVE:
-    val localNDAProbe: TestProbe = TestProbe()
-    
-    //NetworkResourceAgent Test-Topology:
-    val testTopology = NetworkResourceAgentTest.prepareTestTopology
+        
     "be OFFLINE, before TopologyDiscovery was received" in {
       localNRATestActor.underlyingActor.state should equal(DiscoveryState.OFFLINE)
     }
@@ -83,13 +99,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
   }
   
 	"A NetworkResourceAgent's recv-methods" should {
-    
-    // test probe that sends ResourceRequests to the local NRA:
-    val localCCFMProbe: TestProbe = TestProbe()
-
-    // NetworkResourceAgent-Tests Resources:
-    val (resAlloc1, resAlloc2, resAlloc3) = NetworkResourceAgentTest.prepareTestResources
-    
+        
 		"answer with a ResourceReply, if ResourceRequests are locally fulfillable" in {
 			Given(s"that the local NRA receives a ResourceRequest from the local CCFM, including resAlloc1: $resAlloc1")
       localCCFMProbe.send(localNRATestActor, ResourceRequest(cloudConfig1.cloudTenants(0), resAlloc1))
@@ -123,7 +133,7 @@ class NetworkResourceAgentTest (_system: ActorSystem) extends TestKit(_system)
 /** 
  * Companion Object for NetworkResourceAgentTest
  */
-object NetworkResourceAgentTest {
+object NetworkResourceIntegrationTest {
   def prepareTestResources: (ResourceAlloc, ResourceAlloc, ResourceAlloc) = {
     val res1 : Resource = Resource(	ResId(1), SMALL, ByteSize(4.0, GiB),
       ByteSize(50.0, GiB), ByteSize(50.0, MiB),

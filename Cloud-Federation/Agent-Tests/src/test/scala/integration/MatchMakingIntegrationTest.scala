@@ -2,7 +2,6 @@ package integration
 
 import java.io.File
 import java.net.InetAddress
-
 import agents.MatchMakingAgent
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
@@ -18,7 +17,7 @@ import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 /**
  * @author Constantin Gaul, created on 10/29/14.
  */
-class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
+class MatchMakingIntegrationTest (_system: ActorSystem) extends TestKit(_system)
 	with WordSpecLike with Matchers with BeforeAndAfterAll with GivenWhenThen {
 
 /* Global Values: */
@@ -47,8 +46,8 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 	}
 
 
-/* The MMA Actor Generation with NRA TestProbe: */
-/* -------------------------------------------- */
+  /* The MMA Actor Generation with NRA TestProbe: */
+  /* -------------------------------------------- */
 
   // the local NRA that has a bidirectional connection from MMA <-> NRA:
   private val localNRAProbe = TestProbe()
@@ -77,7 +76,7 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
   /* ------------------------ */
 
   // MatchMakingAgent-Tests Resources:
-  val (resAlloc1, tenant1) = MatchMakingAgentTest.prepareTestResources(cloudConfig1)
+  val (resAlloc1, tenant1) = MatchMakingIntegrationTest.prepareTestResources(cloudConfig1)
   
   // Federator OVX-Instance:
   val ovxInstanceFed = OvxInstance(InetAddress.getLoopbackAddress, 1234, 5678, federator = true)
@@ -185,7 +184,7 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 /** 
  * Companion Object for MatchMakingAgentTest
  */
-object MatchMakingAgentTest 
+object MatchMakingIntegrationTest
 {
   def prepareTestResources(cloudConfig: CloudConfigurator): (ResourceAlloc, Tenant) = {
     // ResourceAlloc, used in test-cases:

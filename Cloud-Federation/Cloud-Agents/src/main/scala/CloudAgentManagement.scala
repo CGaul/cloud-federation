@@ -1,5 +1,4 @@
 import java.io.File
-
 import agents.CCFM
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory

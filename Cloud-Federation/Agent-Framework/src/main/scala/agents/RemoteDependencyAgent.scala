@@ -1,4 +1,4 @@
-package agents.cloudfederation
+package agents
 
 import akka.actor._
 

@@ -2,7 +2,6 @@ package integration
 
 import java.io.File
 
-import agents.FederationBroker
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -14,7 +13,7 @@ import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 /**
  * @author Constantin Gaul, created on 10/29/14.
  */
-class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
+class FedBrokerIntegrationTest (_system: ActorSystem) extends TestKit(_system)
 	with WordSpecLike with Matchers with BeforeAndAfterAll with GivenWhenThen {
 
   /* Global Values: */
@@ -48,37 +47,45 @@ class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
 
   
   
-  // The FederationBroker Generation:
-  // --------------------------------
+  /* The FederationBroker Generation: */
+  /* -------------------------------- */
 
   // Finally, set up the FederationBroker itself (a "real" TestActor):
   private val fedBrokerProps:	Props = Props(classOf[FederationBroker], federatorConfig)
   private val fedBrokerTestActor = TestActorRef[FederationBroker](fedBrokerProps)
 
+  
+  /* Additional TestProbes for Test-Specifications: */
+  /* ---------------------------------------------- */
+
+  // TestProbes for three different Discovery-Agents, both subscribing at the FederationBroker:
+  // (The MMA-Probes are needed as they are included in the DiscoverySubscription as an ActorRef) 
+  val daProbe1 = TestProbe()
+  val mmaProbe1 = TestProbe()
+
+  val daProbe2 = TestProbe()
+  val mmaProbe2 = TestProbe()
+
+  // TODO: Add Cloudconf 3 before this probes are needed.
+  //    val daProbe3 = TestProbe()
+  //    val mmaProbe3 = TestProbe()
+
+
 
 /* Test Specifications: */
 /* ==================== */
 
+  /* Resource Specifications: */
+  /* ------------------------ */
+
+  val cloud1HostSLAs = cloudConfig1.cloudHosts.map(_.sla)
+  val da1Subscription = Subscription(mmaProbe1.ref, cloudConfig1.cloudSLA, cloud1HostSLAs, cloudConfig1.certFile)
+
+  val cloud2HostSLAs = cloudConfig2.cloudHosts.map(_.sla)
+  val da2Subscription = Subscription(mmaProbe2.ref, cloudConfig2.cloudSLA, cloud2HostSLAs, cloudConfig2.certFile)
+  
+  
 	"A Federation-Broker's recv-methods" should {
-    
-    // TestProbes for three different Discovery-Agents, both subscribing at the FederationBroker:
-    // (The MMA-Probes are needed as they are included in the DiscoverySubscription as an ActorRef) 
-    val daProbe1 = TestProbe()
-    val mmaProbe1 = TestProbe()
-    
-    val daProbe2 = TestProbe()
-    val mmaProbe2 = TestProbe()
-
-    // TODO: Add Cloudconf 3 before this probes are needed.
-//    val daProbe3 = TestProbe()
-//    val mmaProbe3 = TestProbe()
-
-    val cloud1HostSLAs = cloudConfig1.cloudHosts.map(_.sla)
-    val da1Subscription = Subscription(mmaProbe1.ref, cloudConfig1.cloudSLA, cloud1HostSLAs, cloudConfig1.certFile)
-
-    val cloud2HostSLAs = cloudConfig2.cloudHosts.map(_.sla)
-    val da2Subscription = Subscription(mmaProbe2.ref, cloudConfig2.cloudSLA, cloud2HostSLAs, cloudConfig2.certFile)
-
 
     "answer with an AuthenticationInquiry, if a DiscoverySubscription was received" in {
       // Discovery-Subscription -> AuthenticationInquiry for DA-1
