@@ -2,6 +2,7 @@ package integration
 
 import java.io.File
 import java.net.InetAddress
+
 import agents.MatchMakingAgent
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}

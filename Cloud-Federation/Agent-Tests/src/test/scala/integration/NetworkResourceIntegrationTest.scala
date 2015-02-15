@@ -2,7 +2,7 @@ package integration
 
 import java.io.File
 
-import agents.{NetworkResourceAgent, DiscoveryState}
+import agents.{DiscoveryState, NetworkResourceAgent}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory

@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{Subscription}
+import datatypes.Subscription
 
 sealed trait DiscoveryMessage
 

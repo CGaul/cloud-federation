@@ -7,12 +7,11 @@ import agents.{DependencyState, FederationBroker, MatchMakingAgent}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
-import connectors.{FederationConfigurator, CloudConfigurator}
+import connectors.{CloudConfigurator, FederationConfigurator}
 import datatypes.ByteUnit._
 import datatypes.CPUUnit.{CPUUnit, _}
 import datatypes.ImgFormat._
 import datatypes._
-import messages._
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**
