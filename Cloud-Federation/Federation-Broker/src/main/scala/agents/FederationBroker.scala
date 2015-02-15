@@ -14,9 +14,19 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
 /* Variables: */
 /* ========== */
 
+  /**
+   * Subscriptions are mapped from DA-ActorRef -> Subscription, including MMA-ActorRef
+   */
   private var subscriptions : Map[ActorRef, Subscription] = Map()
+  /**
+   * List of DA-ActorRefs, including internal attributes (authenticated? and OVX-F)
+   */
   private var subscribers : List[Subscriber] = List()
-  
+
+  /**
+   * Includes already assigned OVXInstances, so that it is clear to see, which OVX-F's are
+   * free for incoming OvxInstanceRequests.
+   */
   private var assignedOvxInstances: List[OvxInstance] = List()
 
 
@@ -107,7 +117,7 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
 	}
 
   /**
-   * Received from DiscoveryAgent
+   * Received from MatchMakingAgent
    * @param subscription
    */
   def recvOVXInstanceRequest(subscription: Subscription) = {
@@ -115,15 +125,20 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
     val ovxInstance = startOVXInstance()
     sender() ! OvxInstanceReply(ovxInstance)
 
-    // Set the asking DA as the federation master inside the Federator for the cloud2 subscription:
-    val masterSubscriberOpt = subscribers.find(_.actorRefDA == sender())
-    masterSubscriberOpt match{
-      case Some(masterSubscriber) =>
-        val updSubscriber = new Subscriber(masterSubscriber.actorRefDA, masterSubscriber.authenticated, Some(ovxInstance))
-        subscribers = subscribers.updated(subscribers.indexOf(masterSubscriber), updSubscriber)
-        log.info("Subscriber {} is the new master of a federation and owns federated {}", sender(), ovxInstance)
-      case None                   =>
-        log.error("No matching DA-ActorRef found as a registered Subscriber for {}!", sender())
+    val masterSubscriptionOpt = subscriptions.find(subscr => subscr._2.actorRefMMA == sender())
+    masterSubscriptionOpt match{
+        case Some(masterSubscr) =>
+          // IMPLICIT: If an entry in the subscriptions-map exist, whose mapping is ActorRefDA -> Subscription,
+          // A subscriber is registered in the subscribers list:
+          val newOvxSubscriber = subscribers.find(masterSubscr._1 == _.actorRefDA).get
+          
+          //Update the newOvxSubscriber with the newly assigned OVX-F instance in the subscribers list:
+          val updSubscriber = new Subscriber(newOvxSubscriber.actorRefDA, newOvxSubscriber.authenticated, Some(ovxInstance))
+          subscribers = subscribers.updated(subscribers.indexOf(newOvxSubscriber), updSubscriber)
+          log.info("Subscriber {} is the new master of a federation and owns federated {}", sender(), ovxInstance)
+          
+        case None =>
+          log.error("OvxInstanceRequest was received before DiscvorySubscription was completed for {}!", sender())
     }
   }
 
