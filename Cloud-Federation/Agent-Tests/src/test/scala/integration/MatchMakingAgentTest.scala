@@ -47,37 +47,63 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
 	}
 
 
-// The MMA Actor Generation with NRA TestProbe:
-// --------------------------------------------
+/* The MMA Actor Generation with NRA TestProbe: */
+/* -------------------------------------------- */
 
   // the local NRA that has a bidirectional connection from MMA <-> NRA:
   private val localNRAProbe = TestProbe()
 
   // global PubSub-Federator Probe, where each MMA and DA are connected to:
-  private val federatorProbe: TestProbe = TestProbe()
+  private val fedBrokerProbe: TestProbe = TestProbe()
 
-  private val nraTestSel = system.actorSelection(localNRAProbe.ref.path)
-  private val federatorTestSel = system.actorSelection(federatorProbe.ref.path)
-	private val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, federatorTestSel, nraTestSel)
+  private val nraSel = system.actorSelection(localNRAProbe.ref.path)
+  private val fedBrokerSel = system.actorSelection(fedBrokerProbe.ref.path)
+	private val mmaProps1: Props = Props(classOf[MatchMakingAgent], cloudConfig1, fedBrokerSel, nraSel)
 	private val localMMATestActor 	= TestActorRef[MatchMakingAgent](mmaProps1, name = "matchMakingAgent")
 
+  
+  /* Additional TestProbes for Test-Specifications: */
+  /* ---------------------------------------------- */
+  
+  // testProbe, registered at MMA_1 in order to test message handling from MMA_1 -> foreign MMA (testProbe):
+  val foreignMMAProbe: TestProbe = TestProbe()
+  
 
+  
 /* Test Specifications: */
 /* ==================== */
+  
+  /* Resource Specifications: */
+  /* ------------------------ */
 
-	"A MatchMakingAgent's recv-methods" should {
-    // testProbe, registered at MMA_1 in order to test message handling from MMA_1 -> foreign MMA (testProbe):
-    val foreignMMAProbe: TestProbe = TestProbe()
-    // An the foreign Cloud's subscription:
-    val foreignSubscription = Subscription(foreignMMAProbe.ref, cloudConfig2.cloudSLA,
-      cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
+  // MatchMakingAgent-Tests Resources:
+  val (resAlloc1, tenant1) = MatchMakingAgentTest.prepareTestResources(cloudConfig1)
+  
+  // Federator OVX-Instance:
+  val ovxInstanceFed = OvxInstance(InetAddress.getLoopbackAddress, 1234, 5678, federator = true)
+
+  // The local MMA's cloud Subscription:
+  val localSubscription = Subscription(localMMATestActor, cloudConfig1.cloudSLA,
+    cloudConfig1.cloudHosts.map(_.sla).toVector, cloudConfig1.certFile)
+  
+  // A foreign cloud's Subscription:
+  val foreignSubscription = Subscription(foreignMMAProbe.ref, cloudConfig2.cloudSLA,
+    cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
+  
+  
+  "A MatchMakingAgent" should {
     
-    // MatchMakingAgent-Tests Resources:
-    val (resAlloc1, tenant1) = MatchMakingAgentTest.prepareTestResources(cloudConfig1)
+    "send an OvxInstanceRequest to the FederationBroker, when becoming ONLINE" in{
+      Given("MatchMakingAgent's state is ONLINE")
+      When("FedBroker receives an OvxInstanceRequest")
+      fedBrokerProbe.expectMsg(OvxInstanceRequest(localSubscription))
+      
+      Then("FedBroker answers with a OvxInstanceReply")
+      fedBrokerProbe.reply(OvxInstanceReply(ovxInstanceFed))
+    }
     
-    // Federator OVX-Instance:
-    val ovxInstanceFed = OvxInstance(InetAddress.getLoopbackAddress, 1234, 5678, federator = true)
-    
+  }
+	"A MatchMakingAgent's recv-methods" should { 
     
     // recvDiscoveryPublication:
 		"subscribe with a discovered foreign MMA, after a DiscoveryPublication was received from its local DA" in {
@@ -90,12 +116,6 @@ class MatchMakingAgentTest (_system: ActorSystem) extends TestKit(_system)
     "if a ResourceRequest from the local NRA was received" in {
       Given("that the local MMA receives a ResourceRequest from the local NRA")
       localNRAProbe.send(localMMATestActor, ResourceRequest(tenant1, resAlloc1))
-      
-      When("the federator receives a valid OvxInstanceRequest from the local MMA and answers with a OvxInstanceReply")
-      val expectedSubscription = Subscription(localMMATestActor, cloudConfig1.cloudSLA,
-        cloudConfig1.cloudHosts.map(_.sla).toVector, cloudConfig1.certFile)
-      federatorProbe.expectMsg(OvxInstanceRequest(expectedSubscription))
-      federatorProbe.reply(OvxInstanceReply(ovxInstanceFed))
       
       Then("the local MMA should send a ResourceFederationRequest to the foreign MMA, including all information, " +
         "necessary to form a federation")
