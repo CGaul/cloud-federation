@@ -6,12 +6,12 @@ import agents.{DiscoveryState, NetworkResourceAgent}
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
-import connectors.CloudConfigurator
+import connectors.{FederationConfigurator, CloudConfigurator}
 import datatypes.ByteUnit._
 import datatypes.CPUUnit._
 import datatypes.ImgFormat._
 import datatypes._
-import messages.{FederateableResourceDiscovery, ResourceRequest, TopologyDiscovery}
+import messages.{OvxInstanceReply, FederateableResourceDiscovery, ResourceRequest, TopologyDiscovery}
 import org.scalatest.{BeforeAndAfterAll, GivenWhenThen, Matchers, WordSpecLike}
 
 /**
@@ -26,6 +26,8 @@ class NetworkResourceIntegrationTest (_system: ActorSystem) extends TestKit(_sys
   private val cloudConfFile1 = new File ("Agent-Tests/src/test/resources/cloudconf1")
   private val cloudConfig1 = CloudConfigurator(cloudConfFile1)
 
+  private val fedConfDir = new File("Agent-Tests/src/test/resources/federatorconf")
+  private val fedConfig = new FederationConfigurator(fedConfDir)
 
 
 /* AKKA Testing Environment: */
@@ -36,6 +38,7 @@ class NetworkResourceIntegrationTest (_system: ActorSystem) extends TestKit(_sys
 
   override def beforeAll(): Unit = {
     require(cloudConfFile1.isDirectory, "Directory cloudconf1 needs to exist in \"Agent-Tests/src/test/resources/\"!")
+    require(fedConfDir.isDirectory, "Directory federatorconf needs to exist in \"Agent-Tests/src/test/resources/\"!")
   }
 
 	override def afterAll() {
@@ -84,16 +87,19 @@ class NetworkResourceIntegrationTest (_system: ActorSystem) extends TestKit(_sys
     "be OFFLINE, before TopologyDiscovery was received" in {
       localNRATestActor.underlyingActor.state should equal(DiscoveryState.OFFLINE)
     }
-    
-    "become ONLINE, if a TopologyDiscovery was received from its local NDA" in {
+        
+    "become ONLINE, if a TopologyDiscovery from its local NDA and a OvxInstanceReply from its local MMA is received" in {
       Given("a TopologyDiscovery was received at the NRA (from its child NDA)")
       localNDAProbe.send(localNRATestActor, TopologyDiscovery(testTopology))
       
+      Then("the local MMA should receive a FederateableResourceDiscovery from the NRA")
+      localMMAProbe.expectMsgClass(classOf[FederateableResourceDiscovery])
+      
+      Given("a OvxInstanceReply was received at the NRA (from its local MMA)")
+      localMMAProbe.send(localNRATestActor, OvxInstanceReply(fedConfig.ovxInstances(0)))
+      
       Then("the NRA should become ONLINE")
       localNRATestActor.underlyingActor.state should equal (DiscoveryState.ONLINE)
-      
-      Then("the local MMA should receive a FedereteableResourceDiscovery from this NRA")
-      localMMAProbe.expectMsgClass(classOf[FederateableResourceDiscovery])
     }
     
   }

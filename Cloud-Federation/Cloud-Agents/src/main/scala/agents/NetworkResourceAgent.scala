@@ -134,7 +134,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 /* ========================== */
 
 	/**
-	 * Receives ResourceRequests from the CCFM.
+	 * Reiceved from local CCFM.
 	 * <p>
 	 * 	Either local Cloud's Resources are sufficient, then the Request could be
 	 * 	assigned to local resources only. If the local Resources are insufficient,
@@ -232,7 +232,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     
   
   /**
-   * Received from NDA
+   * Received from local NDA
    * @param switchTopology
    */
 	private def recvTopologyDiscovery(switchTopology: List[OFSwitch]) = {
@@ -241,7 +241,11 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		this.hostPhysSwitchMap = hostPhysSwitchMap ++ hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
     sendFederateableResourcesToMMA()
 	}
-  
+
+  /**
+   * Received from local MMA
+   * @param ovxInstance
+   */
   private def recvOvxInstanceReply(ovxInstance: OvxInstance) = {
     log.info("OvxInstance {} received from MMA {}", ovxInstance, sender())
     this.ovxInstance = ovxInstance

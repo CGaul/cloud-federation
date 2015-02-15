@@ -2,6 +2,7 @@ package integration
 
 import java.io.File
 
+import agents.FederationBroker
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
