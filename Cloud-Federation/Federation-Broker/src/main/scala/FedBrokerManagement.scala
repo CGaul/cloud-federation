@@ -1,6 +1,6 @@
 import java.io.File
 
-import agents.PubSubFederator
+import agents.FederationBroker
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 import connectors.FederationConfigurator
@@ -8,18 +8,18 @@ import connectors.FederationConfigurator
 /**
  * @author Constantin Gaul, created on 6/23/14.
  */
-object PubSubManagement extends App
+object FedBrokerManagement extends App
 {
   val appCfg = loadAkkaConfig(args)
   val fedconfDir = loadFederatorConfDir(args)
 
   val config = ConfigFactory.parseFileAnySyntax(appCfg)
-  val system = ActorSystem("pubSubSystem", config.getConfig("pubsubsystem").withFallback(config))
+  val system = ActorSystem("fedBroker", config.getConfig("fedbroker").withFallback(config))
 
-  val fedBrokerProps = Props(classOf[PubSubFederator], FederationConfigurator(fedconfDir))
-  val fedBroker = system.actorOf(fedBrokerProps, name="remoteFederator")
+  val fedBrokerProps = Props(classOf[FederationBroker], FederationConfigurator(fedconfDir))
+  val fedBroker = system.actorOf(fedBrokerProps, name="federationBroker")
 
-  println("Starting Cloud-Federator successfully! Pub-Sub Federator: "+ fedBroker)
+  println(s"Starting Federation-Broker successfully at $fedBroker!")
 
 
 
@@ -29,7 +29,7 @@ object PubSubManagement extends App
   private def loadFederatorConfDir(args: Array[String]): File = {
     def exitOnParamError() = {
       System.err.println("No --fedconf federatorconf-dir could have been found as commandline arg, " +
-        "passed into this pubsub-system.jar!")
+        "passed into this fed-broker.jar!")
       System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
       System.exit(1)
     }
@@ -65,7 +65,7 @@ object PubSubManagement extends App
   private def loadAkkaConfig(args: Array[String]): File = {
     def exitOnParamError() = {
       System.err.println("No --appconf application.conf could have been found as commandline arg, " +
-        "passed into this pubsub-system.jar!")
+        "passed into this fed-broker.jar!")
       System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
       System.exit(1)
     }

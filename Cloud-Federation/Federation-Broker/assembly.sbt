@@ -1,6 +1,6 @@
-assemblyJarName in assembly := "pubsub-system_"+Common.prjVersion+".fat.jar"
+assemblyJarName in assembly := "fed-broker_"+Common.prjVersion+".fat.jar"
 
-mainClass in assembly := Some("PubSubManagement")
+mainClass in assembly := Some("FedBrokerManagement")
 
 assemblyMergeStrategy in assembly <<= (mergeStrategy in assembly) {
 	(old) =>

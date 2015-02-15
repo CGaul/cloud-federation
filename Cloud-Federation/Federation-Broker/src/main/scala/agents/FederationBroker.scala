@@ -8,7 +8,7 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with ActorLogging
+class FederationBroker(fedConfig: FederationConfigurator) extends Actor with ActorLogging
 {
 
 /* Variables: */
@@ -178,13 +178,13 @@ class PubSubFederator(fedConfig: FederationConfigurator) extends Actor with Acto
 /** 
  * Companion Object for PubSubFederator with Akka Actor spawning context
  */
-object PubSubFederator {
+object FederationBroker {
     /**
      * props-method is used in the AKKA-Context, spawning a new Actor.
      * @return An Akka Properties-Object
      */
     def props(fedConfig: FederationConfigurator):
-    Props = Props(new PubSubFederator(fedConfig))
+    Props = Props(new FederationBroker(fedConfig))
 }
 
 

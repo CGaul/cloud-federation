@@ -30,9 +30,9 @@ lazy val agentFramework: Project = project.in(file("Agent-Framework")).
 // "PubSub-System"-Module:
 // =======================
 
-lazy val pubSubSystem: Project = project.in(file("PubSub-System")).
+lazy val fedBroker: Project = project.in(file("Federation-Broker")).
   settings(
-    name := "PubSub-System",
+    name := "Federation-Broker",
     version := Common.prjVersion,
     scalaVersion := Common.scalaVersion,
     //Resolver Link for Akka Libraries:
@@ -76,7 +76,7 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
-  ).dependsOn(agentFramework).dependsOn(pubSubSystem)
+  ).dependsOn(agentFramework).dependsOn(fedBroker)
 
 
 
@@ -99,5 +99,5 @@ lazy val agentTesting: Project = project.in(file("Agent-Tests")).
     //Testing Scope:
     libraryDependencies ++= Common.Imports.testDependencies
   ).dependsOn(agentFramework % "test->compile")
-  .dependsOn(pubSubSystem % "test->compile")
+  .dependsOn(fedBroker % "test->compile")
   .dependsOn(cloudAgents % "test->compile")

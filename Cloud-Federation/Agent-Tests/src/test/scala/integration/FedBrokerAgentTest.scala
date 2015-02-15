@@ -2,7 +2,7 @@ package integration
 
 import java.io.File
 
-import agents.PubSubFederator
+import agents.FederationBroker
 import akka.actor.{ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit, TestProbe}
 import com.typesafe.config.ConfigFactory
@@ -34,7 +34,7 @@ class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
 /* ========================= */
 
 	val config = ConfigFactory.load("testApplication.conf")
-	def this() = this(ActorSystem("pubSubSystem"))
+	def this() = this(ActorSystem("fedBroker"))
 
   override def beforeAll(): Unit = {
     require(federatorConfFile.isDirectory, "Directory federatorconf needs to exist in \"Agent-Tests/src/test/resources/\"!")
@@ -52,14 +52,14 @@ class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
   // --------------------------------
 
   // Finally, set up the FederationBroker itself (a "real" TestActor):
-  private val fedBrokerProps:	Props = Props(classOf[PubSubFederator], federatorConfig)
-  private val fedBrokerTestActor = TestActorRef[PubSubFederator](fedBrokerProps)
+  private val fedBrokerProps:	Props = Props(classOf[FederationBroker], federatorConfig)
+  private val fedBrokerTestActor = TestActorRef[FederationBroker](fedBrokerProps)
 
 
 /* Test Specifications: */
 /* ==================== */
 
-	"A PubSubFederator's recv-methods" should {
+	"A Federation-Broker's recv-methods" should {
     
     // TestProbes for three different Discovery-Agents, both subscribing at the FederationBroker:
     // (The MMA-Probes are needed as they are included in the DiscoverySubscription as an ActorRef) 
@@ -84,7 +84,7 @@ class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
       // Discovery-Subscription -> AuthenticationInquiry for DA-1
       Given("First Subscriber: Discovery-Agent 1 (DA-1)")
       
-			When("DA-1 subscribed at PubSubFederator with DiscoverySubscription")
+			When("DA-1 subscribed at Federation-Broker with DiscoverySubscription")
       daProbe1.send(fedBrokerTestActor, DiscoverySubscription(da1Subscription))
       
       Then("FedBroker should answer with an AuthenticationInquiry back to DA-1")
@@ -94,7 +94,7 @@ class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
       // Discovery-Subscription -> AuthenticationInquiry for DA-2
       Given("Second Subscriber: Discovery-Agent 2 (DA-2)")
 
-      When("DA-2 subscribed at PubSubFederator with DiscoverySubscription")
+      When("DA-2 subscribed at Federation-Broker with DiscoverySubscription")
       daProbe2.send(fedBrokerTestActor, DiscoverySubscription(da2Subscription))
 
       Then("FedBroker should answer with an AuthenticationInquiry back to DA-2")
@@ -116,7 +116,7 @@ class FedBrokerAgentTest (_system: ActorSystem) extends TestKit(_system)
       // AuthenticationAnswer -> DiscoveryPublication for DA-2
       Given("Second Subscriber: Discovery-Agent 2 (DA-2)")
 
-      When("DA-2 authenticated itself at PubSubFederator with AuthenticationAnswer")
+      When("DA-2 authenticated itself at Federation-Broker with AuthenticationAnswer")
       daProbe2.send(fedBrokerTestActor, AuthenticationAnswer(0)) //shortcut impl. for correct key
 
       Then("FedBroker should not answer with a DiscoveryPublication, as no other DA is completely registered at that time.")

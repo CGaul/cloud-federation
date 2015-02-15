@@ -13,8 +13,8 @@ import messages._
  * @author Constantin Gaul created on 5/27/14.
  */
 class DiscoveryAgent(cloudConfig: CloudConfigurator, 
-										 federatorActorSel: ActorSelection, mmaActorSel: ActorSelection)
-								extends RemoteDependencyAgent(List(federatorActorSel, mmaActorSel)) with ActorLogging
+										 fedBrokerActorSel: ActorSelection, mmaActorSel: ActorSelection)
+								extends RemoteDependencyAgent(List(fedBrokerActorSel, mmaActorSel)) with ActorLogging
 									//TODO: change cert type to "Certificate"
 									//extends RemoteDependencyAgent(Vector(pubSubActorSelection, matchMakingActorSelection))
 									//with ActorLogging
@@ -68,37 +68,37 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 		
 		mmaActorOpt match{
 		    case Some(mmaActor)	=>
-					federatorActorSel ! DiscoverySubscription(Subscription(mmaActor, cloudSLA, 
+					fedBrokerActorSel ! DiscoverySubscription(Subscription(mmaActor, cloudSLA, 
 																																		possibleHostSLAs, cloudConfig.certFile))
-					log.info("Sended subscription request to Federator.")
+					log.info("Sended subscription request to Federation-Broker.")
 					
 		    case None          	=> 
-					log.error("Subscription request can't be send to Federator, as no mmaActor-Ref was resolved!")
+					log.error("Subscription request can't be send to Federation-Broker, as no mmaActor-Ref was resolved!")
 		}
 		
 	}
 
   /**
-   * Received from PubSub-Federator
+   * Received from Federation-Broker
    * @param hashKey
    */
 	def recvAuthenticationInquiry(hashKey: Long) = {
-		log.info("Received AuthenticationInquiry from Federator.")
+		log.info("Received AuthenticationInquiry from Federation-Broker.")
 		//TODO: decrypt hashKey with own private key:
 		val solvedKey = 0
 
-		// send decrypted inquiry back to PubSubFederator as
+		// send decrypted inquiry back to Federation-Broker as
 		val authAnswer: AuthenticationAnswer = AuthenticationAnswer(solvedKey)
-		federatorActorSel ! authAnswer
+		fedBrokerActorSel ! authAnswer
 	}
 
   /**
-   * Received from PubSub-Federator
+   * Received from Federation-Broker
    * @param cloudDiscovery
    */
 	//TODO: change cert type to "Certificate"
 	def recvDiscoveryPublication(cloudDiscovery: Subscription) = {
-		log.info("Received DiscoveryPublication from PubSubFederator. Other MMA: {}", cloudDiscovery.actorRefMMA)
+		log.info("Received DiscoveryPublication from Federation-Broker. Other MMA: {}", cloudDiscovery.actorRefMMA)
 		// Forward this Publication to the MMA:
 		log.info("Trying to contact MMA at {}", mmaActorSel)
 		mmaActorSel ! DiscoveryPublication(cloudDiscovery)
@@ -120,6 +120,6 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 object DiscoveryAgent
 {
 	//TODO: change cert type to "Certificate"
-	def props(cloudConfig: CloudConfigurator, pubSubActorSelection: ActorSelection, matchMakingAgentSelection: ActorSelection):
-		Props = Props(new DiscoveryAgent(cloudConfig, pubSubActorSelection, matchMakingAgentSelection))
+	def props(cloudConfig: CloudConfigurator, fedBrokerActorSel: ActorSelection, mmaActorSel: ActorSelection):
+		Props = Props(new DiscoveryAgent(cloudConfig, fedBrokerActorSel, mmaActorSel))
 }
