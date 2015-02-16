@@ -319,12 +319,11 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]): Unit = {
 
 		// If the tenant does not have an OVX tenant-network until now, create one:
-		if (!tenantNetMap.keys.exists(_ == tenant)) {
-			val tenantNet = _ovxManager.createOVXNetwork(tenant, Some(ovxInstance))
-      if(tenantNet.isEmpty)
-//        log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant)
-        return
-		}
+    val tenantNet = _ovxManager.createOVXNetwork(tenant, Some(ovxInstance))
+    if(tenantNet.isEmpty){
+      log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant)
+      return
+    }
 		
 		// The hostPhysSwitchMap defines a mapping between each known host and all physical Switches,
 		// that are connected to this host and discovered via a TopologyDiscovery earlier.
@@ -338,9 +337,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
 		// Create virtual switches for all physical Switches that are not yet part of a virtual switch in the tenant's vNet
 		// and establish virtual Ports for all physical Ports that are outgoing to any other Switch:
-		for (actPhysSwitch <- physSwitches 
-				 if !(tenantVirtSwitchMap.keys.exists(_ == tenant) &&
-						tenantVirtSwitchMap(tenant).exists(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))))
+		for (actPhysSwitch <- physSwitches)
 		{
 			// Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
 			_ovxManager.createOVXSwitch(tenant, actPhysSwitch)

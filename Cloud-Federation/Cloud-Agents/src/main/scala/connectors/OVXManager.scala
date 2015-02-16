@@ -37,6 +37,13 @@ class OVXManager(ovxConn: OVXConnector)
    * @return
    */
   def createOVXNetwork(tenant: Tenant, foreignOvxInstance: Option[OvxInstance] = None): Option[VirtualNetwork] = {
+    if(tenantNetMap.keys.exists(_ == tenant)){
+      log.info("Virtual Network for tenant {} already exists. Returning existing OVX-Network: {}",
+               tenant, tenantNetMap(tenant))
+      
+      return tenantNetMap.get(tenant)
+    }
+    
     var netOpt: Option[VirtualNetwork] = None
     foreignOvxInstance match{
       case Some(ovxInst) =>
@@ -72,6 +79,16 @@ class OVXManager(ovxConn: OVXConnector)
    * @param physSwitch
    */
   def createOVXSwitch(tenant: Tenant, physSwitch: OFSwitch): Option[VirtualSwitch] = {
+    val physSwitchDpid: Long = physSwitch.dpid.convertToHexLong
+    if(tenantVirtSwitchMap.getOrElse(tenant, List()).exists(_.dpids.contains(physSwitchDpid)) &&
+       tenantPhysSwitchMap.getOrElse(tenant, List()).exists(_.dpid == physSwitch.dpid)){
+      log.info("Virtual Switch for physSwitch {} and tenant {} already exists. Returning existing OVX-Switch: {}",
+               physSwitch, tenant, tenantVirtSwitchMap(tenant))
+    
+      return tenantVirtSwitchMap.getOrElse(tenant, List())
+                                .find(vSwitch => vSwitch.dpids.contains(physSwitchDpid))
+    }
+    
     // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch
     val vSwitchOpt = ovxConn.createSwitch(tenantToOVXTenantId(tenant), List(physSwitch.dpid.toString))
     vSwitchOpt match{
@@ -109,6 +126,8 @@ class OVXManager(ovxConn: OVXConnector)
   }
 
   def createOVXSwitchPort(tenant: Tenant, physSwitch: OFSwitch, physPort: Short): Option[(Short, Short)] = {
+    //TODO: check if virtual device already existent for tenant
+    
     val portMapOpt = ovxConn.createPort(tenantToOVXTenantId(tenant), physSwitch.dpid.toString, physPort)
     portMapOpt match{
       case Some(portMap)  =>
@@ -135,6 +154,7 @@ class OVXManager(ovxConn: OVXConnector)
                                   physSrcSwitch: OFSwitch, physSrcPort: Short, virtSrcSwitch: VirtualSwitch, virtSrcPort: Short,
                                   physDstSwitch: OFSwitch, physDstPort: Short, virtDstSwitch: VirtualSwitch, virtDstPort: Short):
   Option[VirtualLink] = {
+    //TODO: check if virtual device already existent for tenant
 
     val vLinkOpt = ovxConn.connectLink(tenantToOVXTenantId(tenant),
       virtSrcSwitch.vdpid, virtSrcPort,
@@ -184,6 +204,8 @@ class OVXManager(ovxConn: OVXConnector)
 
   def connectOVXHost(tenant: Tenant, physSwitch: OFSwitch, virtSwitch: VirtualSwitch,
                               host: Host, portMap: (Short, Short)): Option[VirtualHost] = {
+    //TODO: check if virtual device already existent for tenant
+    
 
     val vHostOpt = ovxConn.connectHost(tenant.id, virtSwitch.vdpid, portMap._2, host.mac)
     vHostOpt match {
@@ -206,6 +228,8 @@ class OVXManager(ovxConn: OVXConnector)
   }
 
   def startOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
+    //TODO: check if virtual device already existent for tenant
+    
     val netOpt = ovxConn.startNetwork(tenant.id)
     netOpt match{
       case Some(net)  =>
