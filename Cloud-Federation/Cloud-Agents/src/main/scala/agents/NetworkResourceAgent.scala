@@ -346,42 +346,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			_ovxManager.createAllOVXSwitchPorts(tenant, actPhysSwitch)
 		}
 		
-		
-		// Iterate over all physical Switches, get their Port-mapping from switchPortMap
-		// and connect their virtual counterparts to each other on the correct virtPorts (create all topology paths):
-		for (actPhysSwitch <- tenantPhysSwitchMap(tenant)) {
-			for ((srcPort, srcEndpoint) <- actPhysSwitch.portMap) {
-				val physSrcSwitch = actPhysSwitch
-				val physDstSwitchOpt = tenantPhysSwitchMap.getOrElse(tenant, List()).find(_.dpid == srcEndpoint.dpid)
-				// As the physical Destination Switch might not be in the tenant's switchMap, only continue connection if both
-				// src- and dst-Switch are known:
-				if(physDstSwitchOpt.isDefined) {
-					val physDstSwitch = physDstSwitchOpt.get
-					// Find the srcPortMapping for the actual srcPort in the switchPortMap's actPhysSwitch entry:
-					val srcPortMapping = switchPortMap.getOrElse(physSrcSwitch, List()).
-																find(_._1 == srcPort)
-					val dstPortMapping = switchPortMap.getOrElse(physDstSwitch, List()).
-																find(_._1 == srcEndpoint.port)
-					val virtSrcSwitch = tenantVirtSwitchMap.getOrElse(tenant, List()).
-																find(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))
-					val virtDstSwitch = tenantVirtSwitchMap.getOrElse(tenant, List()).
-																find(_.dpids.contains(srcEndpoint.dpid.convertToHexLong))
-
-					if (srcPortMapping.isDefined && dstPortMapping.isDefined && virtSrcSwitch.isDefined && virtDstSwitch.isDefined) {
-						val (physSrcPort, virtSrcPort, srcComponent) = srcPortMapping.get
-						val (physDstPort, virtDstPort, dstComponent) = dstPortMapping.get
-						
-						// Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
-						val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
-						if (! alreadyConnected) {
-							
-							_ovxManager.connectOVXSwitches(tenant, physSrcSwitch, physSrcPort, virtSrcSwitch.get, virtSrcPort,
-																	physDstSwitch, physDstPort, virtDstSwitch.get, virtDstPort)
-						}
-					}
-				}
-			}
-		}
+    //TODO: maybe wrap in upper for-loop?
+		_ovxManager.connectAllOVXSwitches(tenant)
 
 		// Create Ports at the Host's Endpoint Switch:Port connect the Host to it
 		for (actHost <- hosts) {
