@@ -346,30 +346,17 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 			_ovxManager.createAllOVXSwitchPorts(tenant, actPhysSwitch)
 		}
 		
-    //TODO: maybe wrap in upper for-loop?
+    // After all Switches are established in the upper loop, connect them with each other:
 		_ovxManager.connectAllOVXSwitches(tenant)
 
 		// Create Ports at the Host's Endpoint Switch:Port connect the Host to it
 		for (actHost <- hosts) {
 			val physSwitchToConnect = switchTopology.find(_.dpid == actHost.endpoint.dpid)
-			val virtSwitchToConnect = tenantVirtSwitchMap(tenant).find(_.dpids.contains(actHost.endpoint.dpid.convertToHexLong))
-			if (physSwitchToConnect.isDefined && virtSwitchToConnect.isDefined) {
-				val physSwitch = physSwitchToConnect.get
-				val virtSwitch = virtSwitchToConnect.get
-				// If no virtual Port is available for the physSwitch + physPort that the Host should connect to, createPort:
-				if (! switchPortMap(physSwitch).exists(_._1 == actHost.endpoint.port)) {
-					val portMapOpt = _ovxManager.createOVXHostPort(tenant, physSwitch, actHost)
-					if(portMapOpt.isDefined) {
-						_ovxManager.connectOVXHost(tenant, physSwitch, virtSwitch, actHost, portMapOpt.get)
-					}
-				}
-			}
+			_ovxManager.connectOVXHost(tenant, physSwitchToConnect, actHost)
 		}
 		
 		// Start the Tenant's OVX-Network, if not already started:
-		if (tenantNetMap.keys.exists(_ == tenant) && !tenantNetMap(tenant).isBooted.getOrElse(false)) {
 			_ovxManager.startOVXNetwork(tenant)
-		}
 	}
 
   private def prepareFederation(tenant: Tenant, foreignGWSwitch: OFSwitch) = {

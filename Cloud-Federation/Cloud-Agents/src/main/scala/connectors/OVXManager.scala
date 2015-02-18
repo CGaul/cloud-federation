@@ -149,7 +149,13 @@ class OVXManager(ovxConn: OVXConnector)
         return None
     }
   }
-  
+
+  /**
+   * Connect all OVX-Switches with each other, that are included in the tenant's virtual network.
+   * In order to put an OVX-Switch in this physicalSwitch-Map, call "createOVXSwitch(tenant, physSwitch)"
+   * and "createAllOVXSwitchPorts(tenant, physSwitch)" for each Switch that should be in the tenant's virtual network.
+   * @param tenant
+   */
   def connectAllOVXSwitches(tenant: Tenant) = {
     // Iterate over all physical Switches, get their Port-mapping from switchPortMap
     // and connect their virtual counterparts to each other on the correct virtPorts (create all topology paths):
@@ -240,6 +246,21 @@ class OVXManager(ovxConn: OVXConnector)
         return None
     }
   }
+  
+  def connectOVXHost(tenant: Tenant, physSwitchOpt: Option[OFSwitch], host: Host) = {
+    val virtSwitchOpt = tenantVirtSwitchMap(tenant).find(_.dpids.contains(host.endpoint.dpid.convertToHexLong))
+    if (physSwitchOpt.isDefined && virtSwitchOpt.isDefined) {
+      val physSwitch = physSwitchOpt.get
+      val virtSwitch = virtSwitchOpt.get
+      // If no virtual Port is available for the physSwitch + physPort that the Host should connect to, createPort:
+      if (!switchPortMap(physSwitch).exists(_._1 == host.endpoint.port)) {
+        val portMapOpt = this.createOVXHostPort(tenant, physSwitch, host)
+        if (portMapOpt.isDefined) {
+          this.connectOVXHost(tenant, physSwitch, virtSwitch, host, portMapOpt.get)
+        }
+      }
+    }
+  }
 
   def connectOVXHost(tenant: Tenant, physSwitch: OFSwitch, virtSwitch: VirtualSwitch,
                               host: Host, portMap: (Short, Short)): Option[VirtualHost] = {
@@ -267,8 +288,10 @@ class OVXManager(ovxConn: OVXConnector)
   }
 
   def startOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
-    //TODO: check if virtual device already existent for tenant
-    
+    if (tenantNetMap.keys.exists(_ == tenant) && tenantNetMap(tenant).isBooted.getOrElse(false)) {
+      log.info("Virtual Network {} for tenant {} is already booted up.", tenantNetMap(tenant), tenant)
+      return None
+    }
     val netOpt = ovxConn.startNetwork(tenant.id)
     netOpt match{
       case Some(net)  =>
