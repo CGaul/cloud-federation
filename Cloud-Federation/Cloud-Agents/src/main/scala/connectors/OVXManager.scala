@@ -1,5 +1,7 @@
 package connectors
 
+import java.net.InetAddress
+
 import datatypes._
 import org.slf4j.LoggerFactory
 
@@ -192,24 +194,6 @@ class OVXManager(ovxConn: OVXConnector)
         // src- and dst-Switch are known:
         if (physDstSwitchOpt.isDefined) {
           val physDstSwitch = physDstSwitchOpt.get
-//          // Find the srcPortMapping for the actual srcPort in the tenantSwitchPortMap's actPhysSwitch entry:
-//          val srcPortMapping = tenantSwitchPortMap.getOrElse((tenant, physSrcSwitch), List()).
-//            find(_._1 == srcPort)
-//          val dstPortMapping = tenantSwitchPortMap.getOrElse((tenant, physDstSwitch), List()).
-//            find(_._1 == srcEndpoint.port)
-//          val virtSrcSwitch = tenantVirtSwitchMap.getOrElse(tenant, List()).
-//            find(_.dpids.contains(actPhysSwitch.dpid.convertToHexLong))
-//          val virtDstSwitch = tenantVirtSwitchMap.getOrElse(tenant, List()).
-//            find(_.dpids.contains(srcEndpoint.dpid.convertToHexLong))
-//
-//          if (srcPortMapping.isDefined && dstPortMapping.isDefined && virtSrcSwitch.isDefined && virtDstSwitch.isDefined) {
-//            val (physSrcPort, virtSrcPort, srcComponent) = srcPortMapping.get
-//            val (physDstPort, virtDstPort, dstComponent) = dstPortMapping.get
-//
-//            // Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
-//            val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
-//            if (!alreadyConnected) {
-
           this.connectOVXSwitches(tenant, physSrcSwitch, physDstSwitch)
         }
       }
@@ -386,6 +370,22 @@ class OVXManager(ovxConn: OVXConnector)
         log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
           tenant.id, tenant.ofcIp, tenant.ofcPort)
         return None
+    }
+  }
+  
+  
+  def removeOfcFromTenantNet(tenant: Tenant, ofcIp: InetAddress) = {
+    val virtNetOpt = tenantNetMap.get(tenant)
+    virtNetOpt match {
+      case Some(virtNet) =>
+        log.info("Removing tenant {} OFC Controller {} from network {}...",
+          tenant.id, virtNet.controllerUrls(0), virtNet.networkAddress)
+        ovxConn.removeControllers(tenant.id, List(virtNet.controllerUrls(0)))
+
+      case None =>
+        log.warn("Tenant {} has no virtual net to remove the OFC-IP {} from!",
+          tenant, ofcIp)
+
     }
   }
 }

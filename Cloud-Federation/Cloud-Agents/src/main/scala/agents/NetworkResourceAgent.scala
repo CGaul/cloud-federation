@@ -50,7 +50,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     private var tenantGatewayMap: Map[Tenant, List[OFSwitch]] = Map()
 	  
     // Physical OvxInstance, received from MMA:
-    private var ovxInstance: OvxInstance = null
+    private var ovxInstance: Option[OvxInstance] = None
   
 
 
@@ -114,7 +114,9 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     case message: NRAFederationDest => message match{
       case OvxInstanceReply(ovxInstance)
       =>  recvOvxInstanceReply(ovxInstance)
-          checkOnlineStateReached()
+      //TODO: if NRAs are spawned dynamically for each virtualization Layer, the upper layered NRA does not need to have an OVX-Instance.
+      //TODO: however the bottom layered NRA needs to have an OVX-Instance. This should be resided in the config somewhere.
+//          checkOnlineStateReached() 
 
     }
 		case _	=> log.error("Unknown message received!")
@@ -190,7 +192,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       sender(), tenant.id, ovxInstance)
     
     prepareFederation(tenant, foreignGWSwitch)
-    uploadNetworkToFederatedOVX(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxApiPort)
+    bootstrapUpperLayerNRA(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxApiPort)
 	}
 
 
@@ -214,9 +216,9 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
-    prepareFederation(tenant, foreignGWSwitch)
 		mapAllocOnOVX(tenant, hostList)
-    uploadNetworkToFederatedOVX(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxCtrlPort)
+    prepareFederation(tenant, foreignGWSwitch)
+    bootstrapUpperLayerNRA(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxCtrlPort)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaining Resources to Allocate back to the sender.
@@ -241,7 +243,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
    */
   private def recvOvxInstanceReply(ovxInstance: OvxInstance) = {
     log.info("OvxInstance {} received from MMA {}", ovxInstance, sender())
-    this.ovxInstance = ovxInstance
+    this.ovxInstance = Some(ovxInstance)
   }
   
 
@@ -268,7 +270,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
   }
   
   private def checkOnlineStateReached() = {
-    if(switchTopology.nonEmpty && ovxInstance != null) {
+    if(switchTopology.nonEmpty) {
       unstashAll()
       context.become(active())
       state = DiscoveryState.ONLINE
@@ -319,7 +321,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	private def mapAllocOnOVX(tenant: Tenant, hosts: List[Host]): Unit = {
 
 		// If the tenant does not have an OVX tenant-network until now, create one:
-    val tenantNet = _ovxManager.createOVXNetwork(tenant, Some(ovxInstance))
+    val tenantNet = _ovxManager.createOVXNetwork(tenant, ovxInstance)
     if(tenantNet.isEmpty){
       log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant)
       return
@@ -387,60 +389,35 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     
     // Connect both Gateway Switches with each other, if no link is currently established:
     // Find the srcPortMapping for the actual srcPort in the switchPortMap's actPhysSwitch entry:
-//    val physLocalPortOpt = localGWSwitch.portMap.find(_._2.dpid == foreignGWSwitch.dpid)
-//    val physForeignPortOpt = foreignGWSwitch.portMap.find(_._2.dpid == localGWSwitch.dpid)
-//
-//    val virtLocalGWOpt = tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(localGWSwitch.dpid.convertToHexLong))
-//    val virtForeignGWOpt = tenantVirtSwitchMap.getOrElse(tenant, List()).find(_.dpids.contains(foreignGWSwitch.dpid.convertToHexLong))
-//
-//    if(physLocalPortOpt.isDefined && physForeignPortOpt.isDefined &&
-//      virtLocalGWOpt.isDefined && virtForeignGWOpt.isDefined) {
-//
-//      val virtLocalGW = virtLocalGWOpt.get
-//      val virtForeignGW = virtForeignGWOpt.get
-//
-//      val physicalLocalPort = physLocalPortOpt.get
-//      val physicalForeignPort = physForeignPortOpt.get
-//      val localPortMapping = switchPortMap.getOrElse(localGWSwitch, List()).find(_._1 == physicalLocalPort._1)
-//      val foreignPortMapping = switchPortMap.getOrElse(foreignGWSwitch, List()).find(_._1 == physicalForeignPort._1)
-//
-//      if(localPortMapping.isDefined && foreignPortMapping.isDefined){
-//        val (physSrcPort, virtSrcPort, srcComponent) = localPortMapping.get
-//        val (physDstPort, virtDstPort, dstComponent) = foreignPortMapping.get
-//
-//        // Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
-//        val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
-//        if (!alreadyConnected) {
-
-          _ovxManager.connectOVXSwitches(tenant, localGWSwitch, foreignGWSwitch)
-//                              localGWSwitch, physSrcPort, virtLocalGW, virtSrcPort,
-//                              foreignGWSwitch, physDstPort, virtForeignGW, virtDstPort)
-//        }
-//      }
-//    }
+    _ovxManager.connectOVXSwitches(tenant, localGWSwitch, foreignGWSwitch)
+    
+    // Remove tenant OFC from network, as it is will be applied back again in the child NRA, responsible for the
+    // upper layer virtualization (the OVX-F layer):
+    _ovxManager.removeOfcFromTenantNet(tenant, tenant.ofcIp)
   }
   
-  //TODO: move to OVXMananger or refactor
-//  private def uploadNetworkToFederatedOVX(tenant: Tenant, ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
+//  //TODO: move to OVXMananger or refactor
+  private def bootstrapUpperLayerNRA(tenant: Tenant, ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
+
 //    val virtNetOpt = tenantNetMap.get(tenant)
 //    virtNetOpt match{
 //        case Some(virtNet)  =>
 //          log.info("Removing tenant {} OFC Controller {} from network {}...",
 //                   tenant.id, virtNet.controllerUrls(0), virtNet.networkAddress)
 //          _ovxConn.removeControllers(tenant.id, List(virtNet.controllerUrls(0)))
-//          
+//
 //          // OVX-F has already complete knowledge over this network, as it is the secondary controller of it since network-creation.
 //          // TODO: forward this physical network as a 1to1-mapping to the tenant-OFC from the OVX-F instead of the local OVX
 //          // TODO (1): Bootstrap new NRA and NDA here for the OVX-F and send a ResourceRequest to it, including the tenant's whole Network
 //          // TODO (2): This NRA acts as the Master NRA of the OVX-F NRA and has to route each message to and from the MMA correctly.
-//          
-//          
-//        case None          => 
+//
+//
+//        case None          =>
 //          log.error("No virtual tenant network registered for tenant {}!",
 //                    tenant.id)
-//          
+//
 //    }
-//  }
+  }
 	
 	private def _discoverHostPaths() = {
 		//TODO: implement discovery
