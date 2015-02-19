@@ -1,5 +1,6 @@
 package agents
 
+import java.io.File
 import java.net.InetAddress
 
 import akka.actor._
@@ -42,6 +43,12 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 /* ========== */
   
     var state = DiscoveryState.OFFLINE
+
+   /**
+    * Contains all locally allocated ResourceAllocations per Tenant. 
+    * Written after an allocateLocally(..) in recvResourceRequest(..).
+    */
+    private var tenantResAllocs: Map[Tenant, List[ResourceAlloc]] = Map()
   
 		// Physical Topologies, received from the CCFM (hosts) and the NDA (switches)
 		private val hostTopology: List[Host] = cloudConfig.cloudHosts.toList
@@ -149,7 +156,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) at NetworkResourceAgent.",
 			tenant, resourceToAlloc.resources.size)
 		val (allocationsPerHost, remainResToAlloc) = allocateLocally(resourceToAlloc)
-
+    val allocationList = allocationsPerHost.map(_._2).toList
+    tenantResAllocs = tenantResAllocs + (tenant -> (tenantResAllocs.getOrElse(tenant, List()) ++ allocationList))
 		// Prepare the locally fulfilled allocations that will be send to OVX via
 		// the own OVXConnector-API:
 		val hostList = allocationsPerHost.map(_._1).toList
@@ -192,7 +200,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       sender(), tenant.id, ovxInstance)
     
     prepareFederation(tenant, foreignGWSwitch)
-    bootstrapUpperLayerNRA(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxApiPort)
+    bootstrapNRAFed(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxApiPort)
 	}
 
 
@@ -218,7 +226,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		log.info("Mapping hosts {} to virtual tenant network.", hostList.map(_.mac))
 		mapAllocOnOVX(tenant, hostList)
     prepareFederation(tenant, foreignGWSwitch)
-    bootstrapUpperLayerNRA(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxCtrlPort)
+    bootstrapNRAFed(tenant, ovxInstance.ovxIp, ovxInstance.ovxApiPort, ovxInstance.ovxCtrlPort)
 
 		if(remainResToAlloc.size > 0){
 			// TODO: send Information about remaining Resources to Allocate back to the sender.
@@ -396,8 +404,28 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     _ovxManager.removeOfcFromTenantNet(tenant, tenant.ofcIp)
   }
   
-//  //TODO: move to OVXMananger or refactor
-  private def bootstrapUpperLayerNRA(tenant: Tenant, ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
+  private def bootstrapNRAFed(tenant: Tenant, ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int) = {
+  
+    // Prepare Config for new NRA-F with OVX-F as cloudOvx
+    val fedCloudConfDir = new File(cloudConfig.confDir.getAbsolutePath +File.separator+ "federations")
+    CloudConfigurator.copyConfig(cloudConfig.confDir, fedCloudConfDir)
+    val fedCloudConfig = new CloudConfigurator(fedCloudConfDir, _cloudOvx = ovxInstance.get)
+    
+    // TODO: change Host files here, adjusting each Host's DPID...
+    
+    
+    // Bootstrap new NRA with config and given MMA-ActorRef
+    val nraFedProps: Props = Props(classOf[NetworkResourceAgent], fedCloudConfig, matchMakingAgent)
+    val nraFedActor = context.actorOf(nraFedProps, name="networkResourceFederatorAgent")
+    log.info("Started NRA-F {} for OVX-F {} instance!", nraFedActor, ovxInstance)
+    
+    
+    //send ResourceRequests to newly created NRA-F, including all ResAllocs for this tenant (whats with the network on the other side?)
+    for (actResAlloc <- tenantResAllocs.getOrElse(tenant, List())) {
+      log.info("Sending ResourceRequest to newly created NRA-F, including {}...", actResAlloc)
+      nraFedActor ! ResourceRequest(tenant, actResAlloc)
+    }
+
 
 //    val virtNetOpt = tenantNetMap.get(tenant)
 //    virtNetOpt match{
