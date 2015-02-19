@@ -62,8 +62,7 @@ class OVXManager(ovxConn: OVXConnector)
    */
   def createOVXNetwork(tenant: Tenant, foreignOvxInstance: Option[OvxInstance] = None): Option[VirtualNetwork] = {
     if(tenantNetMap.keys.exists(_ == tenant)){
-      log.info("Virtual Network for tenant {} already exists. Returning existing OVX-Network: {}",
-               tenant, tenantNetMap(tenant))
+      log.info(s"Virtual Network for tenant $tenant already exists. Returning existing OVX-Network: ${tenantNetMap(tenant)}")
       
       return tenantNetMap.get(tenant)
     }
@@ -72,29 +71,30 @@ class OVXManager(ovxConn: OVXConnector)
     foreignOvxInstance match{
     // If a foreign OVX-Instance is given, create a Network with an additional OFC entry in the Controller list:
       case Some(ovxInst) =>
-        log.info("Creating Network with additional OFC connection to foreign OVX-Instance {}...", ovxInst)
+        log.info(s"Creating Network with additional OFC connection to foreign OVX-Instance $ovxInst...")
         netOpt = ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}," +
           s"tcp:${ovxInst.ovxIp.getHostAddress}:${ovxInst.ovxCtrlPort}"),
           tenant.subnet._1, tenant.subnet._2)
         
       // Otherwise just create the Network with one Controller entry (the tenant's OFC):
       case None =>
-        log.info("Creation Network with single, tenant based OFC connection to tenant OFC ({}:{})...", tenant.ofcIp, tenant.ofcPort)
+        log.info(s"Creation Network with single, tenant based OFC connection " +
+                 s"to tenant OFC (${tenant.ofcIp}:${tenant.ofcPort})...")
         netOpt = ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"),
           tenant.subnet._1, tenant.subnet._2)
     }
 
     netOpt match{
       case Some(net)  =>
-        log.info(s"Created virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{}. Is Booted: {}",
-          tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+        log.info(s"Created virtual Network ${tenant.subnet} for Tenant ${tenant.id} " +
+                 s"at OFC: ${tenant.ofcIp}:${tenant.ofcPort}. Is Booted: ${net.isBooted}")
         tenantToOVXTenantId = tenantToOVXTenantId + (tenant -> net.tenantId.getOrElse(-1))
         tenantNetMap = tenantNetMap + (tenant -> net)
         return Some(net)
 
       case None          =>
-        log.error(s"Virtual Network ${tenant.subnet} for Tenant {} at OFC: {}:{} was not started correctly!",
-          tenant.id, tenant.ofcIp, tenant.ofcPort)
+        log.error(s"Virtual Network ${tenant.subnet} for Tenant ${tenant.id} " +
+                  s"at OFC: ${tenant.ofcIp}:${tenant.ofcPort} was not started correctly!")
         return None
     }
   }
@@ -108,8 +108,8 @@ class OVXManager(ovxConn: OVXConnector)
     val physSwitchDpid: Long = physSwitch.dpid.convertToHexLong
     if(tenantVirtSwitchMap.getOrElse(tenant, List()).exists(_.dpids.contains(physSwitchDpid)) &&
        tenantPhysSwitchMap.getOrElse(tenant, List()).exists(_.dpid == physSwitch.dpid)){
-      log.info("Virtual Switch for physSwitch {} and tenant {} already exists. Returning existing OVX-Switch: {}",
-               physSwitch, tenant, tenantVirtSwitchMap(tenant))
+      log.info(s"Virtual Switch for physSwitch $physSwitch and tenant $tenant already exists. " +
+               s"Returning existing OVX-Switch: ${tenantVirtSwitchMap(tenant)}")
     
       return tenantVirtSwitchMap.getOrElse(tenant, List())
                                 .find(vSwitch => vSwitch.dpids.contains(physSwitchDpid))
@@ -119,8 +119,8 @@ class OVXManager(ovxConn: OVXConnector)
     val vSwitchOpt = ovxConn.createSwitch(tenantToOVXTenantId(tenant), List(physSwitch.dpid.toString))
     vSwitchOpt match{
       case Some(vSwitch) =>
-        log.info(s"Created Switch (dpids: {} vdpid: {}) in Tenant-Network {}/(${tenantToOVXTenantId(tenant)})",
-          physSwitch.dpid.toString, vSwitch.dpids, tenant.id)
+        log.info(s"Created Switch (dpids: ${physSwitch.dpid} vdpid: ${vSwitch.dpids}) " +
+                 s"in Tenant-Network ${tenant.id}/(${tenantToOVXTenantId(tenant)})")
 
         // After virtual Switch was successfully created, add physical and virtual Switch to respective tenantSwitchMap:
         tenantPhysSwitchMap = tenantPhysSwitchMap + (tenant -> (tenantPhysSwitchMap.getOrElse(tenant, List()) :+ physSwitch))
@@ -128,8 +128,8 @@ class OVXManager(ovxConn: OVXConnector)
         return Some(vSwitch)
 
       case None          =>
-        log.error(s"Switch Creation (dpids: {}) in Tenant-Network {}/(${tenantToOVXTenantId(tenant)}) failed!",
-          physSwitch.dpid.toString, tenant.id)
+        log.error(s"Switch Creation (dpids: ${physSwitch.dpid}) in " +
+                  s"Tenant-Network ${tenant.id}/(${tenantToOVXTenantId(tenant)}) failed!")
         return None
     }
   }
@@ -162,8 +162,9 @@ class OVXManager(ovxConn: OVXConnector)
         assert(physPort == physPort, s"Associated Physical Port $physPort after Port creation " +
           s"on Switch ${physSwitch.dpid} ist not equal to requested physical Source Port $physPort!")
 
-        log.info(s"Created Port (phys: {} virt: {}) at Switch {} for other Switch in Tenant-Network {}/(${tenantToOVXTenantId(tenant)})",
-          physPort, virtPort, physSwitch.dpid.toString, tenant.id)
+        log.info(s"Created Port (phys: $physPort virt: $virtPort) " +
+                 s"at Switch ${physSwitch.dpid} for other Switch " +
+                 s"in Tenant-Network ${tenant.id}/(${tenantToOVXTenantId(tenant)})")
 
         //Append a new value to tenantSwitchPortMap, which is either a new list (if no value was found for key), or a new entry in the list:
         val portMapList = tenantSwitchPortMap.getOrElse((tenant, physSwitch), List()) :+ (physPort, virtPort, None)
@@ -171,8 +172,7 @@ class OVXManager(ovxConn: OVXConnector)
         return Some(portMap)
 
       case None          	=>
-        log.error(s"Port creation failed for Switch {} on physical Port {}!",
-          physSwitch.dpid, physPort)
+        log.error(s"Port creation failed for Switch ${physSwitch.dpid} on physical Port $physPort!")
         return None
     }
   }
@@ -220,9 +220,8 @@ class OVXManager(ovxConn: OVXConnector)
     if(!(physSrcPortMapOpt.isDefined && physDstPortMapOpt.isDefined &&
       virtSrcSwitchOpt.isDefined && virtDstSwitchOpt.isDefined)) {
       
-      log.warn("Connection between srcSwitch {} and dstSwitch {} in tenant {}'s network can't be established, " +
-        "as no virtual counterparts are available or bidirectional port mapping is not existent!", 
-        srcSwitch, dstSwitch, tenant)
+      log.warn(s"Connection between srcSwitch $srcSwitch and dstSwitch $dstSwitch in tenant $tenant's network can't be established, " +
+        "as no virtual counterparts are available or bidirectional port mapping is not existent!")
       return None
     }
 
@@ -244,7 +243,7 @@ class OVXManager(ovxConn: OVXConnector)
     // Check, if a link is already existing from dst -> src or src -> dst. Only establish a new one, if not for both:
     val alreadyConnected: Boolean = srcComponent.isDefined || dstComponent.isDefined
     if (alreadyConnected) {
-     log.info("Connection between srcSwitch {} and dstSwitch {} in tenant {}'s network is already established." +
+     log.info(s"Connection between srcSwitch $srcSwitch and dstSwitch $dstSwitch in tenant $tenant's network is already established." +
        "Returning existing virtual link")
       
       //TODO: return existing vLink
@@ -294,8 +293,7 @@ class OVXManager(ovxConn: OVXConnector)
         return Some((portMap._1, portMap._2))
 
       case None 					=>
-        log.error(s"Port creation failed for Switch {} on physical Port {}!",
-          physSwitch.dpid, host.endpoint.port)
+        log.error(s"Port creation failed for Switch ${physSwitch.dpid} on physical Port ${host.endpoint.port}!")
         return None
     }
   }
@@ -322,8 +320,7 @@ class OVXManager(ovxConn: OVXConnector)
       return this.connectOVXHost(tenant, physSwitch, virtSwitch, host, portMapOpt.get)
     }
     else{
-      log.warn("PortMap is undefined! Host {} can't be connected to Switch {} in tenant network {}",
-      host, physSwitch, tenant)
+      log.warn(s"PortMap is undefined! Host $host can't be connected to Switch $physSwitch in tenant network $tenant")
       return None
     }
   }
@@ -336,8 +333,7 @@ class OVXManager(ovxConn: OVXConnector)
     val vHostOpt = ovxConn.connectHost(tenant.id, virtSwitch.vdpid, portMap._2, host.mac)
     vHostOpt match {
       case Some(vHost) =>
-        log.info("Host {} connected to Switch {} at (physPort: {}, vPort {})",
-          host.mac, physSwitch.dpid, portMap._1, portMap._2)
+        log.info(s"Host ${host.mac} connected to Switch ${physSwitch.dpid} at (physPort: ${portMap._1}, vPort ${portMap._2})")
         //Update tenantSwitchPortMap's last portMap entry with the just established Host:
         val newHostPortMap = (portMap._1, portMap._2, Some(host))
         val portMapIndex = tenantSwitchPortMap.getOrElse((tenant, physSwitch), List()).indexWhere(t => t._1 == portMap._1 && t._2 == portMap._2)
@@ -347,28 +343,26 @@ class OVXManager(ovxConn: OVXConnector)
         return Some(vHost)
 
       case None =>
-        log.error("Host connection to Switch {} at (physPort: {}, vPort {}) failed!",
-          host.mac, portMap._1, portMap._2)
+        log.error("Host connection to Switch ${host.mac} at (physPort: ${portMap._1}, vPort ${portMap._2}) failed!")
         return None
     }
   }
 
   def startOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
     if (tenantNetMap.keys.exists(_ == tenant) && tenantNetMap(tenant).isBooted.getOrElse(false)) {
-      log.info("Virtual Network {} for tenant {} is already booted up.", tenantNetMap(tenant), tenant)
+      log.info(s"Virtual Network ${tenantNetMap(tenant)} for tenant $tenant is already booted up.")
       return None
     }
     val netOpt = ovxConn.startNetwork(tenant.id)
     netOpt match{
       case Some(net)  =>
-        log.info("Started Network for Tenant {} at OFC: {}:{}. Is Booted: {}",
-          tenant.id, tenant.ofcIp, tenant.ofcPort, net.isBooted)
+        log.info(s"Started Network for Tenant ${tenant.id} at OFC: ${tenant.ofcIp}:${tenant.ofcPort}. " +
+                 s"Is Booted: ${net.isBooted}")
         tenantNetMap = tenantNetMap + (tenant -> net)
         return Some(net)
 
       case None          =>
-        log.error("Network for Tenant {} at OFC: {}:{} was not started correctly!",
-          tenant.id, tenant.ofcIp, tenant.ofcPort)
+        log.error(s"Network for Tenant ${tenant.id} at OFC: ${tenant.ofcIp}:${tenant.ofcPort} was not started correctly!")
         return None
     }
   }
@@ -378,13 +372,12 @@ class OVXManager(ovxConn: OVXConnector)
     val virtNetOpt = tenantNetMap.get(tenant)
     virtNetOpt match {
       case Some(virtNet) =>
-        log.info("Removing tenant {} OFC Controller {} from network {}...",
-          tenant.id, virtNet.controllerUrls(0), virtNet.networkAddress)
+        log.info(s"Removing tenant ${tenant.id} OFC Controller ${virtNet.controllerUrls(0)} " +
+                 s"from network ${virtNet.networkAddress}...")
         ovxConn.removeControllers(tenant.id, List(virtNet.controllerUrls(0)))
 
       case None =>
-        log.warn("Tenant {} has no virtual net to remove the OFC-IP {} from!",
-          tenant, ofcIp)
+        log.warn(s"Tenant $tenant has no virtual net to remove the OFC-IP $ofcIp from!")
 
     }
   }
