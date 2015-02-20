@@ -8,9 +8,23 @@ import datatypes.CPUUnit._
 import scala.xml.Node
 
 
-case class Tenant(id: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short)
+case class Tenant(id: Int, var _ovxId: Option[Int],
+                  subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short) {
+  
+  def this(id: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short) = {
+    this(id, None, subnet, ofcIp, ofcPort)
+  }
+  
+  def ovxId_(ovxId : Int) = {
+    _ovxId = Some(ovxId)
+  }
+  def ovxId = _ovxId
+  
+}
 
 object Tenant{
+  
+  def apply(id: Int, subnet: (String, Short), ofcIp: InetAddress, ofcPort: Short) = new Tenant(id, subnet, ofcIp, ofcPort)
 
   /* Serialization: */
   /* ============== */
@@ -129,8 +143,12 @@ object Endpoint{
 }
 
 
-case class OvxInstance(ovxIp: InetAddress, ovxApiPort: Int, ovxCtrlPort: Int, federator: Boolean)
-  extends NetworkComponent
+case class OvxInstance(ovxIp: InetAddress, ovxApiPort: Short, ovxCtrlPort: Short, federator: Boolean)
+  extends NetworkComponent {
+  
+  def ofcEndpoint = (ovxIp, ovxCtrlPort)
+  
+}
 
 /** 
  * Companion Object for OvxInstance
@@ -181,8 +199,8 @@ object OvxInstance {
       ovxNode = (node \ "OvxInstance")(0)
 
     val ovxIp: InetAddress = InetAddress.getByName((ovxNode \ "IP").text)
-    val ovxApiPort = (ovxNode \ "ApiPort").text.toInt
-    val ovxCtrlPort = (ovxNode \ "CtrlPort").text.toInt
+    val ovxApiPort = (ovxNode \ "ApiPort").text.toShort
+    val ovxCtrlPort = (ovxNode \ "CtrlPort").text.toShort
     val federator = (ovxNode \ "Federator").text match {
       case "true" => true
       case _      => false
