@@ -10,7 +10,7 @@ import messages.TopologyDiscovery
 /**
  * @author Constantin Gaul, created on 1/20/15.
  */
-class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Int, networkResourceAgent: ActorRef) 
+class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResourceAgent: ActorRef)
                            extends Actor with ActorLogging{
   
   val _workingThread = new Thread(new Runnable{
@@ -142,6 +142,6 @@ object NetworkDiscoveryAgent
    * @param ovxIp The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
    * @return An Akka Properties-Object
    */
-  def props(ovxIp: InetAddress, ovxApiPort: Int, networkResourceAgent: ActorRef):
+  def props(ovxIp: InetAddress, ovxApiPort: Short, networkResourceAgent: ActorRef):
   Props = Props(new NetworkDiscoveryAgent(ovxIp, ovxApiPort, networkResourceAgent))
 }
