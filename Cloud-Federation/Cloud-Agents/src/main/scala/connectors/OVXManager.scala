@@ -60,35 +60,23 @@ class OVXManager(ovxConn: OVXConnector)
    * @param tenant
    * @return
    */
-  def createOVXNetwork(tenant: Tenant, foreignOvxInstance: Option[OvxInstance] = None): Option[VirtualNetwork] = {
+  def createOVXNetwork(tenant: Tenant, networkOFCs: List[(InetAddress, Short)]): Option[VirtualNetwork] = {
     if(tenantNetMap.keys.exists(_ == tenant)){
       log.info(s"Virtual Network for tenant $tenant already exists. Returning existing OVX-Network: ${tenantNetMap(tenant)}")
-      
       return tenantNetMap.get(tenant)
     }
     
-    var netOpt: Option[VirtualNetwork] = None
-    foreignOvxInstance match{
-    // If a foreign OVX-Instance is given, create a Network with an additional OFC entry in the Controller list:
-      case Some(ovxInst) =>
-        log.info(s"Creating Network with additional OFC connection to foreign OVX-Instance $ovxInst...")
-        netOpt = ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}," +
-          s"tcp:${ovxInst.ovxIp.getHostAddress}:${ovxInst.ovxCtrlPort}"),
-          tenant.subnet._1, tenant.subnet._2)
-        
-      // Otherwise just create the Network with one Controller entry (the tenant's OFC):
-      case None =>
-        log.info(s"Creation Network with single, tenant based OFC connection " +
-                 s"to tenant OFC (${tenant.ofcIp}:${tenant.ofcPort})...")
-        netOpt = ovxConn.createNetwork(List(s"tcp:${tenant.ofcIp.getHostAddress}:${tenant.ofcPort}"),
-          tenant.subnet._1, tenant.subnet._2)
-    }
+    val netOfcList: List[String] = networkOFCs.map(ofc => s"tcp:${ofc._1}:${ofc._2}")
+    log.info(s"Creating Network for tenant $tenant with OFCs $netOfcList...")
+    val netOpt: Option[VirtualNetwork] = ovxConn.createNetwork(netOfcList, tenant.subnet._1, tenant.subnet._2)
 
     netOpt match{
       case Some(net)  =>
         log.info(s"Created virtual Network ${tenant.subnet} for Tenant ${tenant.id} " +
                  s"at OFC: ${tenant.ofcIp}:${tenant.ofcPort}. Is Booted: ${net.isBooted}")
-        tenantToOVXTenantId = tenantToOVXTenantId + (tenant -> net.tenantId.getOrElse(-1))
+        val ovxTenantId = net.tenantId.getOrElse(-1)
+        tenantToOVXTenantId = tenantToOVXTenantId + (tenant -> ovxTenantId)
+        tenant.ovxId_(ovxTenantId)
         tenantNetMap = tenantNetMap + (tenant -> net)
         return Some(net)
 

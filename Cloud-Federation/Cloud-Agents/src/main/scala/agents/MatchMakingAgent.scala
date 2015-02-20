@@ -26,39 +26,39 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 /* Variables: */
 /* ========== */
 
-	private var cloudDiscoveries: Vector[Subscription] = Vector()
-	private var federationSubscriptions: Vector[(Subscription, ActorRef)] = Vector()
-  private var federatedOvxInstance: Option[OvxInstance] = None
+	private var _cloudDiscoveries: Vector[Subscription] = Vector()
+	private var _federationSubscriptions: Vector[(Subscription, ActorRef)] = Vector()
+  private var _ovxFedInstance: Option[OvxInstance] = None
 
   /**
    * Known from a FederateableResourceReply from the NRA to this MMA, so that this MMA knows, which ResourceAllocs
    * are available to be auctioned to foreign MMAs. 
    */
-  private var federateableResources: Map[(Host, ResourceAlloc), Boolean] = Map()
+  private var _federateableResources: Map[(Host, ResourceAlloc), Boolean] = Map()
   /**
    * Used by the auctioneer side of this MMA: tells, which foreign MMAs have won auctioned ResourceAllocs at this MMA- 
    */
-	private var auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
+	private var _auctionedResources: Map[ActorRef, ResourceAlloc] = Map()
   /**
    * Used by the bidder side of this MMA: tells, which foreign ResourceAllocs are won by this MMA. 
    */
-  private var wonResources: Map[ResourceAlloc, ActorRef] = Map()
+  private var _wonResources: Map[ResourceAlloc, ActorRef] = Map()
 	
   
 	// Each ResourceAlloc has exactly one Cloud that manages it (locally or inside a federation):
 	/**
 	 * Outstanding Mapping of ResourceAlloc to a list of ActorSelections, that are tried one after the other
 	 * until a Cloud was found that is able to allocate the ResourceAlloc-Key in a federation with this cloud.
-	 * Once this happens, the Key -> Value Mapping can be deleted from fedResOutstanding, as the final
-	 * result will be found in fedResCloudAssigns then. 
+	 * Once this happens, the Key -> Value Mapping can be deleted from _fedResOutstanding, as the final
+	 * result will be found in _fedResCloudAssigns then.
 	 */
-	private var fedResOutstanding: Map[ResourceAlloc, List[ActorRef]] = Map()
+	private var _fedResOutstanding: Map[ResourceAlloc, List[ActorRef]] = Map()
 	/**
 	 * Finally Assigned Mapping of ResourceAlloc to the foreign (slave) MMA that was willing to accept
 	 * the FederationRequest made from this MMA with the ResourceAlloc-Key.
 	 */
-	private var fedResCloudAssigns: Map[ResourceAlloc, ActorRef] = Map()
-	private var foreignToLocalTenants: Map[Tenant, Tenant] = Map()
+	private var _fedResCloudAssigns: Map[ResourceAlloc, ActorRef] = Map()
+	private var _foreignToLocalTenants: Map[Tenant, Tenant] = Map()
 
 
 /* Methods: */
@@ -68,7 +68,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 		log.info("MatchMakingAgent received DiscoveryPublication from {}. " +
 			"Adding CloudDiscovery to known Clouds...",
       sender())
-		cloudDiscoveries = cloudDiscoveries :+ cloudDiscovery
+		_cloudDiscoveries = _cloudDiscoveries :+ cloudDiscovery
 		log.info("Sending own FederationInfoSubscription to foreign MMA...")
 		val ownSubscription = Subscription(context.self, cloudConfig.cloudSLA,
 																			 cloudConfig.cloudHosts.map(_.sla).toVector, cloudConfig.certFile)
@@ -76,7 +76,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 	}
 
 	/**
-	 * Received from NetworkResourceAgent.
+	 * Received from a NetworkResourceAgent (basic NRA or NRA-F).
 	 * <p>
 	 *    When a ResourceRequest arrives, the MatchMakingAgent has to gather
 	 *    the requested resources from the currently known Federation-Clouds.
@@ -93,16 +93,15 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 	 * @param resourcesToGather The ResourceAllocation that the MMA needs to gather from its federated Clouds.
 	 */
 	def recvResourceRequest(tenant: Tenant, resourcesToGather: ResourceAlloc): Unit = {
-  
-    
+
 		log.info("Received ResourceRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
 						 tenant, resourcesToGather.resources.size, sender())
 
     // Only try to federated, if foreign clouds are known:
-		if(cloudDiscoveries.size > 0){
+		if(_cloudDiscoveries.size > 0){
 			// First, add all previously discovered foreign MMAs into the list of outstanding requests for the
 			// current ResourceAlloc that should be solved in a federation from the foreign cloud:
-			fedResOutstanding = fedResOutstanding + (resourcesToGather -> cloudDiscoveries.map(_.actorRefMMA).toList)
+			_fedResOutstanding = _fedResOutstanding + (resourcesToGather -> _cloudDiscoveries.map(_.actorRefMMA).toList)
 
       log.info("Sending ResourceFederationRequest to next MMA...")
       sendFederationRequestToNextMMA(tenant, localGWSwitch, resourcesToGather)
@@ -120,8 +119,8 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 		log.info("Received ResourceFederationRequest (Tenant: {}, ResCount: {}) from {} at MatchMakingAgent.",
 			tenant, resourcesToAlloc.resources.size, sender())
 
-		if(auctionedResources.contains(sender())){
-			val sendersAvailResources: ResourceAlloc = auctionedResources(sender())
+		if(_auctionedResources.contains(sender())){
+			val sendersAvailResources: ResourceAlloc = _auctionedResources(sender())
 			// Are the requested resources a subset (or the whole set) of the sender's available Resources?
 			// This is fulfilled, if no resource is left in the resourceToAlloc, if filtered by its available Resources:
 			val leftResToAlloc: Iterable[Resource] = resourcesToAlloc.resources.filter(sendersAvailResources.resources.contains)
@@ -168,13 +167,13 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 
 		// If no resources were federated at the foreign cloud, simply log and return:
     if(wasFederated){
-      // If fedResources were federated, add the federatedResources to the fedResCloudAssigns-Map and send a Federation
+      // If fedResources were federated, add the federatedResources to the _fedResCloudAssigns-Map and send a Federation
       log.info("Received ResourceFederationReply. " +
         "Successfully established a federation with MMA {}. FederatedResources: {}",
         sender(), federatedResources)
       // IMPLICIT: federatedResources is the same ResourceAlloc that was forwarded from this MMA to the foreign MMA before:
-      fedResCloudAssigns = fedResCloudAssigns + (federatedResources -> sender())
-      federatedOvxInstance match{
+      _fedResCloudAssigns = _fedResCloudAssigns + (federatedResources -> sender())
+      _ovxFedInstance match{
           case Some(ovxInstance) =>
             log.info("Sending successful federation establishment as a ResourceFederationResult to local NRA...")
             nraActorSel ! ResourceFederationResult(tenant, foreignGWSwitch, federatedResources, ovxInstance)
@@ -201,9 +200,9 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
   def recvFederateableResourceDiscovery(fedDiscovery: Vector[(Host, ResourceAlloc)]) = {
     log.info("Received FederateableResourceDiscovery from {}", sender())
     for ((actHost, hostResAlloc) <- fedDiscovery ) {
-      if(! federateableResources.contains((actHost, hostResAlloc))){
+      if(! _federateableResources.contains((actHost, hostResAlloc))){
         log.info("Initiated federateableResource {}, received from NRA", (actHost, hostResAlloc))
-        federateableResources = federateableResources + ((actHost, hostResAlloc) -> false)
+        _federateableResources = _federateableResources + ((actHost, hostResAlloc) -> false)
       }
     }
   }
@@ -215,10 +214,10 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
    */
 	def recvFederationInfoSubscription(subscription: Subscription): Unit = {
 		log.info("Received FederationInfoSubscription from {}", sender())
-		federationSubscriptions = federationSubscriptions :+ (subscription, sender())
+		_federationSubscriptions = _federationSubscriptions :+ (subscription, sender())
     
     // Preparing any federeateableResources for the InfoPublication:
-    val possibleFedAllocs = federateableResources.map(_._1).toVector
+    val possibleFedAllocs = _federateableResources.map(_._1).toVector
     log.info("Sending FederationInfoPublication {} back to subscriber.", possibleFedAllocs)
     sender() ! FederationInfoPublication(possibleFedAllocs)
 	}
@@ -235,7 +234,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 		log.info("Received FederationInfoPublication from {}", sender())
     
     // Only answer senders of a FederationInfoPublications, that were asked to act as subscribers via a FederationInfoSubscription first:
-    if(cloudDiscoveries.exists(_.actorRefMMA == sender())) {
+    if(_cloudDiscoveries.exists(_.actorRefMMA == sender())) {
       log.info("FederationInfoPublication was received from previously discovered Cloud subscriber. Sending ResourceAuctionBid back...")
       //TODO: Implement iBundle - Shortcut implementation: For each ResAlloc, simply bid something on some ResourceAllocs:
       for ((actHost, hostResAlloc) <- possibleFedAllocs) {
@@ -258,12 +257,12 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
     log.info("Received ResourceAuctionBid from {}. Bid on {} with askPrice: {}",
              sender(), resourceBid, askPrice)
     
-    if(federationSubscriptions.exists(_._2 == sender())) {
+    if(_federationSubscriptions.exists(_._2 == sender())) {
       log.info("AuctionBid was received from known subscriber MMA: {}", sender())
       //TODO: Implement iBundle - Shortcut implementation: The first incoming Request wins.
-      if (federateableResources.contains((resourceHost, resourceBid)) && federateableResources((resourceHost, resourceBid))) {
+      if (_federateableResources.contains((resourceHost, resourceBid)) && _federateableResources((resourceHost, resourceBid))) {
         sender() ! ResourceAuctionResult(resourceBid, won = true)
-        auctionedResources = auctionedResources + (sender() -> resourceBid)
+        _auctionedResources = _auctionedResources + (sender() -> resourceBid)
       }
       else
         sender() ! ResourceAuctionResult(resourceBid, won = false)
@@ -282,7 +281,7 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
     log.info("Received ResourceAuctionResult from {}. Won the ResAlloc? {}.", sender(), won)
     if(won) {
       log.info("Won ResourceAuction with {}!", resourceBid)
-      wonResources = wonResources + (resourceBid -> sender())
+      _wonResources = _wonResources + (resourceBid -> sender())
     }
   }
 
@@ -336,7 +335,10 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
       case ovxReply: OvxInstanceReply =>
         log.info("Received asked OvxInstanceReply {} from Federator!",
                  ovxReply.ovxInstance)
-        federatedOvxInstance = Some(ovxReply.ovxInstance)
+        _ovxFedInstance = Some(ovxReply.ovxInstance)
+        
+        log.info("Sending OVX-F instance to NRA immdediately...")
+        nraActorSel ! OvxInstanceReply(_ovxFedInstance.get)
     }
     
     futureOvxReply onFailure {
@@ -350,28 +352,28 @@ class MatchMakingAgent(cloudConfig: CloudConfigurator,
 /* ================ */
 
   private def mapForeignToLocal(foreignTenant: Tenant): Tenant = {
-    // Use a random ID for the local mapping of the foreign Tenant
+    // Use a random tenant-Id for the local mapping of the foreign Tenant
     // TODO: test if newly generated, local Tenant-ID already exists:
-    val localTenant = Tenant((Math.random * Int.MaxValue).toInt, foreignTenant.subnet,
+    val localTenant = Tenant((Math.random * Int.MaxValue).toInt, foreignTenant.ovxId, foreignTenant.subnet,
       foreignTenant.ofcIp, foreignTenant.ofcPort)
-    foreignToLocalTenants = foreignToLocalTenants + (foreignTenant -> localTenant)
+    _foreignToLocalTenants = _foreignToLocalTenants + (foreignTenant -> localTenant)
     return localTenant
   }
 	
 	private def sendFederationRequestToNextMMA(tenant: Tenant, gwSwitch: OFSwitch, 
                                              resourcesToGather: ResourceAlloc) = {
 		// Find the next MMA from the local MMA's mapping:
-		val outstandingMMAList = fedResOutstanding.getOrElse(resourcesToGather, List())
+		val outstandingMMAList = _fedResOutstanding.getOrElse(resourcesToGather, List())
 		val nextMMAOpt = outstandingMMAList.headOption
 		
 		nextMMAOpt match{
 		    case Some(nextMMA) => 
-          federatedOvxInstance match{
+          _ovxFedInstance match{
             case Some(ovxInstance) =>
               log.info("Sending Federation Request to next MMA in outstanding List. MMA: {}", nextMMA)
               nextMMA !  ResourceFederationRequest(tenant, gwSwitch, resourcesToGather, ovxInstance)
                 // Remove the nextMMA that was just requested from the outstanding list:
-              fedResOutstanding = fedResOutstanding + (resourcesToGather -> outstandingMMAList.filter(_ != nextMMA))
+              _fedResOutstanding = _fedResOutstanding + (resourcesToGather -> outstandingMMAList.filter(_ != nextMMA))
               
             case None => 
               log.error("No OVX-F was available, on sending a FederationRequest to next MMA {} for tenant {}!",
