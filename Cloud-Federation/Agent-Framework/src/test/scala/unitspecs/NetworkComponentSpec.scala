@@ -373,6 +373,18 @@ class NetworkComponentSpec extends FlatSpec with Matchers with GivenWhenThen wit
     pending
     //TODO: check allocation split via host.allocate()
   }
+  
+  it should "be virtualizable within the OVX DPID virtualization rules" in{
+    val virtHost1 = Host.virtualizeOvxHost(host1)
+    println("virtHost1.endpoint = " + virtHost1.endpoint)
+    
+    val physOffset = "00:00:00:00"
+    val virtOffset = "00:a4:23:05"
+    virtHost1.endpoint.dpid.toString.contains(virtOffset) should be(right = true)
+    val physDpidEnding = host1.endpoint.dpid.toString.split(physOffset)(1)
+    val virtDpidEnding = virtHost1.endpoint.dpid.toString.split(virtOffset)(1)
+    physDpidEnding should equal (virtDpidEnding)
+  }
 
   it should "be fully serializable to and deserializable from XML" in{
 
