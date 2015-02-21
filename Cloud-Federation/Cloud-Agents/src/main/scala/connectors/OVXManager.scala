@@ -30,7 +30,10 @@ class OVXManager(ovxConn: OVXConnector)
    * for each physical OFSwitch in a tenant's virtual network 
    */
   private var _tenantSwitchPortMap: Map[(Tenant, OFSwitch), List[(Short, Short, Option[NetworkComponent])]] = Map()
-
+  /**
+   * Maps the virtual Link between two Physical OFSwitches. Key is defined as: (tenant, srcSwitch, dstSwitch).
+   */
+  private var _tenantSwitchLinkMap: Map[(Tenant, OFSwitch, OFSwitch), VirtualLink] = Map()
   
   // Virtual Mappings:
   // -----------------
@@ -264,8 +267,16 @@ class OVXManager(ovxConn: OVXConnector)
      log.info(s"Connection between srcSwitch $srcSwitch and dstSwitch $dstSwitch in tenant $tenant's network is already established." +
        "Returning existing virtual link")
       
-      //TODO: return existing vLink
-      return None
+      //IMPLICIT: Either srcToDstLink XOR dstToSrcLink have to exist:
+      var preDefLink: Option[VirtualLink] = None
+      val srcToDstLink = _tenantSwitchLinkMap.get(tenant, srcSwitch, dstSwitch)
+      if(srcToDstLink.isDefined)
+        preDefLink = srcToDstLink
+      else{
+        val dstToSrcLink = _tenantSwitchLinkMap.get(tenant, dstSwitch, srcSwitch)
+        preDefLink = dstToSrcLink
+      }
+      return preDefLink
     }
     
     // If every mapping could be resolved and the OVX-Connection for both Switches is not yet established,
@@ -287,6 +298,10 @@ class OVXManager(ovxConn: OVXConnector)
         // Update the _tenantSwitchPortMap with the added NetworkComponent (the dstSwitch):
         _tenantSwitchPortMap = _tenantSwitchPortMap +
           ((tenant, srcSwitch) -> _tenantSwitchPortMap.getOrElse((tenant, srcSwitch), List()).updated(srcPortMapIndex, newSrcPortMap))
+        
+        // Add an entry to the _tenantSwitchLinkMap with the newly created virtualLink:
+        _tenantSwitchLinkMap = _tenantSwitchLinkMap + ((tenant, srcSwitch, dstSwitch) -> vLink)
+        
         return Some(vLink)
 
       case None =>
