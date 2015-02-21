@@ -87,7 +87,6 @@ class OVXManager(ovxConn: OVXConnector)
                  s"at OFC: ${tenant.ofcIp}:${tenant.ofcPort}. Is Booted: ${net.isBooted}")
         val ovxTenantId = net.tenantId.getOrElse(-1)
         _tenantToOVXTenantId = _tenantToOVXTenantId + (tenant -> ovxTenantId)
-        tenant.ovxId_(ovxTenantId)
         _tenantNetMap = _tenantNetMap + (tenant -> net)
         return Some(net)
 
@@ -105,6 +104,8 @@ class OVXManager(ovxConn: OVXConnector)
    */
   def createOVXSwitch(tenant: Tenant, physSwitch: OFSwitch): Option[VirtualSwitch] = {
     val physSwitchDpid: Long = physSwitch.dpid.convertToHexLong
+    
+    // Check for pre-existence and return, if available:
     if(_tenantVirtSwitchMap.getOrElse(tenant, List()).exists(_.dpids.contains(physSwitchDpid)) &&
        _tenantPhysSwitchMap.getOrElse(tenant, List()).exists(_.dpid == physSwitch.dpid)){
       log.info(s"Virtual Switch for physSwitch $physSwitch and tenant $tenant already exists. " +
@@ -279,6 +280,22 @@ class OVXManager(ovxConn: OVXConnector)
   }
 
   def createOVXHostPort(tenant: Tenant, physSwitch: OFSwitch, host: Host): Option[(Short, Short)] = {
+    
+    // Check, if physSwitch DPID and host.endpoint DPID are consistent:
+    if(physSwitch.dpid != host.endpoint.dpid) {
+      log.error(s"No OVX Host-Port will be created for tenant ${tenant.id}, " +
+        s"if host's endpoint DPID ${host.endpoint.dpid} is not pointing to physSwitch-DPID ${physSwitch.dpid}!")
+      return None
+    }
+    
+    // Check for pre-existence of Physical-Port for (tenant, physSwitch) mapping and return it, if already existing:
+    if(_tenantSwitchPortMap.getOrElse((tenant, physSwitch), List()).exists(_._1 == host.endpoint.port)){
+      log.info(s"Physical Port for tenant ${tenant.id} on physSwitch $physSwitch already exists! " +
+               s"Return existing portMapping...")
+      return _tenantSwitchPortMap(tenant, physSwitch).find(_._1 == host.endpoint.port).map(portMap => (portMap._1, portMap._2))
+    }
+    
+    //IMPLICIT: physSwitch.dpid == host.endpoint.dpid
     val hostPortMap = ovxConn.createPort(_tenantToOVXTenantId(tenant), host.endpoint.dpid.toString, host.endpoint.port)
     hostPortMap match {
       case Some(portMap)	=>
@@ -297,38 +314,35 @@ class OVXManager(ovxConn: OVXConnector)
     }
   }
   
-  def connectOVXHost(tenant: Tenant, physSwitchOpt: Option[OFSwitch], host: Host): Option[VirtualHost] = {
+  
+  def connectOVXHost(tenant: Tenant, physSwitch: OFSwitch, host: Host): Option[VirtualHost] = {
+    
+    // Check, if virtual Switch is available in tenant-net for physSwitch:
     val virtSwitchOpt = _tenantVirtSwitchMap(tenant).find(_.dpids.contains(host.endpoint.dpid.convertToHexLong))
-    if (!(physSwitchOpt.isDefined && virtSwitchOpt.isDefined)) {
+    if (virtSwitchOpt.isEmpty) {
+      log.error(s"No virtual Switch is available for physSwitch $physSwitch for tenant ${tenant.id}! " +
+                s"Create it first via createOVXSwitch(..)!")
       return None
     }
-    val physSwitch = physSwitchOpt.get
     val virtSwitch = virtSwitchOpt.get
-    var portMapOpt: Option[(Short, Short)] = None
-    // If a virtual Port is available for the physSwitch + physPort
-    if (_tenantSwitchPortMap((tenant, physSwitch)).exists(_._1 == host.endpoint.port)) {
-      portMapOpt = _tenantSwitchPortMap((tenant, physSwitch)).find(_._1 == host.endpoint.port).map(t3 => (t3._1, t3._2))
+
+    // Check, if portMapping is available in tenant-net for host on physSwitch:
+    if(!_tenantSwitchPortMap.getOrElse((tenant, physSwitch), List()).exists(_._1 == host.endpoint.port)){
+      log.info(s"Physical Port for tenant ${tenant.id} on physSwitch $physSwitch does not exist! " +
+               s"Create it first via createOVXHostPort(..)!")
+      return None
     }
-    // If no virtual Port is available for the physSwitch + physPort that the Host should connect to, createPort:
-    else {
-      portMapOpt = this.createOVXHostPort(tenant, physSwitch, host)
-    }
+    val portMap = _tenantSwitchPortMap(tenant, physSwitch)
+                          .find(_._1 == host.endpoint.port)
+                          .map(portMap => (portMap._1, portMap._2)).get
     
     // Finally add the OVX-Host to the correct portMap:
-    if (portMapOpt.isDefined) {
-      return this.connectOVXHost(tenant, physSwitch, virtSwitch, host, portMapOpt.get)
-    }
-    else{
-      log.warn(s"PortMap is undefined! Host $host can't be connected to Switch $physSwitch in tenant network $tenant")
-      return None
-    }
+    return this.connectOVXHost(tenant, physSwitch, virtSwitch, host, portMap)
   }
 
   def connectOVXHost(tenant: Tenant, physSwitch: OFSwitch, virtSwitch: VirtualSwitch,
                               host: Host, portMap: (Short, Short)): Option[VirtualHost] = {
-    //TODO: check if virtual device already existent for tenant
     
-
     val vHostOpt = ovxConn.connectHost(tenant.id, virtSwitch.vdpid, portMap._2, host.mac)
     vHostOpt match {
       case Some(vHost) =>
@@ -348,6 +362,8 @@ class OVXManager(ovxConn: OVXConnector)
   }
 
   def startOVXNetwork(tenant: Tenant): Option[VirtualNetwork] = {
+    
+    // Check for network pre-existence and return None, if network is already started:
     if (_tenantNetMap.keys.exists(_ == tenant) && _tenantNetMap(tenant).isBooted.getOrElse(false)) {
       log.info(s"Virtual Network ${_tenantNetMap(tenant)} for tenant $tenant is already booted up.")
       return None

@@ -58,15 +58,15 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResour
     val phTopo  = ovxConn.getPhysicalTopology
     
     // Convert String-DPIDs to regular DPID-Objects:
-    val phTopoDPIDs = phTopo._1.map(DPID)
+    val phTopoDPIDs = phTopo._1.map(new DPID(_))
     
     // Add new Switches that are discovered in the physical Topology, but are currently not inside _discoveredSwitches:
     val newSwitches: List[OFSwitch] = for (actDPID <- phTopoDPIDs if ! _discoveredSwitches.exists(_.dpid == actDPID))
-                                        yield OFSwitch(actDPID)
+                                        yield new OFSwitch(actDPID)
     
     // Find removed Switches, that were in the _discoveredSwitches List, but are not in the physical Topology anymore:
     val remSwitches: List[OFSwitch] = for (actDPID <- _discoveredSwitches.map(_.dpid) if ! phTopoDPIDs.contains(actDPID))
-                                        yield OFSwitch(actDPID)
+                                        yield new OFSwitch(actDPID)
     
     if(newSwitches.length > 0) {
       this.log.info("Discovered new switches in the physical Topology: {}", newSwitches.map(_.dpid))
