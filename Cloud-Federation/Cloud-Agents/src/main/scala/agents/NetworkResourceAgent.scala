@@ -189,8 +189,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		if(remainResToAlloc.isDefined){
 			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
 				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
-      // TODO: before sending a ResourceReq to the MMA,
-      // TODO: start federated Network and hand tenant-OVX-mapping to federationRequest via tenant
+      // TODO: before sending a ResourceReq to the MMA, start federated Network and hand tenant-OVX-mapping to federationRequest via tenant
       bootstrapFedTenantNet(tenant)
 
 			matchMakingAgent ! ResourceRequest(tenant, remainResToAlloc.get)
@@ -264,8 +263,9 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     _ovxFedManager.addTenantOvxId(tenant)
     
     // TODO check: use fedOvxTenantId to allocate the tenant's hosts on OVX-F:
-    // TODO: Host.virtualize(..) before using hostList:
-    mapAllocOnOvx(_ovxFedManager, tenant, hostList)
+    // Virtualize DPID of the Endpoint in each Host before allocating it on OFV-F
+    val virtHostList = hostList.map(Host.virtualizeOvxHost)
+    mapAllocOnOvx(_ovxFedManager, tenant, virtHostList)
 
     
 		if(remainResToAlloc.size > 0){
@@ -459,8 +459,9 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     val tenantOfc = (tenant.ofcIp, tenant.ofcPort)
     val virtNet = _ovxFedManager.createOVXNetwork(tenant, List(tenantOfc))
     
-    //TODO: implement Host.virtualize(..) and use it here. Don't just use _tenantHostList(tenant):
-    mapAllocOnOvx(_ovxFedManager, tenant, _tenantHostList(tenant))
+    // Virtualize DPID of the Endpoint in each Host in tenant's hostList before allocating it on OFV-F
+    val virtHostList = _tenantHostList(tenant).map(Host.virtualizeOvxHost)
+    mapAllocOnOvx(_ovxFedManager, tenant, virtHostList)
 
     //TODO: test if that is really needed:
     tenant.ovxId_(virtNet.get.tenantId.getOrElse(-1))
