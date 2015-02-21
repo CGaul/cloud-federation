@@ -85,7 +85,7 @@ case class DPID(dpid: String) {
 }
 
 object DPID{
-  def virtualizeOvxDpid(physicalDpid: DPID): DPID = {
+  def virtualizedByOvx(physicalDpid: DPID): DPID = {
     val ovxVirtOffset = "00:a4:23:05"
     val virtDpid = ovxVirtOffset + physicalDpid.dpid.substring(ovxVirtOffset.length)
     return DPID(virtDpid)
@@ -104,6 +104,11 @@ object Endpoint{
   def apply(dpid: String, port: Int): Endpoint = new Endpoint(dpid, port.toShort)
   def apply(dpid: String, port: Short): Endpoint = new Endpoint(dpid, port)
   
+  def virtualizedByOvx(physEndpoint: Endpoint): Endpoint = {
+    val virtDpid = DPID.virtualizedByOvx(physEndpoint.dpid)
+    val virtEndpoint = physEndpoint.copy(virtDpid)
+    return virtEndpoint
+  }
 
   /* Serialization: */
   /* ============== */
@@ -275,6 +280,10 @@ object OFSwitch {
   def apply(dpid: DPID): OFSwitch = new OFSwitch(dpid)
   def apply(dpid: String): OFSwitch = new OFSwitch(dpid)
 
+  def virtualizedByOvx(ofSwitch: OFSwitch) = {
+    val virtDpid = DPID.virtualizedByOvx(ofSwitch.dpid)
+    val virtEndpoints = ofSwitch._portMap.map(Endpoint)
+  }
   
   /* Serialization: */
   /* ============== */
@@ -519,8 +528,8 @@ case class Host(hardwareSpec: Resource, endpoint: Endpoint, ip: InetAddress, mac
  */
 object Host {
 
-  def virtualizeOvxHost(physicalHost: Host): Host = {
-    val virtDpid = DPID.virtualizeOvxDpid(physicalHost.endpoint.dpid)
+  def virtualizedByOvx(physicalHost: Host): Host = {
+    val virtDpid = DPID.virtualizedByOvx(physicalHost.endpoint.dpid)
     val virtEndpoint = Endpoint(virtDpid, physicalHost.endpoint.port)
     
     val virtHost = physicalHost.copy(endpoint = virtEndpoint)

@@ -139,16 +139,23 @@ class OVXManager(ovxConn: OVXConnector)
    * @param tenant
    * @param physSwitch
    */
-  def createAllOVXSwitchPorts(tenant: Tenant, physSwitch: OFSwitch): Boolean = {
+  def createAllOVXSwitchPorts(tenant: Tenant, physSwitch: OFSwitch): List[(Short, Short)] = {
     // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
     val physSrcPorts = physSwitch.portMap.map(_._1)
     var allPortsCreated: Boolean = true
+    
     for (actSrcPort <- physSrcPorts) {
       val portMapOpt = createOVXSwitchPort(tenant, physSwitch, actSrcPort)
       if(portMapOpt.isEmpty)
         allPortsCreated = false
     }
-    return allPortsCreated
+    if(allPortsCreated)
+      log.info(s"All Ports for physSwitch $physSwitch for tenant ${tenant.id} were created.")
+    else
+      log.warn(s"NOT all ports for physSwitch $physSwitch  for tenant ${tenant.id} were created!")
+    
+    val physPortMap = _tenantSwitchPortMap(tenant, physSwitch).map(pMap => (pMap._1, pMap._2))
+    return physPortMap
   }
 
   def createOVXSwitchPort(tenant: Tenant, physSwitch: OFSwitch, physPort: Short): Option[(Short, Short)] = {
@@ -182,22 +189,32 @@ class OVXManager(ovxConn: OVXConnector)
    * In order to put an OVX-Switch in this physicalSwitch-Map, call "createOVXSwitch(tenant, physSwitch)"
    * and "createAllOVXSwitchPorts(tenant, physSwitch)" for each Switch that should be in the tenant's virtual network.
    * @param tenant
+   * @return A (phys -> virt) port map for each srcSwitch, pointing to the dstSwitch
    */
-  def connectAllOVXSwitches(tenant: Tenant) = {
+  def connectAllOVXSwitches(tenant: Tenant): Map[OFSwitch, List[(Short, Short, OFSwitch)]] = {
     // Iterate over all physical Switches, get their Port-mapping from _tenantSwitchPortMap
     // and connect their virtual counterparts to each other on the correct virtPorts (create all topology paths):
+
+    var switchConnMap: Map[OFSwitch, List[(Short, Short, OFSwitch)]] = Map()
+
     for (actPhysSwitch <- _tenantPhysSwitchMap(tenant)) {
       for ((srcPort, srcEndpoint) <- actPhysSwitch.portMap) {
-        val physSrcSwitch = actPhysSwitch
         val physDstSwitchOpt = _tenantPhysSwitchMap.getOrElse(tenant, List()).find(_.dpid == srcEndpoint.dpid)
         // As the physical Destination Switch might not be in the tenant's switchMap, only continue connection if both
         // src- and dst-Switch are known:
         if (physDstSwitchOpt.isDefined) {
           val physDstSwitch = physDstSwitchOpt.get
-          this.connectOVXSwitches(tenant, physSrcSwitch, physDstSwitch)
+          val virtLinkOpt = this.connectOVXSwitches(tenant, actPhysSwitch, physDstSwitch)
+          if(virtLinkOpt.isDefined){
+            val actSwitchPortMap = _tenantSwitchPortMap(tenant, actPhysSwitch)
+                                      .map(pMap => (pMap._1, pMap._2, pMap._3.get.asInstanceOf[OFSwitch]))
+            switchConnMap = switchConnMap + (actPhysSwitch -> actSwitchPortMap)
+          }
         }
       }
     }
+    
+    return switchConnMap
   }
 
   /**
@@ -220,8 +237,9 @@ class OVXManager(ovxConn: OVXConnector)
     if(!(physSrcPortMapOpt.isDefined && physDstPortMapOpt.isDefined &&
       virtSrcSwitchOpt.isDefined && virtDstSwitchOpt.isDefined)) {
       
-      log.warn(s"Connection between srcSwitch $srcSwitch and dstSwitch $dstSwitch in tenant $tenant's network can't be established, " +
-        "as no virtual counterparts are available or bidirectional port mapping is not existent!")
+      log.warn(s"Connection between srcSwitch $srcSwitch and dstSwitch $dstSwitch " +
+               s"in tenant $tenant's network can't be established, " +
+               s"as no virtual counterparts are available or bidirectional port mapping is not existent!")
       return None
     }
 

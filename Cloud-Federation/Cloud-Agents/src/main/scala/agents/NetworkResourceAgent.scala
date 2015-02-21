@@ -281,7 +281,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     _ovxFedManager.addTenantOvxId(tenant)
     
     // Virtualize DPID of the Endpoint in each Host before allocating it on OFV-F
-    val virtHostList = hostList.map(Host.virtualizeOvxHost)
+    val virtHostList = hostList.map(Host.virtualizedByOvx)
     
     // TODO: Map the tenant's locally virtualized OVX network on the federated OVX-F:
     // TODO: physicalSwitches are not working here, as their DPIDs have to be virtualized before..
@@ -416,9 +416,11 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
    *                   be used.
    * @param tenant The Tenant that owns a virtual OVX-network, previously created via ovxManager.createOVXNetwork(..)
    * @param hosts The list of hosts, that are allocated locally to the given tenant.
+   * @return A (phys -> virt) port map for each srcSwitch, pointing to the dstSwitch. 
+   *         Returned by OVXManager.connectAllOvxSwitches(tenant)
    */
 	private def mapAllocOnOvx(ovxManager: OVXManager, 
-                            tenant: Tenant, hosts: List[Host]): Unit = {
+                            tenant: Tenant, hosts: List[Host]): Map[OFSwitch, List[(Short, Short, OFSwitch)]] = {
 
 		// The _hostPhysSwitchMap defines a mapping between each known host and all physical Switches,
 		// that are connected to this host and discovered via a TopologyDiscovery earlier.
@@ -442,7 +444,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 		
     // After all Switches are established in the upper loop, connect them with each other:
-		ovxManager.connectAllOVXSwitches(tenant)
+		val switchConnPortMap = ovxManager.connectAllOVXSwitches(tenant)
 
 		// Create Ports at the Host's Endpoint Switch:Port and connect the Host to it
 		for (actHost <- hosts) {
@@ -460,6 +462,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
             log.error("Switch is not existing for Host {} in tenant's {} network!", actHost, tenant.id)
       }
 		}
+    
+    return switchConnPortMap
 	}
 
   private def prepareFederation(tenant: Tenant, foreignGWSwitch: OFSwitch) = {
@@ -510,7 +514,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     tenant.ovxId_(virtNet.get.tenantId.getOrElse(-1))
     
     // Virtualize DPID of the Endpoint in each Host in tenant's hostList before allocating it on OVX-F
-    val virtHostList = _tenantHostList(tenant).map(Host.virtualizeOvxHost)
+    val virtHostList = _tenantHostList(tenant).map(Host.virtualizedByOvx)
     
     // TODO and add virtualized OFSwitches to the _hostPhysSwitchMap for each virtualized Host:
     
