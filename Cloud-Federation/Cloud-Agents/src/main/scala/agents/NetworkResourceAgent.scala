@@ -126,8 +126,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 
 		case message: NRANetworkDest => message match{
-			case TopologyDiscovery(ovxInstance, switchList)
-			=> 	recvTopologyDiscovery(ovxInstance, switchList)
+			case TopologyDiscovery(ovxInstance, newSwitches, removedSwitches)
+			=> 	recvTopologyDiscovery(ovxInstance, newSwitches, removedSwitches)
 				log.info("New TopologyDiscovery received.")
 		}
 		case _	=> log.error("Unknown message received!")
@@ -139,8 +139,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 			
 		case message: NRANetworkDest => message match{
-			case TopologyDiscovery(ovxInstance, switchList)
-			=> 	recvTopologyDiscovery(ovxInstance, switchList)
+			case TopologyDiscovery(ovxInstance, newSwitches, removedSwitches)
+			=> 	recvTopologyDiscovery(ovxInstance, newSwitches, removedSwitches)
 				  checkOnlineStateReached()
 		}
 
@@ -220,7 +220,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
         // after local mapping, wait for the federated NDA to send a TopologyDiscovery in order
         // to initiate the federation on OVX-F as the federation-master:
-        askForFederatedTopoDiscovery(_fedMasterNDA, initiateFederationAsMaster(tenant, remainResAlloc, virtHosts))
+        askForFederatedTopoDiscovery(_fedMasterNDA, null, initiateFederationAsMaster(tenant, remainResAlloc, virtHosts))
       }
       else {
         log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
@@ -259,8 +259,22 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     val localGWSwitch = cloudConfig.cloudGateway
     createOVXFedGateways(_ovxLocalManager, tenant, localGWSwitch, foreignGWSwitch)
     
-    // TODO: Afterwards, wait for the NDA to get the updated TopologyDiscovery and add the GWs to the virtualized tenant network
+    // Afterwards, wait for the NDA to get the updated TopologyDiscovery and add the GWs to the virtualized tenant network
     // on OVX-F:
+    def createVirtGateways(newSwitches: List[OFSwitch], removedSwitches: List[OFSwitch]): Unit = {
+      val virtLocalGWDpid = DPID.virtualizedByOvx(localGWSwitch.dpid)
+      val virtForeignGWDpid = DPID.virtualizedByOvx(foreignGWSwitch.dpid)
+      //Find virtGateways in newSwitches by their virtualized OVX DPID:
+      val virtLocalGW = newSwitches.find(switch => switch.dpid == virtLocalGWDpid)
+      val virtForeignGW = newSwitches.find(switch => switch.dpid == virtForeignGWDpid)
+      
+      if(virtLocalGW.isDefined && virtForeignGW.isDefined) {
+        log.info("Creating virtual Federation Gateways on tenant's {} OVX-F network...", tenant.id)
+        //Afterwards create the federation Gateways with the ovxFedManager and the virtual Gateways:
+        createOVXFedGateways(_ovxFedMasterManager, tenant, virtLocalGW.get, virtForeignGW.get)
+      }
+    }
+    askForFederatedTopoDiscovery(_fedMasterNDA, createVirtGateways, null)
     
 	}
 
@@ -292,27 +306,28 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       log.info("Starting virtual tenant's {} network...", tenant.id)
       _ovxLocalManager.startOVXNetwork(tenant)
     }
-    else{
+    else {
       log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant.id)
       return
     }
-    createOVXFedGateways(tenant, foreignGWSwitch)
-    
-    // tenant carries an ovxId from the foreign master federation cloud. This is needed, so that
-    // mapAllocOnOvx on the OVX-F can use this ovxId to bootstrap the local network on a federation network in OVX-F.
-    _ovxFedMasterManager.addTenantOvxId(tenant)
-    
-    // Virtualize DPID of the Endpoint in each Host before allocating it on OFV-F
-    val virtHostList = hostList.map(Host.virtualizedByOvx)
-    
-    // TODO: Map the tenant's locally virtualized OVX network on the federated OVX-F:
-    // TODO: physicalSwitches are not working here, as their DPIDs have to be virtualized before..
-    mapAllocOnOvx(_ovxFedMasterManager, tenant, virtHostList)
-
-    
-		if(remainResToAlloc.size > 0){
-			// TODO: send Information about remaining Resources to Allocate back to the sender.
-		}
+    //TODO: redesign here:
+//    createOVXFedGateways(tenant, foreignGWSwitch)
+//    
+//    // tenant carries an ovxId from the foreign master federation cloud. This is needed, so that
+//    // mapAllocOnOvx on the OVX-F can use this ovxId to bootstrap the local network on a federation network in OVX-F.
+//    _ovxFedMasterManager.addTenantOvxId(tenant)
+//    
+//    // Virtualize DPID of the Endpoint in each Host before allocating it on OFV-F
+//    val virtHostList = hostList.map(Host.virtualizedByOvx)
+//    
+//    // TODO: Map the tenant's locally virtualized OVX network on the federated OVX-F:
+//    // TODO: physicalSwitches are not working here, as their DPIDs have to be virtualized before..
+//    mapAllocOnOvx(_ovxFedMasterManager, tenant, virtHostList)
+//
+//    
+//		if(remainResToAlloc.size > 0){
+//			// TODO: send Information about remaining Resources to Allocate back to the sender.
+//		}
 	}
     
   
@@ -323,23 +338,32 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
    * 
    * IMPLICIT: As the hostTopology is not updated within this method (OVX simply lacks the API return values to do so)
    *           the _hostTopology needs to be set before this method is called.
-   * @param switchTopology
+   * @param newSwitches
+   * @param removedSwitches
    */
-	private def recvTopologyDiscovery(ovxInstance: OvxInstance, switchTopology: List[OFSwitch]) = {
-		log.info("Received new Switch-Topology from {}, including {} switches.", sender(), switchTopology.length)
+	private def recvTopologyDiscovery(ovxInstance: OvxInstance, 
+                                    newSwitches: List[OFSwitch], removedSwitches: List[OFSwitch]) = {
+    
+		log.info("Received new Switch-Topology from {}, including {} new switches and {} removed Switches",
+             sender(), newSwitches.length, removedSwitches.length)
     // Check, whether the incoming ovxInstance is already registered (if so, an ovxMngr-mapping is available)
     // and add the discovered switchTopology to the ovxManager's topology mapping accordingly:
     val ovxMngrOpt = _ovxInstMngrMap.get(ovxInstance)
     ovxMngrOpt match{
         case Some(ovxMngr) =>
           log.info("Adding elements to switchTopology and hostPhysSwitchMap for ovxManager {}...", ovxMngr)
-          //Add all discovered Switches to the global switchTopology, grouped by ovxManager:
-          this._switchTopology = _switchTopology + (ovxMngr -> switchTopology)
+          // Update _switchTopology by deleting removedSwitches
+          val removedSwitchEntries = _switchTopology.getOrElse(ovxMngr, List())
+                                        .filter(switch => ! removedSwitches.map(_.dpid).contains(switch.dpid))
+          _switchTopology = _switchTopology +(ovxMngr -> removedSwitchEntries)
+          // and adding newSwitches:
+          _switchTopology = _switchTopology + (ovxMngr -> newSwitches)
+          
           
           // IMPLICIT: virtual host remapping was added to _hostTopology(ovxMngr), before this method was called!
           // get all OFSwitches that are connected to each host and save it as a host -> List[OFSwitch] mapping per Host:
-          val hostsSwitchesMapping = _hostTopology(ovxMngr)
-                                        .map(host => host -> switchTopology
+          val hostsSwitchesMapping = _hostTopology.getOrElse(ovxMngr, List())
+                                        .map(host => host -> _switchTopology.getOrElse(ovxMngr, List())
                                         .filter(_.dpid == host.endpoint.dpid))
           
           // for each host, get the host -> List[OFSwitch] mapping and add it to the _hostPhysSwitchMap, enriching
@@ -349,7 +373,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
           }
           
         case None          => 
-          log.error("No ovxInstance {} registered for TopologyDiscovery {}!", ovxInstance, switchTopology)
+          log.error("No ovxInstance {} registered for TopologyDiscovery!", ovxInstance)
     }
     
     //For the local ovxInstance, send a FederateableResourceDiscovery at the end:
@@ -536,19 +560,38 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     return virtHosts
   }
 
-  private def askForFederatedTopoDiscovery(askingNDA: ActorRef, onDiscoveryHandler: Unit): Unit = {
+  /**
+   * Asks the askingNDA for a TopologyDiscovery via a future of a DiscoveryRequest.
+   * If the future is answered within 10 seconds, the Topology is received via recvTopologyDiscovery(..)
+   * And the two optional handlers are called in the order of occurrence. 
+   * @param askingNDA The NDA to ask for a TopologyDiscovery via a DiscoveryRequest
+   * @param onDiscoveryHandler An optional handler that receives the switch lists from the successful TopologyDiscovery.
+   *                           Will not called, if future of TopologyDiscovery did not succeed. May be null.
+   * @param onFinishHandler An optional handler that will simply called at the end, without any arguments.
+   *                        Will not called, if future of TopologyDiscovery did not succeed. May be null.
+   */
+  private def askForFederatedTopoDiscovery(askingNDA: ActorRef, 
+                                           onDiscoveryHandler: (List[OFSwitch], List[OFSwitch]) => Unit,
+                                           onFinishHandler: Unit): Unit = {
     val askingTimeout = Timeout(10 seconds)
     val futureDiscoveryReply = _fedMasterNDA.ask(DiscoveryRequest()) (askingTimeout.duration)
     futureDiscoveryReply onSuccess  {
       case topoDiscovery: TopologyDiscovery =>
-        log.info("Received asked TopologyDiscovery {} from OVX-F NDA!", topoDiscovery.switches)
+        log.info("Received asked TopologyDiscovery {} from OVX-F NDA!", topoDiscovery.newSwitches)
 
         // insert the discovered, virtualized Topology from OVX-F the topology mappings,
         // using the pre-mapped virtualized hosts:
-        recvTopologyDiscovery(topoDiscovery.ovxInstance, topoDiscovery.switches)
+        recvTopologyDiscovery(topoDiscovery.ovxInstance, topoDiscovery.newSwitches, topoDiscovery.removedSwitches)
 
-        //After topologyDiscovery was received correctly, run onDiscoveryHandler:
-        onDiscoveryHandler
+        if(onDiscoveryHandler != null) {
+          //After topologyDiscovery was received correctly, run onDiscoveryHandler:
+          onDiscoveryHandler(topoDiscovery.newSwitches, topoDiscovery.removedSwitches)
+        }
+        
+        if(onFinishHandler != null) {
+          //At last, call onFinishHandler:
+          onFinishHandler
+        }
     }
     futureDiscoveryReply onFailure {
       case _ => log.error("No asked TopologyDiscovery could be received from the NDA {} in {}!",

@@ -23,10 +23,10 @@ class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
     override def run(): Unit = {
       log.info("NetworkDiscoveryAgent begins discovery-loop...")
       while(_shouldRun) {
-        val topologyChanged = discoverPhysicalTopology()
+        val (topologyChanged, newSwitches, removedSwitches) = discoverPhysicalTopology()
         if(topologyChanged) {
           log.info("Updated Network-Topology discovered, sending TopologyDiscovery to NRA.")
-          networkResourceAgent ! TopologyDiscovery(ovxInstance, _discoveredSwitches)
+          networkResourceAgent ! TopologyDiscovery(ovxInstance, newSwitches, removedSwitches)
         }
         Thread.sleep(10 * 1000) //sleep 10 seconds between each discovery
       }
@@ -57,7 +57,7 @@ class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
   /* Public Methods: */
   /* =============== */
   
-  def discoverPhysicalTopology(): Boolean = {
+  def discoverPhysicalTopology(): (Boolean, List[OFSwitch], List[OFSwitch]) = {
     var topologyChanged = false
     
     val ovxConn = OVXConnector(ovxInstance.ovxIp, ovxInstance.ovxApiPort)
@@ -71,21 +71,21 @@ class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
                                         yield new OFSwitch(actDPID)
     
     // Find removed Switches, that were in the _discoveredSwitches List, but are not in the physical Topology anymore:
-    val remSwitches: List[OFSwitch] = for (actDPID <- _discoveredSwitches.map(_.dpid) if ! phTopoDPIDs.contains(actDPID))
+    val removedSwitches: List[OFSwitch] = for (actDPID <- _discoveredSwitches.map(_.dpid) if ! phTopoDPIDs.contains(actDPID))
                                         yield new OFSwitch(actDPID)
     
     if(newSwitches.length > 0) {
       this.log.info("Discovered new switches in the physical Topology: {}", newSwitches.map(_.dpid))
       topologyChanged = true
     }
-    if(remSwitches.length > 0) {
-      this.log.info("Discovered removal of switches in the physical Topology: {}", remSwitches.map(_.dpid))
+    if(removedSwitches.length > 0) {
+      this.log.info("Discovered removal of switches in the physical Topology: {}", removedSwitches.map(_.dpid))
       topologyChanged = true
     }
     
     
-    // Update _discoveredSwitches by deleting remSwitches and adding newSwitches:
-    _discoveredSwitches = _discoveredSwitches.filter(switch => ! remSwitches.map(_.dpid).contains(switch.dpid))
+    // Update _discoveredSwitches by deleting removedSwitches and adding newSwitches:
+    _discoveredSwitches = _discoveredSwitches.filter(switch => ! removedSwitches.map(_.dpid).contains(switch.dpid))
     _discoveredSwitches = _discoveredSwitches ++ newSwitches
     
     // Build up a link mapping from srcDPID -> List[LinkId]:
@@ -110,7 +110,8 @@ class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
       actSwitch.remapPorts(srcPortRemap)
     }
     
-    return topologyChanged
+    val newLinkedSwitches = _discoveredSwitches.filter(newSwitches.contains)
+    return (topologyChanged,  newLinkedSwitches, removedSwitches)
   }
 
   def active(): Receive ={
@@ -120,9 +121,9 @@ class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
       _shouldRun = false
 
     case DiscoveryRequest => 
-      log.info("Received DiscoveryRequest. Answering with TopologyDiscovery {}...", _discoveredSwitches)
-      discoverPhysicalTopology()
-      networkResourceAgent ! TopologyDiscovery(ovxInstance, _discoveredSwitches)
+      log.info("Received DiscoveryRequest. Checking for new discoveries...")
+      replyOnTopologyChange(6, networkResourceAgent)
+      
   }
   
   
@@ -139,6 +140,34 @@ class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
   }
 
   override def receive: Receive = inactive()
+
+  /**
+   * Runs a TopologyDiscovery on the ovxInstance and replies to the caller, if a topology-change was detected.
+   * If no topology-change was detected, retry the discovery for number of given iterations, 
+   * after waiting for 1 second beforehand.
+   * @param iters The number of iterations that will be retried, if no Topology was discovered in the last round.
+   * @param caller The requester that has sent a DiscoveryRequest before. A TopologyDiscovery reply will be send,
+   *               If some changes were discovered within the number of iterations.
+   */
+  def replyOnTopologyChange(iters: Int, caller: ActorRef): Unit = {
+    if(iters == 0) {
+      log.warning("No Topology discovery was found at all!")
+      return
+    }
+    
+    val (topologyChanged, newSwitches, removedSwitches) = discoverPhysicalTopology()
+    if(topologyChanged) {
+      log.info("Discovered Topology change in {} round. new Switches: {}, removed Switches: {}",
+               iters, newSwitches, removedSwitches)
+      caller ! TopologyDiscovery(ovxInstance, newSwitches, removedSwitches)
+      return
+    }
+    else{
+      log.info("No Topology change was discovered in round {}. Waiting and restarting discovery...", iters)
+      Thread.sleep(1000)
+      replyOnTopologyChange(iters - 1, caller)
+    }
+  }
 }
 
 

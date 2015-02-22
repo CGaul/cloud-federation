@@ -22,7 +22,7 @@ case class DiscoveryRequest()
  * Sends a TopologyDiscovery from the NDA to the NRA.
  * Contains the ovxInstance were the discovery ran on and the switches, that were discovered.
  * @param ovxInstance
- * @param switches
+ * @param newSwitches
  */
-case class TopologyDiscovery(ovxInstance: OvxInstance, switches: List[OFSwitch])
+case class TopologyDiscovery(ovxInstance: OvxInstance, newSwitches: List[OFSwitch], removedSwitches: List[OFSwitch])
   extends NRANetworkDest
