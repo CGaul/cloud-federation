@@ -1,6 +1,7 @@
 package integration
 
 import java.io.File
+import java.net.InetAddress
 
 import agents.{DiscoveryState, NetworkResourceAgent}
 import akka.actor.{ActorSystem, Props}
@@ -75,6 +76,7 @@ class NetworkResourceIntegrationTest (_system: ActorSystem) extends TestKit(_sys
   /* Resource Specifications: */
   /* ------------------------ */
 
+  val ovxTestInstance = new OvxInstance(InetAddress.getLocalHost, 1234, 4567, false)
   //NetworkResourceAgent Test-Topology:
   val testTopology = NetworkResourceIntegrationTest.prepareTestTopology
 
@@ -90,7 +92,7 @@ class NetworkResourceIntegrationTest (_system: ActorSystem) extends TestKit(_sys
         
     "become ONLINE, if a TopologyDiscovery from its local NDA and a OvxInstanceReply from its local MMA is received" in {
       Given("a TopologyDiscovery was received at the NRA (from its child NDA)")
-      localNDAProbe.send(localNRATestActor, TopologyDiscovery(testTopology))
+      localNDAProbe.send(localNRATestActor, TopologyDiscovery(ovxTestInstance, testTopology, List()))
       
       Then("the local MMA should receive a FederateableResourceDiscovery from the NRA")
       localMMAProbe.expectMsgClass(classOf[FederateableResourceDiscovery])

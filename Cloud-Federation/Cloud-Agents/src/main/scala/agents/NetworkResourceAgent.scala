@@ -220,7 +220,10 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
         // after local mapping, wait for the federated NDA to send a TopologyDiscovery in order
         // to initiate the federation on OVX-F as the federation-master:
-        askForFederatedTopoDiscovery(_fedMasterNDA, null, initiateFederationAsMaster(tenant, remainResAlloc, virtHosts))
+        def initFederationOnReceive(newSwitches: List[OFSwitch], removedSwitches: List[OFSwitch]): Unit = {
+          initiateFederationAsMaster(tenant, remainResAlloc, virtHosts)
+        }
+        askForFederatedTopoDiscovery(_fedMasterNDA, initFederationOnReceive)
       }
       else {
         log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
@@ -274,7 +277,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
         createOVXFedGateways(_ovxFedMasterManager, tenant, virtLocalGW.get, virtForeignGW.get)
       }
     }
-    askForFederatedTopoDiscovery(_fedMasterNDA, createVirtGateways, null)
+    askForFederatedTopoDiscovery(_fedMasterNDA, createVirtGateways)
     
 	}
 
@@ -567,12 +570,13 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
    * @param askingNDA The NDA to ask for a TopologyDiscovery via a DiscoveryRequest
    * @param onDiscoveryHandler An optional handler that receives the switch lists from the successful TopologyDiscovery.
    *                           Will not called, if future of TopologyDiscovery did not succeed. May be null.
-   * @param onFinishHandler An optional handler that will simply called at the end, without any arguments.
-   *                        Will not called, if future of TopologyDiscovery did not succeed. May be null.
    */
   private def askForFederatedTopoDiscovery(askingNDA: ActorRef, 
-                                           onDiscoveryHandler: (List[OFSwitch], List[OFSwitch]) => Unit,
-                                           onFinishHandler: Unit): Unit = {
+                                           onDiscoveryHandler: (List[OFSwitch], List[OFSwitch]) => Unit): 
+  Unit = {
+    //Import implicit ExecutionContext for onSuccess and onFailure. Uses default ThreadPool for ExecContext:
+    import scala.concurrent.ExecutionContext.Implicits.global
+    
     val askingTimeout = Timeout(10 seconds)
     val futureDiscoveryReply = _fedMasterNDA.ask(DiscoveryRequest()) (askingTimeout.duration)
     futureDiscoveryReply onSuccess  {
@@ -586,11 +590,6 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
         if(onDiscoveryHandler != null) {
           //After topologyDiscovery was received correctly, run onDiscoveryHandler:
           onDiscoveryHandler(topoDiscovery.newSwitches, topoDiscovery.removedSwitches)
-        }
-        
-        if(onFinishHandler != null) {
-          //At last, call onFinishHandler:
-          onFinishHandler
         }
     }
     futureDiscoveryReply onFailure {

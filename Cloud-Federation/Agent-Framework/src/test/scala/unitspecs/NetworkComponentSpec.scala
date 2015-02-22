@@ -375,7 +375,7 @@ class NetworkComponentSpec extends FlatSpec with Matchers with GivenWhenThen wit
   }
   
   it should "be virtualizable within the OVX DPID virtualization rules" in{
-    val virtHost1 = Host.virtualizedByOvx(host1)
+    val virtHost1 = Host.virtualizedByOvx(host1, 0) //0 is just a placeholder for the virtualPort.
     println("virtHost1.endpoint = " + virtHost1.endpoint)
     
     val physOffset = "00:00:00:00"
