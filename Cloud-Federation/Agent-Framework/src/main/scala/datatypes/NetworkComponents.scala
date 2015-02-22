@@ -104,9 +104,9 @@ object Endpoint{
   def apply(dpid: String, port: Int): Endpoint = new Endpoint(dpid, port.toShort)
   def apply(dpid: String, port: Short): Endpoint = new Endpoint(dpid, port)
   
-  def virtualizedByOvx(physEndpoint: Endpoint): Endpoint = {
+  def virtualizedByOvx(physEndpoint: Endpoint, virtPort: Short): Endpoint = {
     val virtDpid = DPID.virtualizedByOvx(physEndpoint.dpid)
-    val virtEndpoint = physEndpoint.copy(virtDpid)
+    val virtEndpoint = physEndpoint.copy(virtDpid, virtPort)
     return virtEndpoint
   }
 
@@ -280,9 +280,18 @@ object OFSwitch {
   def apply(dpid: DPID): OFSwitch = new OFSwitch(dpid)
   def apply(dpid: String): OFSwitch = new OFSwitch(dpid)
 
-  def virtualizedByOvx(ofSwitch: OFSwitch) = {
+  /**
+   * Simulates the DPID renaming and port remapping for the handed over OFSwitch, 
+   * as OVX would do it on its virtualization from the SB to the NB interface.
+   * @param ofSwitch The OFSwitch to be virtualized
+   * @param virtPortMap The new Port map, including pre-virtualized ports and pre-virtualized Endpoints
+   * @return The OFSwitch with virtualized DPID and port-mapping-
+   */
+  def virtualizedByOvx(ofSwitch: OFSwitch, virtPortMap: Map[Short, Endpoint]): OFSwitch = {
     val virtDpid = DPID.virtualizedByOvx(ofSwitch.dpid)
-    val virtEndpoints = ofSwitch._portMap.map(Endpoint)
+    val virtOFSwitch = ofSwitch.copy(virtDpid, virtPortMap)
+    return virtOFSwitch
+//    val virtPortMa = ofSwitch._portMap.map(Endpoint)
   }
   
   /* Serialization: */
@@ -528,10 +537,8 @@ case class Host(hardwareSpec: Resource, endpoint: Endpoint, ip: InetAddress, mac
  */
 object Host {
 
-  def virtualizedByOvx(physicalHost: Host): Host = {
-    val virtDpid = DPID.virtualizedByOvx(physicalHost.endpoint.dpid)
-    val virtEndpoint = Endpoint(virtDpid, physicalHost.endpoint.port)
-    
+  def virtualizedByOvx(physicalHost: Host, virtHostPort: Short): Host = {
+    val virtEndpoint = Endpoint.virtualizedByOvx(physicalHost.endpoint, virtHostPort)
     val virtHost = physicalHost.copy(endpoint = virtEndpoint)
     return virtHost
   }
