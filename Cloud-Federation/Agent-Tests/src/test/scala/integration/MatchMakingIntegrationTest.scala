@@ -100,6 +100,9 @@ class MatchMakingIntegrationTest (_system: ActorSystem) extends TestKit(_system)
       
       Then("FedBroker answers with a OvxInstanceReply")
       fedBrokerProbe.reply(OvxInstanceReply(ovxInstanceFed))
+      
+      Then("The local NRA receives an OvxInstanceReply")
+      localNRAProbe.expectMsg(OvxInstanceReply(ovxInstanceFed))
     }
     
   }
