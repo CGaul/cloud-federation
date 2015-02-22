@@ -145,6 +145,7 @@ class OVXManager(ovxConn: OVXConnector)
   def createAllOVXSwitchPorts(tenant: Tenant, physSwitch: OFSwitch): List[(Short, Short)] = {
     // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
     val physSrcPorts = physSwitch.portMap.map(_._1)
+    
     var allPortsCreated: Boolean = true
     
     for (actSrcPort <- physSrcPorts) {

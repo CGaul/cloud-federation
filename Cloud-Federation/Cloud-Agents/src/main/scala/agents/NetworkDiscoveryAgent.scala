@@ -2,15 +2,21 @@ package agents
 
 import java.net.InetAddress
 
+import agents.ActorMode.ActorMode
 import akka.actor._
 import connectors.{Link, OVXConnector}
-import datatypes.{DPID, Endpoint, OFSwitch}
-import messages.TopologyDiscovery
+import datatypes.{OvxInstance, DPID, Endpoint, OFSwitch}
+import messages.{DiscoveryRequest, TopologyDiscovery}
+
+
+/* Classes: */
+/* ======== */
 
 /**
  * @author Constantin Gaul, created on 1/20/15.
  */
-class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResourceAgent: ActorRef)
+class NetworkDiscoveryAgent(ovxInstance: OvxInstance,
+                            networkResourceAgent: ActorRef, mode: ActorMode)
                            extends Actor with ActorLogging{
   
   val _workingThread = new Thread(new Runnable{
@@ -20,7 +26,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResour
         val topologyChanged = discoverPhysicalTopology()
         if(topologyChanged) {
           log.info("Updated Network-Topology discovered, sending TopologyDiscovery to NRA.")
-          networkResourceAgent ! TopologyDiscovery(_discoveredSwitches)
+          networkResourceAgent ! TopologyDiscovery(ovxInstance, _discoveredSwitches)
         }
         Thread.sleep(10 * 1000) //sleep 10 seconds between each discovery
       }
@@ -54,7 +60,7 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResour
   def discoverPhysicalTopology(): Boolean = {
     var topologyChanged = false
     
-    val ovxConn = OVXConnector(ovxIp, ovxApiPort)
+    val ovxConn = OVXConnector(ovxInstance.ovxIp, ovxInstance.ovxApiPort)
     val phTopo  = ovxConn.getPhysicalTopology
     
     // Convert String-DPIDs to regular DPID-Objects:
@@ -112,6 +118,11 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResour
       context.become(inactive())
       log.info("NetworkDiscoveryAgent received \"stop\" command, becoming INACTIVE now!")
       _shouldRun = false
+
+    case DiscoveryRequest => 
+      log.info("Received DiscoveryRequest. Answering with TopologyDiscovery {}...", _discoveredSwitches)
+      discoverPhysicalTopology()
+      networkResourceAgent ! TopologyDiscovery(ovxInstance, _discoveredSwitches)
   }
   
   
@@ -119,8 +130,12 @@ class NetworkDiscoveryAgent(ovxIp: InetAddress, ovxApiPort: Short, networkResour
     case "start" => 
       context.become(active())
       log.info("NetworkDiscoveryAgent received \"start\" command, becoming ACTIVE now!")
-      _shouldRun = true
-      _workingThread.start()
+      if(mode == ActorMode.AUTO) {
+        log.info("Started NDA in Mode AUTO. " +
+          "Starting workingThread and sending periodically updated TopologyDiscoveries now...")
+        _shouldRun = true
+        _workingThread.start()
+      }
   }
 
   override def receive: Receive = inactive()
@@ -139,9 +154,15 @@ object NetworkDiscoveryAgent
    * 	val ccfmProps = Props(classOf[NetworkDiscoveryAgent],
    * 	                      ovxIp, ovxApiPort, nraRef)
    * 	val ccfmAgent = system.actorOf(ccfmProps, name="NetworkDiscoveryAgent-x")
-   * @param ovxIp The InetAddress, where the OpenVirteX OpenFlow hypervisor is listening.
+   * @param ovxInstance The ovxInstance that this NetworkDiscoveryAgent discovers physicalTopologies on.
+   * @param networkResourceAgent The NRA that this NDA is bound to as a child actor
+   * @param mode Either MANUAL, where this NDA listens on DiscoveryRequests only or AUTOMATIC, where
+   *      the NDA automatically sends updated TopologyDiscoveries to the NRA 
+   *      *      on top of the unconditional DiscoveryRequest reply.
+   *      IN AUTOMATIC mode, a discoveryThread is kept up and running.
+   *
    * @return An Akka Properties-Object
    */
-  def props(ovxIp: InetAddress, ovxApiPort: Short, networkResourceAgent: ActorRef):
-  Props = Props(new NetworkDiscoveryAgent(ovxIp, ovxApiPort, networkResourceAgent))
+  def props(ovxInstance: OvxInstance, networkResourceAgent: ActorRef, mode: ActorMode):
+  Props = Props(new NetworkDiscoveryAgent(ovxInstance, networkResourceAgent, mode))
 }

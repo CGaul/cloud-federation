@@ -3,22 +3,16 @@ package agents
 import java.io.File
 import java.net.InetAddress
 
+import agents.ActorMode.ActorMode
 import akka.actor._
+import akka.pattern.ask
+import akka.util.Timeout
 import connectors._
 import datatypes._
 import messages._
 
 import scala.util.control.Breaks._
-
-
-
-/* Enums: */
-/* ====== */
-
-object DiscoveryState extends Enumeration {
-  type DiscoveryState = Value
-  val ONLINE, OFFLINE = Value
-}
+import scala.concurrent.duration._
 
 
 /* Classes: */
@@ -35,8 +29,9 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 /* Values: */
 /* ======= */
   
-		private val _ovxConn = OVXConnector(cloudConfig.cloudOvx.ovxIp, cloudConfig.cloudOvx.ovxApiPort)
-    private val _ovxManager = OVXManager(_ovxConn)
+    private val _ovxLocalInstance = cloudConfig.cloudOvx
+		private val _ovxLocalConn = OVXConnector(cloudConfig.cloudOvx.ovxIp, cloudConfig.cloudOvx.ovxApiPort)
+    private val _ovxLocalManager = OVXManager(_ovxLocalConn)
 
 
 /* Variables: */
@@ -81,15 +76,15 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 	
 	def initActor() = {
     log.info("Starting local NDA, as a child-Actor of {}...", context.self)
-    _localNDA = initNDA(cloudConfig.cloudOvx.ovxIp, cloudConfig.cloudOvx.ovxApiPort, "localNDA")
+    _localNDA = initNDA(cloudConfig.cloudOvx, "localNDA", ActorMode.AUTO)
 		// This NRA-Instance is inactive after boot-up:
 		log.info("NetworkResourceAgent will be INACTIVE, until NDA sends a TopologyDiscovery...")
 	}
 	
-	def initNDA(ovxIp: InetAddress, ovxApiPort: Short, actorName: String): ActorRef = {
+	def initNDA(ovxInstance: OvxInstance, actorName: String, mode: ActorMode): ActorRef = {
 		// Spawn a NetworkDiscoveryAgent (NDA) for Network-Topology-Discovery:
 		val ndaProps: Props = Props(classOf[NetworkDiscoveryAgent],
-                                ovxIp, ovxApiPort, context.self)
+                                ovxInstance, context.self, mode)
 		val ndaActor = context.actorOf(ndaProps, name=actorName)
 		log.info("NetworkDiscoveryAgent started at path: {}", ndaActor.path)
 		ndaActor ! "start"
@@ -114,8 +109,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 
 		case message: NRANetworkDest => message match{
-			case TopologyDiscovery(switchList)
-			=> 	recvTopologyDiscovery(switchList)
+			case TopologyDiscovery(ovxInstance, switchList)
+			=> 	recvTopologyDiscovery(ovxInstance, switchList)
 				log.info("New TopologyDiscovery received.")
 		}
 		case _	=> log.error("Unknown message received!")
@@ -127,8 +122,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		}
 			
 		case message: NRANetworkDest => message match{
-			case TopologyDiscovery(switchList)
-			=> 	recvTopologyDiscovery(switchList)
+			case TopologyDiscovery(ovxInstance, switchList)
+			=> 	recvTopologyDiscovery(ovxInstance, switchList)
 				  checkOnlineStateReached()
 		}
 
@@ -181,42 +176,59 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     // completely allocated locally, and federatedOVX only, 
     // if a federation needs to take place (tenantOfc would be deleted anyway):
     val netOFCs = if(remainResToAlloc.isEmpty) {List(tenantOfc, federatedOVX)} else {List(federatedOVX)}
-    val virtNet = _ovxManager.createOVXNetwork(tenant, netOFCs)
+    val virtNet = _ovxLocalManager.createOVXNetwork(tenant, netOFCs)
     
     // After network creation, map the allocated resAlloc to the tenant's local OVX-network:
     if(virtNet.isDefined){
       log.info("Mapping hosts {} to virtual tenant's {} network...", hostList.map(_.mac), tenant.id)
-		  mapAllocOnOvx(_ovxManager, tenant, hostList)
+		  val (_, hostConnPortMap) = mapAllocOnOvx(_ovxLocalManager, tenant, hostList)
 
       // Start the newly mapped tenant network on the local OVX:
       log.info("Starting virtual tenant's {} network...", tenant.id)
-      _ovxManager.startOVXNetwork(tenant)
+      _ovxLocalManager.startOVXNetwork(tenant)
+
+      // Save the local allocation and hosts mapping for the requested tenant:
+      val allocationList = allocationsPerHost.map(_._2).toList
+      _tenantResAllocs = _tenantResAllocs + (tenant -> (_tenantResAllocs.getOrElse(tenant, List()) ++ allocationList))
+      _tenantHostList = _tenantHostList + (tenant -> (_tenantHostList.getOrElse(tenant, List()) ++ hostList))
+      
+      
+      //TODO: after local mapping, wait for the federated NDA to send a TopologyDiscovery...
+      val futureDiscoveryReply = _fedMasterNDA.ask(DiscoveryRequest()) (Timeout(10 seconds).duration)
+      futureDiscoveryReply onSuccess  {
+        case topoDiscovery: TopologyDiscovery =>
+          log.info("Received asked TopologyDiscovery {} from OVX-F NDA!", topoDiscovery.switches)
+          
+          
+          // ResAlloc Federation:
+          // If remaining resAllocs are left over from allocateLocally(..), 
+          // bootstrap a virtual tenant federation-net on OVX-F and send a ResourceRequest to the MMA.  
+          if(remainResToAlloc.isDefined){
+            log.info("ResourceRequest {} could not have been allocated completely on the local cloud Remaining ResAlloc: {}. " +
+              "Initializing Federation...", resourceToAlloc, remainResToAlloc)
+            // before sending a ResourceReq to the MMA, 
+            // start federated Network and hand tenant-OVX-mapping to federationRequest via tenant
+            log.info("Bootstrapping a virtual federated tenant-net on OVX-F {} for tenant {}",
+              _ovxFedMasterInstance, tenant.id)
+            bootstrapFedTenantNet(tenant, hostConnPortMap)
+
+            log.info("Forwarding remainingResAlloc {} as a ResourceRequest to MMA, " +
+              "in order to get federated resources from foreign clouds!", remainResToAlloc)
+            matchMakingAgent ! ResourceRequest(tenant, remainResToAlloc.get)
+          }
+          else {
+            log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
+            sender() ! ResourceReply(resourceToAlloc)
+          }
+      }
+      futureDiscoveryReply onFailure {
+        case _ => log.error("No asked OvxInstanceReply could be received from the federator in an async future!")
+      }
+      
     }
     else{
       log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant.id)      
       return
-    }
-
-    // Save the local allocation and hosts mapping for the requested tenant:
-    val allocationList = allocationsPerHost.map(_._2).toList
-    _tenantResAllocs = _tenantResAllocs + (tenant -> (_tenantResAllocs.getOrElse(tenant, List()) ++ allocationList))
-    _tenantHostList = _tenantHostList + (tenant -> (_tenantHostList.getOrElse(tenant, List()) ++ hostList))
-
-		// If there is still a ResourceAlloc remaining, after the local cloudHosts tried to
-		// allocate the whole ResourceAlloc-Request, send the remaining ResourceAlloc Split
-		// to the MatchMakingAgent, in order to find a Federated Cloud that cares about the Resources:
-		if(remainResToAlloc.isDefined){
-			log.info("ResourceRequest {} could not have been allocated completely on the local cloud. " +
-				"Forwarding remaining ResourceAllocation {} to MatchMakingAgent!", resourceToAlloc, remainResToAlloc)
-      // before sending a ResourceReq to the MMA, 
-      // start federated Network and hand tenant-OVX-mapping to federationRequest via tenant
-      bootstrapFedTenantNet(tenant)
-
-			matchMakingAgent ! ResourceRequest(tenant, remainResToAlloc.get)
-		}
-		else {
-      log.info("ResourceRequest {} was completely allocated on the local cloud!", resourceToAlloc)
-      sender() ! ResourceReply(resourceToAlloc)
     }
 	}
   
@@ -265,14 +277,14 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		// Prepare the locally fulfilled allocations, managed by the local OVX and the federation-Gateways
     // for the upcoming OVX-F federation transition:
 		val hostList = allocationsPerHost.map(_._1).toList
-    val virtNet = _ovxManager.createOVXNetwork(tenant, List(ovxInstance.ofcEndpoint))
+    val virtNet = _ovxLocalManager.createOVXNetwork(tenant, List(ovxInstance.ofcEndpoint))
     if(virtNet.isDefined){
       log.info("Mapping hosts {} to virtual tenant's {} network.", hostList.map(_.mac), tenant.id)
-      mapAllocOnOvx(_ovxManager, tenant, hostList)
+      mapAllocOnOvx(_ovxLocalManager, tenant, hostList)
 
       // Start the newly mapped tenant network on the local OVX:
       log.info("Starting virtual tenant's {} network...", tenant.id)
-      _ovxManager.startOVXNetwork(tenant)
+      _ovxLocalManager.startOVXNetwork(tenant)
     }
     else{
       log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant.id)
@@ -302,20 +314,21 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
    * Received from local NDA
    * @param switchTopology
    */
-	private def recvTopologyDiscovery(switchTopology: List[OFSwitch]) = {
+	private def recvTopologyDiscovery(ovxInstance: OvxInstance, switchTopology: List[OFSwitch]) = {
 		log.info("Received new Switch-Topology from {}, including {} switches.", sender(), switchTopology.length)
-    if(sender() == _localNDA) {
-      log.info("TopologyDiscovery is based on the NDA, discovering the local OVX. " +
+    if(ovxInstance == _ovxLocalInstance) {
+      log.info("local OVX TopologyDiscovery received " +
         "Adding to switchTopology, to hostPhysSwitchMap and sending federateable Resources to MMA...")
       this._switchTopology = switchTopology
       this._hostPhysSwitchMap = _hostPhysSwitchMap ++ _hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
       sendFederateableResourcesToMMA()
     }
-    else if(sender() == _fedMasterNDA){
-      log.info("TopologyDiscovery is based on the master federation NDA, discovering the own OVX-F. " +
-        "Adding to hostPhysSwitchMap only...")
-      this._hostPhysSwitchMap = _hostPhysSwitchMap ++ _hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
-    }
+    //TODO: not needed. Only local NDA should work in automatic mode
+//    else if(sender() == _fedMasterNDA){
+//      log.info("TopologyDiscovery is based on the master federation NDA, discovering the own OVX-F. " +
+//        "Adding to hostPhysSwitchMap only...")
+//      this._hostPhysSwitchMap = _hostPhysSwitchMap ++ _hostTopology.map(host => host -> switchTopology.filter(_.dpid == host.endpoint.dpid))
+//    }
 	}
 
   /**
@@ -338,7 +351,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     // Moreover, start a NetworkDiscoveryAgent on the OVX-F, 
     // so that this NRA has knowledge about the virtualized OFC-Switches at the OVX-F's SB interface
     log.info("Bootstrapping federated NDA on OVX-F {}...", ovxFedInstance)
-    this._fedMasterNDA = initNDA(ovxFedInstance.ovxIp, ovxFedInstance.ovxApiPort, "federatedNDA")
+    this._fedMasterNDA = initNDA(ovxFedInstance, "federatedNDA", ActorMode.MANUAL)
   }
   
 
@@ -433,7 +446,8 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
    *         Returned by OVXManager.connectAllOvxSwitches(tenant)
    */
 	private def mapAllocOnOvx(ovxManager: OVXManager, 
-                            tenant: Tenant, hosts: List[Host]): Map[OFSwitch, List[(Short, Short, OFSwitch)]] = {
+                            tenant: Tenant, hosts: List[Host]): 
+                  (Map[OFSwitch, List[(Short, Short, OFSwitch)]], Map[Host, (Short, Short, OFSwitch)]) = {
 
 		// The _hostPhysSwitchMap defines a mapping between each known host and all physical Switches,
 		// that are connected to this host and discovered via a TopologyDiscovery earlier.
@@ -459,6 +473,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     // After all Switches are established in the upper loop, connect them with each other:
 		val switchConnPortMap = ovxManager.connectAllOVXSwitches(tenant)
 
+    var hostConnPortMap: Map[Host, (Short, Short, OFSwitch)] = Map()
 		// Create Ports at the Host's Endpoint Switch:Port and connect the Host to it
 		for (actHost <- hosts) {
       val hostSwitches = _hostPhysSwitchMap(actHost)
@@ -466,17 +481,23 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       physSwitchToConnect match{
           case Some(physSwitch) =>
             log.info("Creating Port at Switch {} for Host {}...", physSwitch, actHost)
-            ovxManager.createOVXHostPort(tenant, physSwitch, actHost)
+            val portMapOpt = ovxManager.createOVXHostPort(tenant, physSwitch, actHost)
             
             log.info("Connecting Host {} to Switch {}...", actHost, physSwitchToConnect)
-            ovxManager.connectOVXHost(tenant, physSwitch, actHost)
+            val virtHostOpt = ovxManager.connectOVXHost(tenant, physSwitch, actHost)
+
+            // If host port creation and connection were successful, add the mapping to the hostConnPortMap:
+            if(portMapOpt.isDefined && virtHostOpt.isDefined){
+              val portSwitchTuple = (portMapOpt.get._1, portMapOpt.get._2, physSwitch)
+              hostConnPortMap = hostConnPortMap + (actHost -> portSwitchTuple)
+            }
 
           case None =>
             log.error("Switch is not existing for Host {} in tenant's {} network!", actHost, tenant.id)
       }
 		}
     
-    return switchConnPortMap
+    return (switchConnPortMap, hostConnPortMap)
 	}
 
   private def prepareFederation(tenant: Tenant, foreignGWSwitch: OFSwitch) = {
@@ -487,10 +508,10 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     if(! _tenantGatewayMap.getOrElse(tenant, List()).contains(localGWSwitch))
     {
       // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
-      _ovxManager.createOVXSwitch(tenant, localGWSwitch)
+      _ovxLocalManager.createOVXSwitch(tenant, localGWSwitch)
 
       // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-      _ovxManager.createAllOVXSwitchPorts(tenant, localGWSwitch)
+      _ovxLocalManager.createAllOVXSwitchPorts(tenant, localGWSwitch)
       _tenantGatewayMap = _tenantGatewayMap + (tenant -> (_tenantGatewayMap.getOrElse(tenant, List()) :+ localGWSwitch))
     }
     
@@ -498,16 +519,16 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     if(! _tenantGatewayMap.getOrElse(tenant, List()).contains(foreignGWSwitch))
      {
       // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
-      _ovxManager.createOVXSwitch(tenant, foreignGWSwitch)
+      _ovxLocalManager.createOVXSwitch(tenant, foreignGWSwitch)
 
       // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-      _ovxManager.createAllOVXSwitchPorts(tenant, foreignGWSwitch)
+      _ovxLocalManager.createAllOVXSwitchPorts(tenant, foreignGWSwitch)
       _tenantGatewayMap = _tenantGatewayMap + (tenant -> (_tenantGatewayMap.getOrElse(tenant, List()) :+ foreignGWSwitch))
     }
     
     // Connect both Gateway Switches with each other, if no link is currently established:
     // Find the srcPortMapping for the actual srcPort in the switchPortMap's actPhysSwitch entry:
-    _ovxManager.connectOVXSwitches(tenant, localGWSwitch, foreignGWSwitch)
+    _ovxLocalManager.connectOVXSwitches(tenant, localGWSwitch, foreignGWSwitch)
   }
 
   /**
@@ -519,7 +540,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 
     // Remove tenant OFC from network, as it is will be applied back again in the child NRA, responsible for the
     // upper layer virtualization (the OVX-F layer):
-    _ovxManager.removeOfcFromTenantNet(tenant, tenant.ofcIp)
+    _ovxLocalManager.removeOfcFromTenantNet(tenant, tenant.ofcIp)
     
     // Start new virtual network for tenant in federated OVX-F instance and hand over ovxId of virt-Net to tenant:
     val tenantOfc = (tenant.ofcIp, tenant.ofcPort)
