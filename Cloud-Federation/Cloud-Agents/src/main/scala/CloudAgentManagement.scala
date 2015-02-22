@@ -19,10 +19,11 @@ object CloudAgentManagement extends App
 	val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudagentsystem").withFallback(config))
 
 	// Contacting the PubSubFederator via a static ActorSelection:
-	val pubSubActorName = "federationBroker"
+  // TODO: get from config:
+	val fedBrokerActorName = "federationBroker"
   val federatorIP = "192.168.1.41"
   val federatorPort = 2550
-	val fedBrokerActorSel  = system.actorSelection(s"akka.tcp://fedBroker@$federatorIP:$federatorPort/user/remoteFederator")// TODO: rewrite dynamically
+	val fedBrokerActorSel  = system.actorSelection(s"akka.tcp://fedBroker@$federatorIP:$federatorPort/user/$fedBrokerActorName")
 //val pubSubActorSel  = system.actorSelection("/user/"+pubSubActorName)
 
 	// Building up the CCFM via the local System:
