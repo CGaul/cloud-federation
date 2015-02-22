@@ -55,7 +55,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
 		private var _hostTopology: Map[OVXManager, List[Host]] = Map(_ovxLocalManager -> cloudConfig.cloudHosts.toList)
 		private var _switchTopology: Map[OVXManager, List[OFSwitch]] = Map()
     private var _hostPhysSwitchMap: Map[(OVXManager, Host), List[OFSwitch]] = Map()
-    private var _tenantGatewayMap: Map[Tenant, List[OFSwitch]] = Map()
+    private var _tenantGatewayMap: Map[(OVXManager, Tenant), List[OFSwitch]] = Map()
 
   
 // OVX related Variables:
@@ -255,8 +255,12 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     log.info("Received ResourceFederationResult at NRA from {} Preparing Federation for tenant {} on OVX-F Instance {}...", 
       sender(), tenant.id, ovxInstance)
     
-    //TODO: what else here?
-    prepareFederation(tenant, foreignGWSwitch)
+    // Create foreign and local Gateway in local OVX tenant network:
+    val localGWSwitch = cloudConfig.cloudGateway
+    createOVXFedGateways(_ovxLocalManager, tenant, localGWSwitch, foreignGWSwitch)
+    
+    // TODO: Afterwards, wait for the NDA to get the updated TopologyDiscovery and add the GWs to the virtualized tenant network
+    // on OVX-F:
     
 	}
 
@@ -292,7 +296,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       log.error("Tenant-Network could not have been created for tenant {}. Aborting allocation on OVX!", tenant.id)
       return
     }
-    prepareFederation(tenant, foreignGWSwitch)
+    createOVXFedGateways(tenant, foreignGWSwitch)
     
     // tenant carries an ovxId from the foreign master federation cloud. This is needed, so that
     // mapAllocOnOvx on the OVX-F can use this ovxId to bootstrap the local network on a federation network in OVX-F.
@@ -575,37 +579,46 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
       "in order to get federated resources from foreign clouds!", remainResAlloc)
     matchMakingAgent ! ResourceRequest(tenant, remainResAlloc)
   }
-  
 
-  private def prepareFederation(tenant: Tenant, foreignGWSwitch: OFSwitch) = {
-    //TODO: check and rewrite
-    val localGWSwitch = cloudConfig.cloudGateway
-    
+
+  /**
+   * Adds local as well as foreign OVXSwitch Gateway to the tenant's virtual network
+   * that is already set up and started, prior this method call.
+   * @param ovxManager The OVXManager that works on the OVX-Instance, where the tenant has a registered network on.
+   * @param tenant The tenant that already owns a virtual OVX-network on the respective OVX-Instance, managed by ovxManager
+   * @param foreignGWSwitch
+   * @return
+   */
+  private def createOVXFedGateways(ovxManager: OVXManager, tenant: Tenant, 
+                                   localGWSwitch: OFSwitch, foreignGWSwitch: OFSwitch) = {
+      
     //Add localGWSwitch, if not already added:
-    if(! _tenantGatewayMap.getOrElse(tenant, List()).contains(localGWSwitch))
+    if(! _tenantGatewayMap.getOrElse((ovxManager, tenant), List()).contains(localGWSwitch))
     {
       // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
-      _ovxLocalManager.createOVXSwitch(tenant, localGWSwitch)
+      ovxManager.createOVXSwitch(tenant, localGWSwitch)
 
       // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-      _ovxLocalManager.createAllOVXSwitchPorts(tenant, localGWSwitch)
-      _tenantGatewayMap = _tenantGatewayMap + (tenant -> (_tenantGatewayMap.getOrElse(tenant, List()) :+ localGWSwitch))
+      ovxManager.createAllOVXSwitchPorts(tenant, localGWSwitch)
+      val tenantGWList = _tenantGatewayMap.getOrElse((ovxManager, tenant), List()) :+ localGWSwitch
+      _tenantGatewayMap = _tenantGatewayMap + ((ovxManager, tenant) -> tenantGWList)
     }
     
     // Add foreignGWSwitch, if not already added:
-    if(! _tenantGatewayMap.getOrElse(tenant, List()).contains(foreignGWSwitch))
+    if(! _tenantGatewayMap.getOrElse((ovxManager, tenant), List()).contains(foreignGWSwitch))
      {
       // Create the virtual Switch as a direct one-to-one mapping from OFSwitch -> virtSwitch:
-      _ovxLocalManager.createOVXSwitch(tenant, foreignGWSwitch)
+      ovxManager.createOVXSwitch(tenant, foreignGWSwitch)
 
       // Add all known physical Ports to the new virtual Switch, that are outgoing to any other switch:
-      _ovxLocalManager.createAllOVXSwitchPorts(tenant, foreignGWSwitch)
-      _tenantGatewayMap = _tenantGatewayMap + (tenant -> (_tenantGatewayMap.getOrElse(tenant, List()) :+ foreignGWSwitch))
+      ovxManager.createAllOVXSwitchPorts(tenant, foreignGWSwitch)
+       val tenantGWList = _tenantGatewayMap.getOrElse((ovxManager, tenant), List()) :+ foreignGWSwitch
+      _tenantGatewayMap = _tenantGatewayMap + ((ovxManager, tenant) -> tenantGWList)
     }
     
     // Connect both Gateway Switches with each other, if no link is currently established:
     // Find the srcPortMapping for the actual srcPort in the switchPortMap's actPhysSwitch entry:
-    _ovxLocalManager.connectOVXSwitches(tenant, localGWSwitch, foreignGWSwitch)
+    ovxManager.connectOVXSwitches(tenant, localGWSwitch, foreignGWSwitch)
   }
 
   /**
