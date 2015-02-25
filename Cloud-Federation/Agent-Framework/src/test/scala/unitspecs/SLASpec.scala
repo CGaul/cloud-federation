@@ -57,15 +57,15 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		hostSLA1Rebuild shouldEqual hostSLA1
 
 		// ... as well as via ==
-		hostSLA1 == hostSLA1 should be(true)
-		hostSLA1 == hostSLA1Rebuild should be(true)
-		hostSLA1Rebuild == hostSLA1 should be(true)
+		hostSLA1 == hostSLA1 should be(right = true)
+		hostSLA1 == hostSLA1Rebuild should be(right = true)
+		hostSLA1Rebuild == hostSLA1 should be(right = true)
 
 		//not-equal tests:
-		hostSLA1.equals(hostSLA2) should be(false)
-		hostSLA2.equals(hostSLA1) should be(false)
-		hostSLA2.equals(hostSLA3) should be(false)
-		hostSLA3.equals(hostSLA2) should be(false)
+		hostSLA1.equals(hostSLA2) should be(right = false)
+		hostSLA2.equals(hostSLA1) should be(right = false)
+		hostSLA2.equals(hostSLA3) should be(right = false)
+		hostSLA3.equals(hostSLA2) should be(right = false)
 		info("Equality Tests passed.")
 	}
 
@@ -75,7 +75,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		val hostSLA_required = new HostSLA(0.99f, Vector(QCOW2, BOCHS),
 													  Vector[(CPUUnit, Int)]((LARGE, 3)))
 
-		hostSLA_toTest.equals(hostSLA_required) should be(true)
+		hostSLA_toTest.equals(hostSLA_required) should be(right = true)
 		info("Duplicate minimization Tests passed.")
 	}
 
@@ -87,21 +87,21 @@ class SLASpec extends FlatSpec with ShouldMatchers
 													 			  Vector[(CPUUnit, Int)]((SMALL, 1), (MEDIUM, 2), (LARGE, 1)))
 
 
-		(hostSLA1 combineToAmplifiedSLA hostSLA2).equals(reqHostSLA1) should be (true)
-		(hostSLA2 combineToAmplifiedSLA hostSLA1).equals(reqHostSLA1) should be (true)
+		(hostSLA1 combineToAmplifiedSLA hostSLA2).equals(reqHostSLA1) should be (right = true)
+		(hostSLA2 combineToAmplifiedSLA hostSLA1).equals(reqHostSLA1) should be (right = true)
 
-		(hostSLA2 combineToAmplifiedSLA hostSLA3).equals(reqHostSLA2) should be (true)
-		(hostSLA3 combineToAmplifiedSLA hostSLA2).equals(reqHostSLA2) should be (true)
+		(hostSLA2 combineToAmplifiedSLA hostSLA3).equals(reqHostSLA2) should be (right = true)
+		(hostSLA3 combineToAmplifiedSLA hostSLA2).equals(reqHostSLA2) should be (right = true)
 		info("HostSLA.combineToAmplifiedSLA(other) Tests passed.")
 	}
 
 	it should "fulfill another HostSLA's requested QoS, if every value is better in regards of QoS" in{
-		hostSLA1.fulfillsQoS(hostSLA2) should be (true)
-		hostSLA1.fulfillsQoS(hostSLA3) should be (true)
-		hostSLA2.fulfillsQoS(hostSLA1) should be (false)
-		hostSLA3.fulfillsQoS(hostSLA1) should be (false)
-		hostSLA2.fulfillsQoS(hostSLA3) should be (false)
-		hostSLA3.fulfillsQoS(hostSLA2) should be (false)
+		hostSLA1.fulfillsQoS(hostSLA2) should be (right = true)
+		hostSLA1.fulfillsQoS(hostSLA3) should be (right = true)
+		hostSLA2.fulfillsQoS(hostSLA1) should be (right = false)
+		hostSLA3.fulfillsQoS(hostSLA1) should be (right = false)
+		hostSLA2.fulfillsQoS(hostSLA3) should be (right = false)
+		hostSLA3.fulfillsQoS(hostSLA2) should be (right = false)
 		info("HostSLA.fullfillsQoS(other) Tests passed.")
 	}
 
@@ -113,7 +113,7 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		val xmlDeserialHostSLA = HostSLA.fromXML(xmlSerialHostSLA)
 		println("deserialized hostSLA1 = " + xmlDeserialHostSLA)
 
-		hostSLA1 == xmlDeserialHostSLA should be (true)
+		hostSLA1 == xmlDeserialHostSLA should be (right = true)
 	}
 
 	it should "be loadable from and saveable to a XML file" in{
@@ -171,13 +171,13 @@ class SLASpec extends FlatSpec with ShouldMatchers
 		cloudSLA1 shouldEqual cloudSLA1
 
 		// ... as well as via ==
-		cloudSLA1 == cloudSLA1 should be(true)
+		cloudSLA1 == cloudSLA1 should be(right = true)
 
 		//not-equal tests:
-		cloudSLA1.equals(cloudSLA2) should be(false)
-		cloudSLA2.equals(cloudSLA1) should be(false)
-		cloudSLA2.equals(cloudSLA3) should be(false)
-		cloudSLA3.equals(cloudSLA2) should be(false)
+		cloudSLA1.equals(cloudSLA2) should be(right = false)
+		cloudSLA2.equals(cloudSLA1) should be(right = false)
+		cloudSLA2.equals(cloudSLA3) should be(right = false)
+		cloudSLA3.equals(cloudSLA2) should be(right = false)
 		info("Equality Tests passed.")
 	}
 

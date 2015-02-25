@@ -1,6 +1,6 @@
 package messages
 
-import datatypes.{CloudSLA, HostSLA, Subscription}
+import datatypes.Subscription
 
 sealed trait DiscoveryMessage
 
@@ -8,14 +8,6 @@ sealed trait DDADiscoveryDest extends DDADest
 sealed trait MMADiscoveryDest extends PubSubDest
 sealed trait PubSubDiscoveryDest extends PubSubDest
 
-
-/**
- * Sent from CCFM to DiscoveryAgent
- * @param cloudSLA
- * @param possibleHostSLAs
- */
-case class FederationSLAs(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA])
-	extends DiscoveryMessage with DDADiscoveryDest
 
 case class DiscoveryAck(status: String)
 	extends DiscoveryMessage

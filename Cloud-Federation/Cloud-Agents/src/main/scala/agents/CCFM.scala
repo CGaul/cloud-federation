@@ -1,86 +1,42 @@
 package agents
 
 import java.io.File
-import java.net.InetAddress
 
 import akka.actor._
-import datatypes.{CloudSLA, Host, Switch, ResourceAlloc}
+import connectors.CloudConfigurator
+import datatypes._
 import messages._
 
 
 /**
  * @author Constantin Gaul, created on 5/27/14.
  */
-class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Actor with ActorLogging
+class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) 
+	extends Actor with ActorLogging
 {
-	//TODO: replace by a XML File
-	object CCFMConfig
-	{
-		def certFile 			= _certFile
-		def ovxIP 				= _ovxIP
-		def ovxPort				= _ovxPort
-		def embedderIP 		= _embedderIP
-		def embedderPort	= _embedderPort
-		def cloudSwitches = _cloudSwitches
-		def cloudHosts 		= _cloudHosts
-		def cloudSLA 			= _cloudSLA
-
-
-		//TODO: build security interfaces for a Certificate-Store
-		val _certFile: File			= new File(cloudConfDir.getAbsolutePath +"/cloud1.key")
-
-		val _ovxIP: InetAddress 	= InetAddress.getLocalHost
-		val _ovxPort: Int					= 10000
-
-		val _embedderIP: InetAddress = InetAddress.getLocalHost
-		val _embedderPort: Int 			 = 8000
-
-
-		// Define the Cloud-Switches from all files in the cloudConfDir/switches/ directory
-		var _cloudSwitches: Vector[Switch] = Vector()
-		val _cloudSwitchesDir: File = new File(cloudConfDir.getAbsolutePath +"/switches")
-		if(_cloudSwitchesDir.listFiles() == null)
-			log.error("Switches need at least one defined .xml file in {}/switches/ !", cloudConfDir.getAbsolutePath)
-		for (actSwitchFile <- _cloudSwitchesDir.listFiles) {
-			_cloudSwitches = _cloudSwitches :+ Switch.loadFromXML(actSwitchFile)
-		}
-
-		// Define the Cloud-Hosts from all files in the cloudConfDir/hosts/ directory
-		var _cloudHosts: Vector[Host] = Vector()
-		val _cloudHostDir: File = new File(cloudConfDir.getAbsolutePath +"/hosts")
-		if(_cloudHostDir.listFiles() == null)
-			log.error("Hosts need at least one defined .xml file in {}/hosts/ !", cloudConfDir.getAbsolutePath)
-		for (actHostFile <- _cloudHostDir.listFiles) {
-			_cloudHosts = _cloudHosts :+ Host.loadFromXML(actHostFile)
-		}
-
-		// Define the Cloud-SLA from the CloudSLA.xml file in the cloudConfDir/ directory
-		val _cloudSLA  = CloudSLA.loadFromXML(new File(cloudConfDir.getAbsolutePath +"/CloudSLA.xml"))
-	}
-
 
 /* Values: */
 /* ======= */
 
+	// The cloudconfig as a dir of XML files:
+	val cloudConfig: CloudConfigurator = CloudConfigurator(cloudConfDir)
+	
 	// Akka Child-Actor spawning:
 	val mmaSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")
 	val nraSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/networkResourceAgent")
-	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
-																								pubSubActorSelection, mmaSelection, CCFMConfig.certFile)
+	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent], cloudConfig,
+																								pubSubActorSelection, mmaSelection)
 	val discoveryAgent: ActorRef 					= context.actorOf(discoveryAgentProps, name="discoveryAgent")
 	log.info("DiscoveryAgent started at path: {}.", discoveryAgent.path)
 
 	
-	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],
-																								CCFMConfig.cloudSLA, nraSelection)
+	val matchMakingAgentProps: Props 			= Props(classOf[MatchMakingAgent],cloudConfig, 
+                                                pubSubActorSelection, nraSelection)
 	val matchMakingAgent: ActorRef				= context.actorOf(matchMakingAgentProps, name="matchMakingAgent")
 	log.info("MatchMakingAgent started at path: {}.", matchMakingAgent.path)
 
 
-	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent],
-																								CCFMConfig.cloudSwitches, CCFMConfig.cloudHosts,
-																								CCFMConfig.ovxIP, CCFMConfig.ovxPort,
-																								CCFMConfig.embedderIP, CCFMConfig.embedderPort,
+	val networkResourceAgentProps: Props 	= Props(classOf[NetworkResourceAgent], cloudConfig,
 																								matchMakingAgent)
 	val networkResourceAgent: ActorRef 		= context.actorOf(networkResourceAgentProps, name="networkResourceAgent")
 	log.info("NetworkResourceAgent started at path: {}.", networkResourceAgent.path)
@@ -92,45 +48,60 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 
 	var foreignDiscoveryActors: Vector[ActorPath] = Vector()
 	var cloudFederationMatches: Vector[(ActorPath, ResourceAlloc)] = Vector()
-
-
-/* Execution: */
-/* ========== */
-
-  	//Called on CCFM construction:
-// val certFactory: CertificateFactory =  CertificateFactory.getInstance("X.509")
-//	val fis 						= new FileInputStream(CCFMConfig.certFile)
-//	val cert: Certificate 	= certFactory.generateCertificate(fis)
-//	fis.close()
-
-	//TODO: Maybe possible HostSLAs should differ from initial CloudHostSLAs:
-	discoveryAgent ! FederationSLAs(CCFMConfig.cloudSLA, CCFMConfig.cloudHosts.map(_.sla))
-  	log.debug("Discovery-Init send to Discovery-Agent!")
-
-
+  
+  
 /* Methods: */
 /* ======== */
 
 	// Akka Actor Receive method-handling:
 	// -----------------------------------
 
+  /**
+   * Received from Tenant side
+   * @param resToAlloc
+   */
+	def recvTenantRequest(resToAlloc: ResourceAlloc): Unit = {
+		log.info("CCFM Received TenantRequest from Tenant-ID {}. Forwarding to NRA, after Tenant is resolved...",
+			resToAlloc.tenantID)
 
-	def recvResourceRequest(resToAlloc: ResourceAlloc, ofcIP: InetAddress, ofcPort: Int): Unit = {
+		log.info("Fetching Tenant from internal Config file...")
+		val tenantOpt = cloudConfig.cloudTenants.find(_.id == resToAlloc.tenantID)
+		tenantOpt match{
+			case Some(tenant) =>
+					log.info("Successfully resolved tenant {}. Forwarding TenantRequest to NRA as ResourceRequest...", tenant)
+					networkResourceAgent ! ResourceRequest(tenant, resToAlloc)
+			case None => log.error("Tenant was not resolved for Tenant-ID {} in TenantRequest!", resToAlloc.tenantID)
+		}
+	}
+
+  /**
+   * Received from Tenant side 
+   * @param tenant
+   * @param resToAlloc
+   */
+	def recvResourceRequest(tenant: Tenant, resToAlloc: ResourceAlloc): Unit = {
 		log.info("CCFM Received ResourceRequest from Tenant {}. Forwarding to NRA...",
 		resToAlloc.tenantID)
 
-		networkResourceAgent ! ResourceRequest(resToAlloc, ofcIP, ofcPort)
+		networkResourceAgent ! ResourceRequest(tenant, resToAlloc)
 	}
+
+  /**
+   * Received from NRA 
+   * @param resources
+   */
+  def recvResourceReply(resources: ResourceAlloc): Unit = {
+    log.info("ResourceReply received from {} for tenant {}.", sender(), resources.tenantID)
+  }
 
 
 	override def receive(): Receive = {
 		case DiscoveryAck(status)		=> recvDiscoveryStatus(status)
 		case DiscoveryError(status)	=> recvDiscoveryError(status)
-		case "matchmakingMsg" 			=> recvMatchMakingMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
-		case "authenticationMsg"		=> recvAuthenticationMsg() //TODO: define MessageContainer in 0.3 - Federation-Agents
 		case message: CCFMResourceDest	=> message match {
-			case ResourceRequest(resToAlloc, ofcIP, ofcPort) 	=> recvResourceRequest(resToAlloc, ofcIP, ofcPort)
-			case ResourceReply(allocResources)								=> recvResourceReply(allocResources)
+			case TenantRequest(resToAlloc)						=> recvTenantRequest(resToAlloc)
+			case ResourceRequest(tenant, resToAlloc) 	=> recvResourceRequest(tenant, resToAlloc)
+			case ResourceReply(allocResources)				=> recvResourceReply(allocResources)
 		}
 		case _								=> log.error("Unknown message received!")
 	}
@@ -142,13 +113,6 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 	def recvDiscoveryError(error: String) = {
 		log.error("Discovery Error \""+ error + "\" received.")
 	}
-
-
-	def recvMatchMakingMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
-
-	def recvAuthenticationMsg() = ??? //TODO: Implement in 0.3 - Federation-Agents
-
-	def recvResourceReply(resources: ResourceAlloc): Unit = ??? //TODO: Implement in 0.2 Integrated Controllers
 }
 
 
