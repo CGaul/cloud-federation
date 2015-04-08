@@ -1,8 +1,8 @@
 import sbt._
 
 object Common {
-  def prjVersion = "0.3-SNAPSHOT"
-  def scalaVersion = "2.11.5"
+  def prjVersion = "0.4-FINAL"
+  def scalaVersion = "2.11.6"
 
   object Imports{
     /**
