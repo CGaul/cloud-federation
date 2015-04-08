@@ -1,0 +1,52 @@
+# This file describes the network interfaces available on your system
+# and how to activate them. For more information, see interfaces(5).
+
+### AUTOMATIC INTERFACE STARTERS ###
+
+# The loopback network interface
+auto lo
+iface lo inet loopback
+
+#ETH_X is started automatically with a staticIP
+auto ETH_X
+iface ETH_X inet static
+     address IPADDR
+     netmask 255.255.255.0
+     gateway IPSUBNET.1
+     # dns-* options are implemented by the resolvconf package, if installed
+     dns-nameservers IPSUBNET.1 8.8.8.8 8.8.4.4
+
+
+### BRIDGE-INTERFACES ###
+
+## br-ETH_X Interface is started manually (sudo ifup br-ETH_X).
+#       It establishes an ovs-bridge with ETH_X as its local port.
+#       For that, ETH_X has to be offlined and the bridge has to act
+#       as a dhcp-client for the 192.168.1.1 gateway over ETH_X.
+#  Use this bridge via: sudo ifup --allow=ovs ovsbr-ext
+#                       sudo ifdown --allow=ovs ovsbr-ext
+allow-ovs ovsbr-ext
+iface ovsbr-ext inet static
+    address OVSADDR
+    netmask 255.255.255.0
+    ovs_type OVSBridge
+    ovs_ports ETH_X ovsbr-ext_tp0
+    #Additional command queries:
+    # Lease ETH_X and define dhclient to ovsbr-ext after ovsbr-ext startup:
+    pre-up ifdown ETH_X
+    post-up ifconfig ETH_X 0
+    post-up dhclient ovsbr-ext
+    # Restart ETH_X after ovsbr-ext shutdown:
+    down ifdown ETH_X
+    post-down ifup ETH_X
+
+allow-ovsbr-ext ETH_X
+iface ETH_X inet manual
+    ovs_bridge ovsbr-ext
+    ovs_type OVSPort
+
+allow-ovsbr-ext ovsbr-ext_tp0
+iface ovsbr-ext_tp0 inet manual
+    ovs_bridge ovsbr-ext
+    ovs_type OVSIntPort
+    post-up ifconfig ovsbr-ext_tp0 10.1.1.10 netmask 255.255.0.0

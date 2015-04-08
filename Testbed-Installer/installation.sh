@@ -28,9 +28,8 @@ PROGRESS_FILE=${CURR_DIR}/progress.log
 LOG_FILE=${CURR_DIR}/installation.log
 
 CONFIGFILE_PATH=${CURR_DIR}/vm-configs
-RESOURCE_PATH=${CURR_DIR}/resources
-VM_IMAGE_PATH=~/.vmbuilder/VMs
-TEMPLATE_PATH=~/.vmbuilder/Cloud-Templates/
+VM_IMAGE_PATH=~/.vmbuilder/images
+TEMPLATE_PATH=~/.vmbuilder/cloud-templates/
 
 
 #Config- &Resource- File paths for each VM:
@@ -116,26 +115,35 @@ fi
 
 #If the parameters ethX and ipAddr are not set as script params, ask user about those values here:
 if [[ "${ethX}" == "" || "${ipAddr}" == "" ]]; then
-	ethX=$(whiptail --title "Define bridge's eth-Interface" \
+	ethX=$(whiptail --title "Define OpenVSwitch's eth-Interface" \
 					--backtitle "Installer Parameter Setup" \
 					--inputbox \
-	"In the setup process, a br0 will be defined in /etc/network/interfaces.\
-	This virtual bridge needs to mapped to a physical eth-Interface that is\
-	correctly linked into a given ethernet. \n\n\
+	"In the setup process, an OpenVSwitch will be defined in /etc/network/interfaces.\
+	This virtual bridge needs to mapped to a physical ethernet-interface. \n\n\
 	Which interface do you want to choose? (F.e. \"eth0\")" \
 					15 ${GUI_MAXHWIDTH} 3>&1 1>&2 2>&3)
 	if [[ "${ethX}" == "" ]]; then
-		whiptail --title "Wrong User input." --msgbox "ethernet-Interface still undefined. Aborting script..." 10 ${GUI_MAXHWIDTH}
+		whiptail --title "Wrong User input." --msgbox "ethernet-interface still undefined. Aborting script..." 10 ${GUI_MAXHWIDTH}
 		exit 2
 	fi
-	ipAddr=$(whiptail --title "Define bridge's IP-Address" \
+	ipAddr=$(whiptail --title "Define static eth-interface's IP-Address" \
 					  --backtitle "Installer Parameter Setup" \
 					  --inputbox \
-	"In the setup process, a br0 will be defined in /etc/network/interfaces.\
-	This virtual bridge will be configured with a static IP-Address.\n\n\
-	Type the static IP-Addr for br0 (F.e. \"192.168.1.100\")" \
+	"The OpenVSwitch will be defined on top of the previously defined eth-interface in /etc/network/interfaces.\
+	The eth-interface will be defined with a static IP-Address.\n\n\
+	Type the static IP-Addr for ${ethX} (F.e. \"192.168.1.10\")" \
 				    15 ${GUI_MAXHWIDTH} 3>&1 1>&2 2>&3)
 	if [[ "${ipAddr}" == "" ]]; then
+		whiptail --title "Wrong User input." --msgbox "IP-Addr for virtual bridge still undefined. Aborting script..." 10 ${GUI_MAXHWIDTH}
+		exit 2
+	fi
+	ovsAddr=$(whiptail --title "Define OpenVSwitch's IP-Address" \
+					  --backtitle "Installer Parameter Setup" \
+					  --inputbox \
+	"Though the OpenVSwitch is defined on top of an eth-interface, the OVS-bridge will have its own, static IP-Address.\n\n\
+	Type the static IP-Addr for the ovs-interface (F.e. \"192.168.1.100\")" \
+				    15 ${GUI_MAXHWIDTH} 3>&1 1>&2 2>&3)
+	if [[ "${ovsAddr}" == "" ]]; then
 		whiptail --title "Wrong User input." --msgbox "IP-Addr for virtual bridge still undefined. Aborting script..." 10 ${GUI_MAXHWIDTH}
 		exit 2
 	fi
@@ -222,7 +230,7 @@ containsProgress ${PROGRESS_FILE} "1.3" containsSection
 if [ ${containsSection} -eq 0 ]; then
 	echoAndLog "1.3) Installing ubuntu-virt-server, python-vm-builder, kvm-ipxe, libguestfs-tools and bridge-utils..." ${LOG_FILE}
 	echo "This really may take a while."
-	sudo apt-get install -y --force-yes ubuntu-virt-server python-vm-builder kvm-ipxe libguestfs-tools bridge-utils >> ${LOG_FILE}
+	sudo apt-get install -y --force-yes ubuntu-virt-server python-vm-builder kvm-ipxe libguestfs-tools bridge-utils openvswitch-switch qemu-kvm libvirt-bin >> ${LOG_FILE}
 	saveProgress ${PROGRESS_FILE} "1.3" "Installing KVM Tools. DONE"
 fi
 
@@ -278,6 +286,7 @@ if [ ${containsSection} -eq 0 ]; then
 	#Replace the pre-defined symbols inside the network.interfaces copy by the assigned ones:
 	sed -i "s/ETH_X/${ethX}/g" ${CONFIGFILE_PATH}/interfaces
 	sed -i "s/IPADDR/${ipAddr}/g" ${CONFIGFILE_PATH}/interfaces
+	sed -i "s/OVSADDR/${ovsAddr}/g" ${CONFIGFILE_PATH}/interfaces
 
 	#Define the IP-Subnet by cutting the last entry from the IP Address:
 	ipSubnet=`echo ${ipAddr} | awk 'BEGIN {FS = "[.]+" } {print $1"."$2"."$3}'`
