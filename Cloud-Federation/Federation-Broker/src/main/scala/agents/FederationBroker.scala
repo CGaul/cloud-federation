@@ -1,5 +1,8 @@
 package agents
 
+import java.net.InetAddress
+import java.util.NoSuchElementException
+
 import akka.actor._
 import connectors.FederationConfigurator
 import datatypes.{OvxInstance, Subscriber, Subscription}
@@ -184,9 +187,16 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
     val unassignedOvxInstances = fedConfig.ovxInstances.filterNot(assignedOvxInstances.contains)
     
     // Assign the first OVX-Instance for the current OVX-startup request:
-    val startedOvx = unassignedOvxInstances(0)
-    assignedOvxInstances = assignedOvxInstances :+ startedOvx
-    return startedOvx
+		try {
+			val startedOvx = unassignedOvxInstances.head
+			assignedOvxInstances = assignedOvxInstances :+ startedOvx
+			return startedOvx
+		}
+		catch {
+			case e: NoSuchElementException =>
+				log.warning("No unassigned OVX Instance could be found, starting new one...")
+				return OvxInstance(InetAddress.getLocalHost, 8080, 6633, federator = false)
+		}
   }
 }
 
