@@ -141,7 +141,7 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
           log.info("Subscriber {} is the new master of a federation and owns federated {}", sender(), ovxInstance)
           
         case None =>
-          log.error("OvxInstanceRequest was received before DiscvorySubscription was completed for {}!", sender())
+          log.warning("OvxInstanceRequest was received before DiscvorySubscription was completed for {}!", sender())
     }
   }
 

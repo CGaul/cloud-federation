@@ -64,7 +64,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 		log.info("Received FederationSLAs from CCFM.")
 
 		//See if the MMA Actor is already resolved by the RemoteDependencyAgent:
-		val resolvedMMASelIndex = resolvedActorSelects.find(_ == mmaActorSel).map(_._1).getOrElse(-1)
+		val resolvedMMASelIndex = resolvedActorSelects.find(_._2 == mmaActorSel).map(_._1).getOrElse(-1)
     val mmaActorOpt = resolvedActorRefs.find(_._1 == resolvedMMASelIndex).map(_._2)
 		
 		mmaActorOpt match{
