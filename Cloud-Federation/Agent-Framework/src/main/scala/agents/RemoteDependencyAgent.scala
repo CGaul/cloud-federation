@@ -38,7 +38,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 	private var _resolvedActorSelects: Map[Int, ActorSelection] = Map()
 
 	private var _unresolvedActors: Map[Int, ActorSelection] = Map()
-	for (n <- 0 to remoteDependencies.size) yield {
+	for (n <- 0 to (remoteDependencies.size - 1)) yield {
 		_unresolvedActors += (n -> remoteDependencies(n))
 	}
 

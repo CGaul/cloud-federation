@@ -84,11 +84,11 @@ class MatchMakingIntegrationTest (_system: ActorSystem) extends TestKit(_system)
 
   // The local MMA's cloud Subscription:
   val localSubscription = Subscription(localMMATestActor, cloudConfig1.cloudSLA,
-    cloudConfig1.cloudHosts.map(_.sla).toVector, cloudConfig1.certFile)
+    cloudConfig1.cloudHosts.map(_.sla), cloudConfig1.certFile)
   
   // A foreign cloud's Subscription:
   val foreignSubscription = Subscription(foreignMMAProbe.ref, cloudConfig2.cloudSLA,
-    cloudConfig2.cloudHosts.map(_.sla).toVector, cloudConfig2.certFile)
+    cloudConfig2.cloudHosts.map(_.sla), cloudConfig2.certFile)
   
   
   "A MatchMakingAgent" should {
