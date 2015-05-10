@@ -210,9 +210,10 @@ class OVXManager(ovxConn: OVXConnector)
           val physDstSwitch = physDstSwitchOpt.get
           val virtLinkOpt = this.connectOVXSwitches(tenant, actPhysSwitch, physDstSwitch)
           if(virtLinkOpt.isDefined){
-            val actSwitchPortMap = _tenantSwitchPortMap(tenant, actPhysSwitch)
+            val actSwitchPortMap = _tenantSwitchPortMap(tenant, actPhysSwitch).filter(_._3.isDefined)
                                       .map(pMap => (pMap._1, pMap._2, pMap._3.get.asInstanceOf[OFSwitch]))
             switchConnMap = switchConnMap + (actPhysSwitch -> actSwitchPortMap)
+            log.info(s"OFSwitch $actPhysSwitch is connected to all OFSwitches via $actSwitchPortMap now.")
           }
         }
       }
@@ -390,7 +391,7 @@ class OVXManager(ovxConn: OVXConnector)
         return Some(vHost)
 
       case None =>
-        log.error("Host connection to Switch ${host.mac} at (physPort: ${portMap._1}, vPort ${portMap._2}) failed!")
+        log.error(s"Host connection to Switch ${host.mac} at (physPort: ${portMap._1}, vPort ${portMap._2}) failed!")
         return None
     }
   }
