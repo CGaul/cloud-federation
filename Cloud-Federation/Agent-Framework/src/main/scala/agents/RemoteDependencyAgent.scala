@@ -26,20 +26,29 @@ object DependencyState extends Enumeration {
 //TODO: maybe use Akka FSM for the Implementation of the RemoteDependencyAgent
 abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) extends Actor with ActorLogging with Stash
 {
-	
-/* Values: */
-/* ======= */
 
-	//Initializes an internal boolean vector with false for every ActorSelection in remoteDependencies:
-	val dependentActors: ArrayBuffer[Option[ActorRef]] = ArrayBuffer.fill(remoteDependencies.length)(None)
-	
 /* Variables: */
 /* ========== */
 	
   var state = DependencyState.OFFLINE
   
 	private var _shouldRun = true
-	private var unresolvedActors: List[ActorSelection] = remoteDependencies
+
+	private var _resolvedActorRefs: Map[Int, ActorRef] = Map()
+	private var _resolvedActorSelects: Map[Int, ActorSelection] = Map()
+
+	private var _unresolvedActors: Map[Int, ActorSelection] = Map()
+	for (n <- 0 to remoteDependencies.size) yield {
+		_unresolvedActors += (n -> remoteDependencies(n))
+	}
+
+
+/* Getters: */
+/* ======== */
+
+  val resolvedActorRefs: List[ActorRef] = _resolvedActorRefs.map(_._2).toList
+  val resolvedActorSelects: List[ActorSelection] = _resolvedActorSelects.map(_._2).toList
+  val unresolvedActors: List[ActorSelection] = _unresolvedActors.map(_._2).toList
 
 
 /* Execution: */
@@ -49,11 +58,11 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		override def run(): Unit = {
 			log.info("Trying to solve remote Dependencies of other Agents in {}...", context.self)
 			while(_shouldRun) {
-			  val unresolvedBefore = unresolvedActors.length
+			  val unresolvedBefore = _unresolvedActors.size
 				sendIdentityRequests()
         
         Thread.sleep(1 * 1000) //sleep 1 seconds between each discovery
-        val unresolvedAfter = unresolvedActors.length
+        val unresolvedAfter = _unresolvedActors.size
         log.info("Resolved {}/{} Actor dependencies in current iteration.",
           unresolvedBefore - unresolvedAfter, unresolvedBefore)
         Thread.sleep(1 * 1000) //sleep 1 seconds between each discovery
@@ -72,12 +81,9 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		_workingThread.start()		
 	}
 	private def sendIdentityRequests() = {
-
-		var actorID: Int = 0
-		for (actor <- unresolvedActors){
-      log.info("Send Identify request to {}", actor)
-			actor ! Identify(actorID)
-			actorID += 1
+		for ((actorId, actorRef) <- _unresolvedActors){
+      log.info("Send Identify request with ID {} to Actor {}", actorId, actorRef)
+			actorRef ! Identify(actorId)
 		}
 	}
 
@@ -87,7 +93,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
   override def receive: Receive = _offline()
 
   private def _offline(): Receive = {
-		case ActorIdentity(actorID, actorRef)	=> recv_onlineNotifier(actorID, actorRef)
+		case ActorIdentity(actorID, actorRef)	=> recv_onlineNotifier(actorID.asInstanceOf[Int], actorRef)
 		case _											=> stashMessage()
 	}
 
@@ -118,14 +124,19 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 	 }
   }
 
-  private def recv_onlineNotifier(actorID: Any, actorRef: Option[ActorRef]) = {
-		if(actorRef != None){
-			dependentActors.update(actorID.asInstanceOf[Int], actorRef)
-			unresolvedActors = unresolvedActors.filterNot(_ == context.actorSelection(actorRef.get.path))
+  private def recv_onlineNotifier(actorID: Int, actorRef: Option[ActorRef]) = {
+		if(actorRef.isDefined){
+      val resolvedActorSel = _unresolvedActors.find(_._1 == actorID)
+      if(resolvedActorSel.isDefined){
+        _resolvedActorSelects += (actorID -> resolvedActorSel.get._2)
+			  _resolvedActorRefs += (actorID -> actorRef.get)
+        _unresolvedActors -= resolvedActorSel.get._1
+      }
+
 		}
 
 		//Search for any unresolved ActorRefs:
-		val unresolved = dependentActors.count(_ == None)
+		val unresolved = _unresolvedActors.size
 
 		//If no unresolved ActorRefs are left, become online:
 		if(unresolved == 0){
@@ -138,7 +149,7 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 		}
 	 	else {
 		  log.debug("Some ActorRef dependencies are currently unsolved. RemoteDependencyActor stays OFFLINE. " +
-			 "Dependent Actors: "+ dependentActors)
+			 "Resolved Actors: "+ _resolvedActorRefs)
 		}
 	}
 
@@ -146,12 +157,15 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
   private def recv_offlineNotifier() = {
 	 //Find the actorRef that notifies this actor of being killed in the actorDependency,
 	 //remove it and make this actor _offline again:
-	 val killedActorIndex = dependentActors.indexOf(sender())
-	 if (killedActorIndex != -1){
-		dependentActors.update(killedActorIndex, None)
-		context.become(_offline())
+	 val killedActorSel = _resolvedActorSelects.find(_._2 == sender())
+	 if (killedActorSel.isDefined){
+		 //unresolve this actor
+     _resolvedActorSelects -= killedActorSel.get._1
+     _resolvedActorRefs -= killedActorSel.get._1
+		 _unresolvedActors += (killedActorSel.get._1 -> killedActorSel.get._2)
+		 context.become(_offline())
      state = DependencyState.OFFLINE
-		log.debug("Actor "+ sender().toString() +" has send a KillNotifier. RemoteDependencyActor is now OFFLINE.")
+		 log.debug("Actor "+ sender().toString() +" has send a KillNotifier. RemoteDependencyActor is now OFFLINE.")
 	 }
   }
 }

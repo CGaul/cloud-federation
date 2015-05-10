@@ -63,7 +63,7 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 	private def sendSubscriptionToFedBroker(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
-    val mmaActorOpt = dependentActors.filter(_.isDefined).map(_.get).find(_.path.name == "matchMakingAgent")
+    val mmaActorOpt = resolvedActorRefs.find(_.path.name == "matchMakingAgent")//dependentActors.filter(_.isDefined).map(_.get).find(_.path.name == "matchMakingAgent")
 		
 		mmaActorOpt match{
 		    case Some(mmaActor)	=>
