@@ -46,9 +46,9 @@ abstract class RemoteDependencyAgent(remoteDependencies: List[ActorSelection]) e
 /* Getters: */
 /* ======== */
 
-  val resolvedActorRefs: List[ActorRef] = _resolvedActorRefs.map(_._2).toList
-  val resolvedActorSelects: List[ActorSelection] = _resolvedActorSelects.map(_._2).toList
-  val unresolvedActors: List[ActorSelection] = _unresolvedActors.map(_._2).toList
+  val resolvedActorRefs: List[(Int, ActorRef)] = _resolvedActorRefs.toList
+  val resolvedActorSelects: List[(Int, ActorSelection)] = _resolvedActorSelects.toList
+  val unresolvedActors: List[(Int, ActorSelection)] = _unresolvedActors.toList
 
 
 /* Execution: */
