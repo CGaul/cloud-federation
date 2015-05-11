@@ -2,6 +2,6 @@
     <ID>1</ID>
     <Subnet_IP>10.0.1.1</Subnet_IP>
     <Subnet_Mask>16</Subnet_Mask>
-    <OFC_IP>192.168.1.42</OFC_IP>
+    <OFC_IP>192.168.2.42</OFC_IP>
     <OFC_Port>10000</OFC_Port>
 </Tenant>

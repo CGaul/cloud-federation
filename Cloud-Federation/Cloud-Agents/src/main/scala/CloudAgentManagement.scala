@@ -19,7 +19,7 @@ object CloudAgentManagement extends App
 
 	// Contacting the PubSubFederator via a static ActorSelection:
 	val pubSubActorName = "remoteFederator"
-	val pubSubActorSel  = system.actorSelection("akka.tcp://pubSubSystem@192.168.1.41:2550/user/remoteFederator")//(Props[PubSubFederator], name=pubSubActorName)
+	val pubSubActorSel  = system.actorSelection("akka.tcp://pubSubSystem@127.0.0.1:2550/user/remoteFederator")//(Props[PubSubFederator], name=pubSubActorName)
 //val pubSubActorSel  = system.actorSelection("/user/"+pubSubActorName)
 
 	// Building up the CCFM via the local System:
