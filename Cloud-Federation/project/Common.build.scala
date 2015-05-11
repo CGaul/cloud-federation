@@ -1,8 +1,8 @@
 import sbt._
 
 object Common {
-  def prjVersion = "0.2-SNAPSHOT"
-  def scalaVersion = "2.11.4"
+  def prjVersion = "0.2-RELEASE"
+  def scalaVersion = "2.11.6"
 
   object Imports{
     /**
@@ -29,10 +29,10 @@ object Common {
       "ch.qos.logback"    % "logback-classic" % "1.1.2")
     
     def akkaDependencies = Seq(
-      "com.typesafe.akka" %% "akka-actor"     % "2.3.8",
-      "com.typesafe.akka" %% "akka-remote"    % "2.3.8",
-      "com.typesafe.akka" %% "akka-slf4j"     % "2.3.8",
-      "com.typesafe.akka" %% "akka-testkit"   % "2.3.8")
+      "com.typesafe.akka" %% "akka-actor"     % "2.3.9",
+      "com.typesafe.akka" %% "akka-remote"    % "2.3.9",
+      "com.typesafe.akka" %% "akka-slf4j"     % "2.3.9",
+      "com.typesafe.akka" %% "akka-testkit"   % "2.3.9")
 
     def testDependencies = Seq(
       "org.scalatest"     %% "scalatest"      % "2.2.1" % "test",
