@@ -3,7 +3,7 @@ package integration
 import java.io.File
 import java.net.InetAddress
 
-import agents.{DiscoveryAgent, PubSubFederator}
+import agents.{DiscoveryAgent, FederationBroker}
 import akka.actor.{ActorSelection, ActorSystem, Props}
 import akka.testkit.{TestActorRef, TestKit}
 import com.typesafe.config.ConfigFactory
@@ -71,7 +71,7 @@ class PubSubSystemTest (_system: ActorSystem) extends TestKit(_system)
 																								system.actorSelection("/user/remoteFederator"),
 																								testMMAActorSel2, new File("Certificate2"))
 
-	val testActor_PubSub 	= TestActorRef[PubSubFederator](Props[PubSubFederator], name="remoteFederator")
+	val testActor_PubSub 	= TestActorRef[FederationBroker](Props[FederationBroker], name="remoteFederator")
 	val testActor_DA1 		= TestActorRef[DiscoveryAgent](discoveryAgent1Props, name="discoveryAgent1")
 	val testActor_DA2 		= TestActorRef[DiscoveryAgent](discoveryAgent2Props, name="discoveryAgent2")
 

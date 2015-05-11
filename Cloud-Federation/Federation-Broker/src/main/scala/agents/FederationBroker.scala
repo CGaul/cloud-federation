@@ -7,7 +7,7 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/31/14.
  */
-class PubSubFederator extends Actor with ActorLogging
+class FederationBroker extends Actor with ActorLogging
 {
 
 /* Variables: */

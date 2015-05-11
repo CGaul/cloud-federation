@@ -12,18 +12,20 @@ import messages.TenantRequest
 
 object CloudAgentManagement extends App
 {
-	val (appcfg, clouddir) = loadConfigs(args)
-	val config = ConfigFactory.parseFileAnySyntax(appcfg)
+	val appCfg = loadAkkaConfig(args)
+  val cloudConfDir = loadCloudConfDir(args)
+	val config = ConfigFactory.parseFileAnySyntax(appCfg)
 
 	val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudagentsystem").withFallback(config))
 
-	// Contacting the PubSubFederator via a static ActorSelection:
-	val pubSubActorName = "remoteFederator"
-	val pubSubActorSel  = system.actorSelection("akka.tcp://pubSubSystem@127.0.0.1:2550/user/remoteFederator")//(Props[PubSubFederator], name=pubSubActorName)
+	val fedBrokerActorName = "federationBroker"
+  val federatorIp = loadFederatorIp(args)
+  val federatorPort = 2550
+	val fedBrokerActorSel  = system.actorSelection(s"akka.tcp://fedBroker@$federatorIp:$federatorPort/user/$fedBrokerActorName")
 //val pubSubActorSel  = system.actorSelection("/user/"+pubSubActorName)
 
 	// Building up the CCFM via the local System:
-	val ccfmProps = Props(classOf[CCFM], pubSubActorSel, clouddir)
+	val ccfmProps = Props(classOf[CCFM], fedBrokerActorSel, cloudConfDir)
 	val ccfmActor = system.actorOf(ccfmProps, name="CCFM")
 
   println("Starting AgentFederation. Initialized CCFM-Agent successful! CCFM Address: "+ ccfmActor)
@@ -70,39 +72,97 @@ object CloudAgentManagement extends App
 /* Private Methods: */
 /* ================ */
 
-	private def loadConfigs(args: Array[String]): (File, File) = {
-		def exitOnParamError() = {
-			System.err.println("At least two arguments " +
-				"(namely --appconf application.conf and --cloudconf cloudconfdir) " +
-				"have to be passed into this cloud-agent.jar!")
-			System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
-			System.exit(1)
-		}
-		def exitOnFileError(file: File) = {
-			System.err.println(s"The File ``${file.getName}´´ specified as appconf or cloudconf needs to be existent!")
-			System.exit(1)
-		}
+  private def loadCloudConfDir(args: Array[String]): File = {
+    def exitOnParamError() = {
+      System.err.println("No --cloudconf cloudconf-dir could have been found as commandline arg, " +
+        "passed into this cloud-agent.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
+      System.exit(1)
+    }
 
-		var appcfg: 	Option[File] = None
-		var clouddir: Option[File] = None
+    def exitOnDirError(dir: File) = {
+      System.err.println(s"The Dir ``${dir.getName}´´ specified as cloudconfdir needs to be existent and a directory!")
+      System.exit(1)
+    }
 
-		if(args.length < 4) exitOnParamError()
+    var clouddir: Option[File] = None
 
-		for (i <- 0 to (args.size - 1)) args(i) match{
-			case "--appconf" 		=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
-			case "-a" 					=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
-			case "--cloudconf" 	=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
-			case "-c" 					=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
-			case _							=>
-		}
+    for (i <- 0 to (args.size - 1)) args(i) match{
+      case "--cloudconf" 	=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+      case "-c" 					=> if(i+1 < args.size) {clouddir 	= Option(new File(args(i+1)))}
+      case _              =>
+    }
 
-		// Check whether appcfg and clouddir are existing Files:
-		for (actCfg <- Array(appcfg, clouddir)) {
-			actCfg match{
-				case Some(file)		=> if(!file.exists()) exitOnFileError(file)
-				case None					=> exitOnParamError()
-			}
-		}
-		return (appcfg.get, clouddir.get)
-	}
+    // Check cloudconfdir is an existing dir:
+    clouddir match{
+        case Some(file) =>
+          if(!file.isDirectory) {
+            exitOnDirError(file)
+          }
+
+        case None	=>
+          exitOnParamError()
+      }
+
+    return clouddir.get
+  }
+
+
+  private def loadAkkaConfig(args: Array[String]): File = {
+    def exitOnParamError() = {
+      System.err.println("No --appconf application.conf could have been found as commandline arg, " +
+        "passed into this cloud-agent.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
+      System.exit(1)
+    }
+
+    def exitOnFileError(file: File) = {
+      System.err.println(s"The File ``${file.getName}´´ specified as application.conf needs to be existent!")
+      System.exit(1)
+    }
+
+    var appcfg: 	Option[File] = None
+
+    for (i <- 0 to (args.size - 1)) args(i) match{
+      case "--appconf" 		=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+      case "-a" 					=> if(i+1 < args.size) {appcfg 		= Option(new File(args(i+1)))}
+      case _              =>
+    }
+
+    // Check application.conf is an existing file:
+    appcfg match{
+      case Some(file) =>
+        if(!file.isFile) {
+          exitOnFileError(file)
+        }
+
+      case None	=>
+        exitOnParamError()
+    }
+
+    return appcfg.get
+  }
+
+  private def loadFederatorIp(args: Array[String]): String = {
+    def exitOnParamError() = {
+      System.err.println("Nothing like --fedIp 192.168.1.40 could have been found as commandline arg, " +
+        "passed into this cloud-agent.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
+      System.exit(1)
+    }
+
+    var federatorIp: 	Option[String] = None
+
+    for (i <- 0 to (args.size - 1)) args(i) match{
+      case "--fedIp" 		=> if(i+1 < args.size) {federatorIp = Option(args(i+1))}
+      case "-i" 				=> if(i+1 < args.size) {federatorIp = Option(args(i+1))}
+      case _            =>
+    }
+
+    // Check if federatorIp is an existing value:
+    if(federatorIp.isEmpty){
+      exitOnParamError()
+    }
+    return federatorIp.get
+  }
 }

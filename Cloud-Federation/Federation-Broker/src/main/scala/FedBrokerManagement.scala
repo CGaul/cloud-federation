@@ -1,22 +1,23 @@
 import java.io.File
 
-import agents.PubSubFederator
+import agents.FederationBroker
 import akka.actor.{ActorSystem, Props}
 import com.typesafe.config.ConfigFactory
 
 /**
  * @author Constantin Gaul, created on 6/23/14.
  */
-object PubSubManagement extends App
+object FedBrokerManagement extends App
 {
-  val appcfg = loadConfigs(args)
+  val appCfg = loadConfigs(args)
 
-  val config = ConfigFactory.parseFileAnySyntax(appcfg)
-  val system = ActorSystem("pubSubSystem", config.getConfig("pubsubsystem").withFallback(config))
+  val config = ConfigFactory.parseFileAnySyntax(appCfg)
+  val system = ActorSystem("fedBroker", config.getConfig("fedbroker").withFallback(config))
 
-  val pubSubActor = system.actorOf(Props[PubSubFederator], name="remoteFederator")
+  val fedBrokerProps = Props(classOf[FederationBroker])
+  val fedBroker = system.actorOf(fedBrokerProps, name="federationBroker")
 
-  println("Starting PubSub-System. PubSub-Federator successful! PubSubFederator: "+ pubSubActor)
+  println(s"Starting Federation-Broker successfully at $fedBroker!")
 
 
 
