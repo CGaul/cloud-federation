@@ -70,7 +70,7 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
     //Spray Library:
-    libraryDependencies += "io.spray" %% "spray-can" % "1.3.2",
+    libraryDependencies += "io.spray" %% "spray-can" % "1.3.3",
     //JSON Support via PlayJson:
     libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
     //Apache Commons IO for comfortable file operations (in CloudConfig)

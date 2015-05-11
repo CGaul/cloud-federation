@@ -9,12 +9,18 @@ import datatypes.ImgFormat._
 import datatypes._
 import messages.TenantRequest
 
+import scala.util.Try
+
 
 object CloudAgentManagement extends App
 {
 	val appCfg = loadAkkaConfig(args)
   val cloudConfDir = loadCloudConfDir(args)
 	val config = ConfigFactory.parseFileAnySyntax(appCfg)
+
+  /** Port to start service on. */
+  lazy val httpServiceAddr = Try(config.getInt("httpservice.host")).getOrElse("localhost")
+  lazy val httpServicePort = Try(config.getInt("httpservice.port")).getOrElse(8080)
 
 	val system = ActorSystem("cloudAgentSystem", config.getConfig("cloudagentsystem").withFallback(config))
 
@@ -25,7 +31,7 @@ object CloudAgentManagement extends App
 //val pubSubActorSel  = system.actorSelection("/user/"+pubSubActorName)
 
 	// Building up the CCFM via the local System:
-	val ccfmProps = Props(classOf[CCFM], fedBrokerActorSel, cloudConfDir)
+	val ccfmProps = Props(classOf[CCFM], fedBrokerActorSel, cloudConfDir, httpServiceAddr, httpServicePort)
 	val ccfmActor = system.actorOf(ccfmProps, name="CCFM")
 
   println("Starting AgentFederation. Initialized CCFM-Agent successful! CCFM Address: "+ ccfmActor)

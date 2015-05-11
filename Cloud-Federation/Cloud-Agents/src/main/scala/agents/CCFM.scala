@@ -11,7 +11,8 @@ import messages._
 /**
  * @author Constantin Gaul, created on 5/27/14.
  */
-class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Actor with ActorLogging
+class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File,
+					 httpServiceAddr: String, httpServicePort: Int) extends Actor with ActorLogging
 {
 	//TODO: replace by a XML File
 	object CCFMConfig
@@ -57,6 +58,11 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File) extends Act
 /* ======= */
 
 	// Akka Child-Actor spawning:
+
+	// The HTTP-Service Actor:
+	//TODO: add HTTP-Service Actor
+
+	// The Federation Actors:
 	val mmaSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")
 	val nraSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/networkResourceAgent")
 	val discoveryAgentProps: Props 				= Props(classOf[DiscoveryAgent],
@@ -173,6 +179,6 @@ object CCFM
 	 * @param pubSubServerAddr The akka.tcp connection, where the PubSub-Federator-Agents is listening.
 	 * @return An Akka Properties-Object
 	 */
-	def props(pubSubServerAddr: ActorSelection, cloudConfDir: File):
-		Props = Props(new CCFM(pubSubServerAddr, cloudConfDir))
+	def props(pubSubServerAddr: ActorSelection, cloudConfDir: File, httpServiceAddr: String, httpServicePort: Int):
+		Props = Props(new CCFM(pubSubServerAddr, cloudConfDir, httpServiceAddr, httpServicePort))
 }
