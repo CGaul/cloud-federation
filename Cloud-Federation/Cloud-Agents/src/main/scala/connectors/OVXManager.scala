@@ -210,8 +210,9 @@ class OVXManager(ovxConn: OVXConnector)
           val physDstSwitch = physDstSwitchOpt.get
           val virtLinkOpt = this.connectOVXSwitches(tenant, actPhysSwitch, physDstSwitch)
           if(virtLinkOpt.isDefined){
-            val actSwitchPortMap = _tenantSwitchPortMap(tenant, actPhysSwitch).filter(_._3.isDefined)
-                                      .map(pMap => (pMap._1, pMap._2, pMap._3.get.asInstanceOf[OFSwitch]))
+            val actSwitchPortMap = _tenantSwitchPortMap(tenant, actPhysSwitch)
+                                    .filter(pMap => pMap._3.isDefined && pMap._3.get.isInstanceOf[OFSwitch])
+                                    .map(pMap => (pMap._1, pMap._2, pMap._3.get.asInstanceOf[OFSwitch]))
             switchConnMap = switchConnMap + (actPhysSwitch -> actSwitchPortMap)
             log.info(s"OFSwitch $actPhysSwitch is connected to all OFSwitches via $actSwitchPortMap now.")
           }

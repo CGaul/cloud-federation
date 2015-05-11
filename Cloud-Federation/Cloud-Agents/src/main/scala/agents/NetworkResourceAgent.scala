@@ -192,7 +192,7 @@ class NetworkResourceAgent(cloudConfig: CloudConfigurator,
     // Create a local OVX-Network that includes tenantOfc and federatedOVX as net-OFCs, if whole resAlloc was
     // completely allocated locally, and federatedOVX only, 
     // if a federation needs to take place (tenantOfc would be deleted anyway):
-    val netOFCs = if(remainResAllocOpt.isEmpty) {List(tenantOfc, federatedOVX)} else {List(federatedOVX)}
+    val netOFCs = List{tenantOfc}//if(remainResAllocOpt.isEmpty) {List(tenantOfc, federatedOVX)} else {List(federatedOVX)}
     val virtNet = _ovxLocalManager.createOVXNetwork(tenant, netOFCs)
     
     // After network creation, map the allocated resAlloc to the tenant's local OVX-network:

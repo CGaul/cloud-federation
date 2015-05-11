@@ -1,6 +1,6 @@
 package agents
 
-import java.net.InetAddress
+import java.net.NetworkInterface
 import java.util.NoSuchElementException
 
 import akka.actor._
@@ -195,7 +195,8 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
 		catch {
 			case e: NoSuchElementException =>
 				log.warning("No unassigned OVX Instance could be found, starting new one...")
-				return OvxInstance(InetAddress.getLocalHost, 8080, 6633, federator = false)
+				return OvxInstance(NetworkInterface.getNetworkInterfaces.nextElement().getInetAddresses.nextElement(),
+													 8080, 6633, federator = false)
 		}
   }
 }
