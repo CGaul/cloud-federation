@@ -67,12 +67,12 @@ object CloudAgentManagement extends App
 	val resAlloc2 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res3), 				reqHostSLA2)
 	val resAlloc3 : ResourceAlloc = ResourceAlloc(1, Vector[Resource](res4, res5), 	reqHostSLA3)
 
-	Thread.sleep(10000)
-	ccfmActor ! TenantRequest(resAlloc1)
-	Thread.sleep(5000)
-	ccfmActor ! TenantRequest(resAlloc2)
-	Thread.sleep(5000)
-	ccfmActor ! TenantRequest(resAlloc3)
+//	Thread.sleep(10000)
+//	ccfmActor ! TenantRequest(resAlloc1)
+//	Thread.sleep(5000)
+//	ccfmActor ! TenantRequest(resAlloc2)
+//	Thread.sleep(5000)
+//	ccfmActor ! TenantRequest(resAlloc3)
 
 
 /* Private Methods: */

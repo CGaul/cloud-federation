@@ -4,8 +4,10 @@ import java.io.File
 import java.net.InetAddress
 
 import akka.actor._
+import akka.io.IO
 import datatypes._
 import messages._
+import spray.can.Http
 
 
 /**
@@ -60,7 +62,10 @@ class CCFM(pubSubActorSelection: ActorSelection, cloudConfDir: File,
 	// Akka Child-Actor spawning:
 
 	// The HTTP-Service Actor:
-	//TODO: add HTTP-Service Actor
+	implicit val system = context.system
+	val httpHandlerProps = Props(classOf[ResAllocHttpService], this.self, httpServiceAddr, httpServicePort)
+	val resAllocHttpHandler = context.actorOf(httpHandlerProps, name="resAllocHTTPService")
+	IO(Http) ! Http.Bind(resAllocHttpHandler, interface = httpServiceAddr, port = httpServicePort)
 
 	// The Federation Actors:
 	val mmaSelection: ActorSelection			= context.actorSelection("akka://cloudAgentSystem/user/CCFM/matchMakingAgent")

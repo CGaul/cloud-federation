@@ -203,7 +203,12 @@ object ResourceAlloc {
 	def loadFromXML(file: File): ResourceAlloc = {
 		val xmlNode = xml.XML.loadFile(file)
 		return fromXML(xmlNode)
-	}	
+	}
+
+	def loadFromXML(string: String): ResourceAlloc = {
+		val xmlNode = xml.XML.loadString(string)
+		return fromXML(xmlNode)
+	}
 }
 
 

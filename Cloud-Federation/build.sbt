@@ -64,13 +64,14 @@ lazy val cloudAgents: Project = project.in(file("Cloud-Agents")).
     // ----------
     resolvers += Common.Resolvers.akkaTypeSafeRepo,
     resolvers += "Typesafe Repo" at "http://repo.typesafe.com/typesafe/releases/",
-    resolvers += "spray repo" at "http://repo.spray.io",
+    resolvers += Common.Resolvers.sprayRepo,
+    resolvers ++= Common.Resolvers.sonatypeRepos,
     // Compile Dependencies:
     // ---------------------
     //Akka Libraries:
     libraryDependencies ++= Common.Imports.akkaDependencies,
     //Spray Library:
-    libraryDependencies += "io.spray" %% "spray-can" % "1.3.3",
+    libraryDependencies ++= Common.Imports.sprayDependencies,
     //JSON Support via PlayJson:
     libraryDependencies += "com.typesafe.play" %% "play-json" % "2.3.6",
     //Apache Commons IO for comfortable file operations (in CloudConfig)

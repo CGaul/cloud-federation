@@ -34,6 +34,16 @@ object Common {
       "com.typesafe.akka" %% "akka-slf4j"     % "2.3.9",
       "com.typesafe.akka" %% "akka-testkit"   % "2.3.9")
 
+    def sprayDependencies = Seq(
+      "io.spray"          %% "spray-can"      % "1.3.3",
+      "io.spray"          %% "spray-http"     % "1.3.3",
+      "io.spray"          %% "spray-httpx"    % "1.3.3",
+      "io.spray"          %% "spray-util"     % "1.3.3",
+      "io.spray"          %% "spray-io"       % "1.3.3",
+      "io.spray"          %% "spray-caching"  % "1.3.3",
+      "io.spray"          %% "spray-routing"  % "1.3.3",
+      "com.chuusai"       %% "shapeless"      % "2.1.0")
+
     def testDependencies = Seq(
       "org.scalatest"     %% "scalatest"      % "2.2.1" % "test",
       "junit"             % "junit"           % "4.11"  % "test",
@@ -44,5 +54,12 @@ object Common {
   object Resolvers {
     def akkaTypeSafeRepo = "Typesafe Repository" at
                            "http://repo.typesafe.com/typesafe/releases/"
+
+    def sprayRepo = "spray repo" at
+                    "http://repo.spray.io"
+
+    def sonatypeRepos = Seq(
+      Resolver.sonatypeRepo("releases"),
+      Resolver.sonatypeRepo("snapshots"))
   }
 }
