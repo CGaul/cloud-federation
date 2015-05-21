@@ -231,8 +231,16 @@ object OvxInstance {
   
   def loadAllFromXML(file: File): List[OvxInstance] = {
     val xmlNode = xml.XML.loadFile(file)
-    val ovxInstances = (xmlNode \\ "OvxInstances" \\ "OvxInstance").map(fromXML).toList
-    return ovxInstances
+    if(xmlNode.label == "OvxInstances") {
+      val ovxInstances = (xmlNode \\ "OvxInstances" \\ "OvxInstance").map(fromXML).toList
+      return ovxInstances
+    }
+    if(xmlNode.label == "OvxInstance") {
+      return List(loadFromXML(file))
+    }
+    else{
+      return List()
+    }
   }
 }
 

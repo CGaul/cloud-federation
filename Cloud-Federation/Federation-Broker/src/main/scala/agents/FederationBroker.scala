@@ -1,5 +1,8 @@
 package agents
 
+import java.net.NetworkInterface
+import java.util.NoSuchElementException
+
 import akka.actor._
 import connectors.FederationConfigurator
 import datatypes.{OvxInstance, Subscriber, Subscription}
@@ -138,7 +141,7 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
           log.info("Subscriber {} is the new master of a federation and owns federated {}", sender(), ovxInstance)
           
         case None =>
-          log.error("OvxInstanceRequest was received before DiscvorySubscription was completed for {}!", sender())
+          log.warning("OvxInstanceRequest was received before DiscvorySubscription was completed for {}!", sender())
     }
   }
 
@@ -184,9 +187,17 @@ class FederationBroker(fedConfig: FederationConfigurator) extends Actor with Act
     val unassignedOvxInstances = fedConfig.ovxInstances.filterNot(assignedOvxInstances.contains)
     
     // Assign the first OVX-Instance for the current OVX-startup request:
-    val startedOvx = unassignedOvxInstances(0)
-    assignedOvxInstances = assignedOvxInstances :+ startedOvx
-    return startedOvx
+		try {
+			val startedOvx = unassignedOvxInstances.head
+			assignedOvxInstances = assignedOvxInstances :+ startedOvx
+			return startedOvx
+		}
+		catch {
+			case e: NoSuchElementException =>
+				log.warning("No unassigned OVX Instance could be found, starting new one...")
+				return OvxInstance(NetworkInterface.getNetworkInterfaces.nextElement().getInetAddresses.nextElement(),
+													 8080, 6633, federator = false)
+		}
   }
 }
 

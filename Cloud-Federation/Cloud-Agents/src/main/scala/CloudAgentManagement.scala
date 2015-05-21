@@ -21,9 +21,9 @@ object CloudAgentManagement extends App
 	// Contacting the PubSubFederator via a static ActorSelection:
   // TODO: get from config:
 	val fedBrokerActorName = "federationBroker"
-  val federatorIP = "192.168.1.41"
+  val federatorIp = loadFederatorIp(args)
   val federatorPort = 2550
-	val fedBrokerActorSel  = system.actorSelection(s"akka.tcp://fedBroker@$federatorIP:$federatorPort/user/$fedBrokerActorName")
+	val fedBrokerActorSel  = system.actorSelection(s"akka.tcp://fedBroker@$federatorIp:$federatorPort/user/$fedBrokerActorName")
 //val pubSubActorSel  = system.actorSelection("/user/"+pubSubActorName)
 
 	// Building up the CCFM via the local System:
@@ -143,5 +143,28 @@ object CloudAgentManagement extends App
     }
     
     return appcfg.get
+  }
+
+  private def loadFederatorIp(args: Array[String]): String = {
+    def exitOnParamError() = {
+      System.err.println("Nothing like --fedIp 192.168.1.40 could have been found as commandline arg, " +
+        "passed into this cloud-agent.jar!")
+      System.err.println(s"Number args: ${args.size} Values of args: ${args.mkString(" ")}")
+      System.exit(1)
+    }
+
+    var federatorIp: 	Option[String] = None
+
+    for (i <- 0 to (args.size - 1)) args(i) match{
+      case "--fedIp" 		=> if(i+1 < args.size) {federatorIp = Option(args(i+1))}
+      case "-i" 				=> if(i+1 < args.size) {federatorIp = Option(args(i+1))}
+      case _            =>
+    }
+
+    // Check if federatorIp is an existing value:
+    if(federatorIp.isEmpty){
+      exitOnParamError()
+    }
+    return federatorIp.get
   }
 }

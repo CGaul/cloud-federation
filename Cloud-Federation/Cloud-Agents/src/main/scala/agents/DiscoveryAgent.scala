@@ -63,7 +63,9 @@ class DiscoveryAgent(cloudConfig: CloudConfigurator,
 	private def sendSubscriptionToFedBroker(cloudSLA: CloudSLA, possibleHostSLAs: Vector[HostSLA] ) = {
 		log.info("Received FederationSLAs from CCFM.")
 
-    val mmaActorOpt = dependentActors.filter(_.isDefined).map(_.get).find(_.path.name == "matchMakingAgent")
+		//See if the MMA Actor is already resolved by the RemoteDependencyAgent:
+		val resolvedMMASelIndex = resolvedActorSelects.find(_._2 == mmaActorSel).map(_._1).getOrElse(-1)
+    val mmaActorOpt = resolvedActorRefs.find(_._1 == resolvedMMASelIndex).map(_._2)
 		
 		mmaActorOpt match{
 		    case Some(mmaActor)	=>
